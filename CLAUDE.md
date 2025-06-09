@@ -44,13 +44,13 @@ screens/GameScreen.tsx     # Main game logic and state management
 
 ### Key Game Systems
 1. **Touch Controls**: Direct responder methods on View component handle tap-to-shoot and drag-to-move
-2. **Game Loop**: Uses setInterval for physics updates (16ms) and enemy spawning (dynamic based on level)
+2. **Game Loop**: Uses `requestAnimationFrame` for 60fps synchronization with screen refresh cycle
 3. **Collision Detection**: AABB collision checking between game objects
-4. **State Management**: Single GameState object containing pete, enemies, projectiles, score, level, gameOver
+4. **State Management**: High-frequency state (positions) stored in `useRef`, low-frequency state (score, level) in `useState`
 5. **Enemy Types**: Three enemy variants with different speeds, appearances, and animations
 6. **Bouncing Physics**: Enemies bounce off walls, floor, and ceiling with gravity and damping
 7. **Splitting Mechanic**: Enemies split into two smaller enemies when hit (3 size levels total)
-8. **Visual Effects**: Animated starfield, glowing projectiles, bouncing enemies, retro HUD styling
+8. **Visual Effects**: Animated starfield synchronized with main game loop, glowing projectiles, bouncing enemies, retro HUD styling
 
 ## Important Technical Details
 
@@ -58,6 +58,8 @@ screens/GameScreen.tsx     # Main game logic and state management
 - **Platform**: Supports iOS, Android, and Web through Expo
 - **React**: Version 19.0.0 with React Native 0.79.3
 - **Touch Handling**: Uses onResponderGrant/onResponderMove instead of PanResponder to avoid synthetic event issues
+- **Performance**: Frame-rate independent physics using deltaTime, optimized state management with useRef for high-frequency updates
+- **Responsive Design**: Uses `useWindowDimensions` for dynamic screen sizing and device rotation support
 
 ## Game Constants
 - Pete size: 40px
@@ -68,6 +70,8 @@ screens/GameScreen.tsx     # Main game logic and state management
 - Bounce damping: 0.8 (20% energy lost per bounce)
 - Score: Size-based (10 pts for large, 20 pts for medium, 30 pts for small)
 - Level up: Every 100 points
+- Split velocities: 150px/s horizontal, 200px/s vertical
+- Move throttle: 32ms for touch position updates
 
 ## Visual Design
 ### Character Appearances
@@ -79,12 +83,28 @@ screens/GameScreen.tsx     # Main game logic and state management
 ### Animations & Effects
 - **Projectiles**: Pulsing scale animation with glow effect and white core
 - **Enemies**: Bouncing motion with gravity, wall/floor collisions, and face features that scale with size
-- **Background**: 50 animated stars scrolling downward at varying speeds
+- **Background**: 50 animated stars scrolling downward synchronized with main game loop using deltaTime
 - **HUD**: Retro-styled with cyan/magenta colors, monospace font, and glow effects
+- **Touch Effects**: Ripple animation on tap with scaling and opacity transitions
 
 ### Enemy Behavior
-- **Spawning**: Enemies spawn at top with random horizontal velocity
-- **Movement**: Bounce off walls, ceiling, and floor with realistic physics
+- **Spawning**: Enemies spawn at top with random horizontal velocity, spawn rate increases with level
+- **Movement**: Bounce off walls, ceiling, and floor with realistic physics using configurable game area height
 - **Splitting**: Large enemies (size 3) → 2 medium enemies → 2 small enemies each
 - **Size Levels**: 3 (largest, splits twice), 2 (medium, splits once), 1 (smallest, no split)
-- **Types**: Basic (red), Fast (orange, 1.5x speed), Strong (purple, 0.7x speed)
+- **Types**: Basic (red), Fast (orange, 1.5x speed, unlocked level 2), Strong (purple, 0.7x speed, unlocked level 3)
+
+## Architecture Notes
+
+### Performance Optimizations
+- **requestAnimationFrame**: Replaces setInterval for smooth 60fps animation synchronized with display refresh
+- **State Management**: High-frequency position data stored in useRef to avoid React re-render overhead
+- **Render Triggers**: Only essential UI state (score, level, gameOver) triggers React renders
+- **Unified Animation Loop**: Single game loop manages all moving elements including starfield
+- **Frame-Rate Independence**: All movement calculations use deltaTime for consistent speed across devices
+
+### Code Quality Improvements
+- **No isMounted Anti-pattern**: Proper useEffect cleanup instead of manual mounting flags
+- **Dynamic Dimensions**: useWindowDimensions for responsive design and device rotation
+- **Configurable Physics**: Game engine parameters passed as arguments instead of hardcoded values
+- **Consistent Timing**: All animations use the same deltaTime source for synchronization

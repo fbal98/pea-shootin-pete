@@ -1,7 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 
 interface Star {
   id: string;
@@ -14,49 +12,51 @@ interface Star {
 
 interface StarfieldProps {
   isPlaying: boolean;
+  deltaTime?: number;
 }
 
-export const Starfield: React.FC<StarfieldProps> = ({ isPlaying }) => {
+export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime = 0 }) => {
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
   const [stars, setStars] = useState<Star[]>([]);
+  const initializedRef = useRef(false);
 
-  const createStar = (y?: number): Star => ({
+  const createStar = useCallback((y?: number): Star => ({
     id: Math.random().toString(),
     x: Math.random() * SCREEN_WIDTH,
     y: y ?? Math.random() * SCREEN_HEIGHT,
     size: Math.random() * 3 + 1,
     speed: Math.random() * 50 + 20,
     opacity: Math.random() * 0.8 + 0.2,
-  });
+  }), [SCREEN_WIDTH, SCREEN_HEIGHT]);
 
   useEffect(() => {
-    // Initialize stars
-    const initialStars: Star[] = [];
-    for (let i = 0; i < 50; i++) {
-      initialStars.push(createStar());
+    if (!initializedRef.current) {
+      // Initialize stars
+      const initialStars: Star[] = [];
+      for (let i = 0; i < 50; i++) {
+        initialStars.push(createStar());
+      }
+      setStars(initialStars);
+      initializedRef.current = true;
     }
-    setStars(initialStars);
-  }, []);
+  }, [SCREEN_WIDTH, SCREEN_HEIGHT, createStar]);
 
   useEffect(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || deltaTime === 0) return;
 
-    const interval = setInterval(() => {
-      setStars(prevStars => {
-        return prevStars.map(star => {
-          const newY = star.y + star.speed * 0.016; // 16ms frame time
-          
-          // Reset star if it goes off screen
-          if (newY > SCREEN_HEIGHT + star.size) {
-            return createStar(-star.size);
-          }
-          
-          return { ...star, y: newY };
-        });
+    setStars(prevStars => {
+      return prevStars.map(star => {
+        const newY = star.y + star.speed * deltaTime;
+        
+        // Reset star if it goes off screen
+        if (newY > SCREEN_HEIGHT + star.size) {
+          return createStar(-star.size);
+        }
+        
+        return { ...star, y: newY };
       });
-    }, 16); // 60fps
-
-    return () => clearInterval(interval);
-  }, [isPlaying]);
+    });
+  }, [isPlaying, deltaTime, SCREEN_HEIGHT, createStar]);
 
   return (
     <View style={styles.container}>

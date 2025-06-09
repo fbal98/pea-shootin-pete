@@ -37,40 +37,61 @@ export default function TabTwoScreen() {
       
       <Collapsible title="Scoring">
         <ThemedText>
-          • Each enemy destroyed: <ThemedText type="defaultSemiBold">10 points</ThemedText>
+          • Large enemies (size 3): <ThemedText type="defaultSemiBold">10 points</ThemedText>
+        </ThemedText>
+        <ThemedText>
+          • Medium enemies (size 2): <ThemedText type="defaultSemiBold">20 points</ThemedText>
+        </ThemedText>
+        <ThemedText>
+          • Small enemies (size 1): <ThemedText type="defaultSemiBold">30 points</ThemedText>
         </ThemedText>
         <ThemedText>
           • Level up every <ThemedText type="defaultSemiBold">100 points</ThemedText>
         </ThemedText>
         <ThemedText>
-          • Higher levels spawn enemies faster
+          • Higher levels spawn enemies faster and unlock new enemy types
         </ThemedText>
       </Collapsible>
       
       <Collapsible title="Game Features">
         <ThemedText>
-          • <ThemedText type="defaultSemiBold">Pete (Green Circle)</ThemedText>: Your character that shoots peas
+          • <ThemedText type="defaultSemiBold">Pete (Yellow Character)</ThemedText>: Your character with antenna who shoots peas upward
         </ThemedText>
         <ThemedText>
-          • <ThemedText type="defaultSemiBold">Enemies (Red Squares)</ThemedText>: Basic enemies that fall from the top
+          • <ThemedText type="defaultSemiBold">Basic Enemies (Red Squares)</ThemedText>: Standard enemies with angry faces that bounce around
         </ThemedText>
         <ThemedText>
-          • <ThemedText type="defaultSemiBold">Projectiles (Light Green)</ThemedText>: Peas that Pete shoots upward
+          • <ThemedText type="defaultSemiBold">Fast Enemies (Orange Diamonds)</ThemedText>: Quick enemies that move 1.5x faster (unlocked at level 2)
+        </ThemedText>
+        <ThemedText>
+          • <ThemedText type="defaultSemiBold">Strong Enemies (Purple Squares)</ThemedText>: Slower but tougher enemies with thick borders (unlocked at level 3)
+        </ThemedText>
+        <ThemedText>
+          • <ThemedText type="defaultSemiBold">Projectiles (Glowing Green Peas)</ThemedText>: Animated peas with pulsing glow effects
+        </ThemedText>
+        <ThemedText>
+          • <ThemedText type="defaultSemiBold">Enemy Splitting</ThemedText>: Large enemies split into smaller ones when hit
         </ThemedText>
       </Collapsible>
       
       <Collapsible title="Tips & Strategies">
         <ThemedText>
-          • Stay mobile - don&apos;t let enemies corner you
+          • Stay mobile - enemies bounce around unpredictably
         </ThemedText>
         <ThemedText>
           • Rapid fire by tapping quickly in different positions
         </ThemedText>
         <ThemedText>
-          • Focus on enemies closest to the bottom first
+          • Target larger enemies first - they split into smaller, faster ones
         </ThemedText>
         <ThemedText>
-          • Plan your shots - projectiles travel in straight lines
+          • Small enemies are worth more points but harder to hit
+        </ThemedText>
+        <ThemedText>
+          • Watch enemy types - orange diamonds are fast, purple squares are slow
+        </ThemedText>
+        <ThemedText>
+          • Plan your shots - projectiles travel in straight lines upward
         </ThemedText>
       </Collapsible>
     </ParallaxScrollView>

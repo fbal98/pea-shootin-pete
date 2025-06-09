@@ -57,11 +57,15 @@ export const GRAVITY = 500; // pixels per second squared
 export const BOUNCE_DAMPING = 0.8; // energy lost on bounce
 export const MIN_BOUNCE_VELOCITY = 50; // minimum velocity to keep bouncing
 
+// Constants for enemy splitting
+export const SPLIT_HORIZONTAL_VELOCITY = 150; // horizontal velocity when enemy splits
+export const SPLIT_VERTICAL_VELOCITY = 200; // upward velocity when enemy splits
+
 export const updateBouncingEnemy = (
   enemy: GameObject,
   deltaTime: number,
   screenWidth: number,
-  screenHeight: number
+  gameAreaHeight: number
 ): GameObject => {
   let newEnemy = { ...enemy };
   
@@ -73,8 +77,8 @@ export const updateBouncingEnemy = (
   newEnemy.y += (newEnemy.velocityY || 0) * deltaTime;
   
   // Bounce off floor
-  if (newEnemy.y + newEnemy.height > screenHeight - 50) { // Leave space for UI
-    newEnemy.y = screenHeight - 50 - newEnemy.height;
+  if (newEnemy.y + newEnemy.height > gameAreaHeight) {
+    newEnemy.y = gameAreaHeight - newEnemy.height;
     newEnemy.velocityY = -Math.abs(newEnemy.velocityY || 0) * BOUNCE_DAMPING;
     
     // Stop tiny bounces
@@ -121,8 +125,8 @@ export const splitEnemy = (enemy: GameObject): GameObject[] => {
     y: enemy.y,
     width: newWidth,
     height: newHeight,
-    velocityX: -150, // Move left
-    velocityY: -200, // Bounce up
+    velocityX: -SPLIT_HORIZONTAL_VELOCITY, // Move left
+    velocityY: -SPLIT_VERTICAL_VELOCITY, // Bounce up
     type: enemy.type,
     sizeLevel: newSize,
   };
@@ -133,8 +137,8 @@ export const splitEnemy = (enemy: GameObject): GameObject[] => {
     y: enemy.y,
     width: newWidth,
     height: newHeight,
-    velocityX: 150, // Move right
-    velocityY: -200, // Bounce up
+    velocityX: SPLIT_HORIZONTAL_VELOCITY, // Move right
+    velocityY: -SPLIT_VERTICAL_VELOCITY, // Bounce up
     type: enemy.type,
     sizeLevel: newSize,
   };

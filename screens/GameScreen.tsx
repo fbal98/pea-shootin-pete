@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   Animated,
+  useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { GestureResponderEvent } from 'react-native';
@@ -24,17 +25,18 @@ import {
   splitEnemy,
 } from '@/utils/gameEngine';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PETE_SIZE = 40;
 const ENEMY_SIZE = 30;
 const PROJECTILE_SIZE = 10;
 const PROJECTILE_SPEED = 300;
 const ENEMY_SPEED = 50;
-const GAME_LOOP_INTERVAL = 16;
 const MOVE_THROTTLE_MS = 32;
 
 export const GameScreen: React.FC = () => {
-  const [gameState, setGameState] = useState<GameState>({
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+  
+  // High-frequency state stored in ref (positions, velocities)
+  const gameStateRef = useRef<GameState>({
     pete: {
       id: 'pete',
       x: SCREEN_WIDTH / 2 - PETE_SIZE / 2,
@@ -49,20 +51,24 @@ export const GameScreen: React.FC = () => {
     level: 1,
   });
 
-  const gameLoopRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
-  const enemySpawnRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
-  const lastUpdateTime = useRef(Date.now());
+  // Low-frequency state for triggering renders
+  const [renderTrigger, setRenderTrigger] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [score, setScore] = useState(0);
+  const [level, setLevel] = useState(1);
+
+  const gameLoopRef = useRef<number | undefined>(undefined);
+  const lastUpdateTime = useRef<number>(0);
+  const lastEnemySpawnTime = useRef<number>(0);
+  const [deltaTime, setDeltaTime] = useState<number>(0);
   
   const rippleAnim = useRef(new Animated.Value(0)).current;
   const rippleOpacity = useRef(new Animated.Value(0)).current;
   const [ripplePosition, setRipplePosition] = useState({ x: 0, y: 0 });
   
-  const isMounted = useRef(true);
   const lastMoveTime = useRef(0);
 
   const showRippleEffect = (x: number, y: number) => {
-    if (!isMounted.current) return;
-    
     setRipplePosition({ x, y });
     
     rippleAnim.setValue(0);
@@ -83,14 +89,14 @@ export const GameScreen: React.FC = () => {
   };
 
   const handleGameTouch = useCallback((x: number, y: number) => {
-    if (!isMounted.current || gameState.gameOver) return;
+    if (gameStateRef.current.gameOver) return;
     
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     
     showRippleEffect(x, y);
     shootProjectile();
     updatePetePosition(x);
-  }, [gameState.gameOver]);
+  }, []);
 
   const handleTouch = (event: GestureResponderEvent) => {
     const { locationX, locationY } = event.nativeEvent;
@@ -107,56 +113,40 @@ export const GameScreen: React.FC = () => {
     if (now - lastMoveTime.current < MOVE_THROTTLE_MS) return;
     lastMoveTime.current = now;
     
-    if (!isMounted.current) return;
+    if (gameStateRef.current.gameOver) return;
     
-    setGameState((prev) => {
-      if (prev.gameOver) return prev;
-      
-      const newX = Math.max(
-        0,
-        Math.min(x - PETE_SIZE / 2, SCREEN_WIDTH - PETE_SIZE)
-      );
-      
-      return {
-        ...prev,
-        pete: {
-          ...prev.pete,
-          x: newX,
-        },
-      };
-    });
-  }, []);
+    const newX = Math.max(
+      0,
+      Math.min(x - PETE_SIZE / 2, SCREEN_WIDTH - PETE_SIZE)
+    );
+    
+    gameStateRef.current.pete.x = newX;
+    setRenderTrigger(prev => prev + 1);
+  }, [SCREEN_WIDTH]);
 
   const shootProjectile = () => {
-    if (!isMounted.current) return;
+    if (gameStateRef.current.gameOver) return;
     
     const projectile: GameObject = {
       id: `projectile-${Date.now()}`,
-      x: gameState.pete.x + PETE_SIZE / 2 - PROJECTILE_SIZE / 2,
-      y: gameState.pete.y,
+      x: gameStateRef.current.pete.x + PETE_SIZE / 2 - PROJECTILE_SIZE / 2,
+      y: gameStateRef.current.pete.y,
       width: PROJECTILE_SIZE,
       height: PROJECTILE_SIZE,
       velocityX: 0,
       velocityY: -PROJECTILE_SPEED,
     };
 
-    setGameState((prev) => {
-      if (!isMounted.current || prev.gameOver) return prev;
-      
-      return {
-        ...prev,
-        projectiles: [...prev.projectiles, projectile],
-      };
-    });
+    gameStateRef.current.projectiles.push(projectile);
   };
 
   const spawnEnemy = () => {
     let type: 'basic' | 'fast' | 'strong' = 'basic';
     const rand = Math.random();
     
-    if (gameState.level >= 3 && rand < 0.2) {
+    if (gameStateRef.current.level >= 3 && rand < 0.2) {
       type = 'strong';
-    } else if (gameState.level >= 2 && rand < 0.4) {
+    } else if (gameStateRef.current.level >= 2 && rand < 0.4) {
       type = 'fast';
     }
 
@@ -176,125 +166,134 @@ export const GameScreen: React.FC = () => {
       sizeLevel,
     };
 
-    setGameState((prev) => ({
-      ...prev,
-      enemies: [...prev.enemies, enemy],
-    }));
+    gameStateRef.current.enemies.push(enemy);
   };
 
-  const gameLoop = () => {
-    const currentTime = Date.now();
-    const deltaTime = (currentTime - lastUpdateTime.current) / 1000;
-    lastUpdateTime.current = currentTime;
+  const gameLoop = useCallback((timestamp: number) => {
+    if (lastUpdateTime.current === 0) {
+      lastUpdateTime.current = timestamp;
+      lastEnemySpawnTime.current = timestamp;
+    }
+    
+    const currentDeltaTime = (timestamp - lastUpdateTime.current) / 1000;
+    lastUpdateTime.current = timestamp;
+    setDeltaTime(currentDeltaTime);
 
-    setGameState((prev) => {
-      if (prev.gameOver) return prev;
+    // Check if game is over
+    if (gameStateRef.current.gameOver) return;
 
-      let newState = { ...prev };
-      let updatedProjectiles = [...prev.projectiles];
-      let updatedEnemies = [...prev.enemies];
+    // Handle enemy spawning based on time
+    const enemySpawnInterval = Math.max(500, 2000 - gameStateRef.current.level * 100);
+    if (timestamp - lastEnemySpawnTime.current > enemySpawnInterval) {
+      lastEnemySpawnTime.current = timestamp;
+      spawnEnemy();
+    }
 
-      updatedProjectiles = updatedProjectiles
-        .map((projectile) => updatePosition(projectile, deltaTime))
-        .filter((projectile) => !isOutOfBounds(projectile, SCREEN_WIDTH, SCREEN_HEIGHT));
+    // Update projectiles
+    gameStateRef.current.projectiles = gameStateRef.current.projectiles
+      .map((projectile) => updatePosition(projectile, currentDeltaTime))
+      .filter((projectile) => !isOutOfBounds(projectile, SCREEN_WIDTH, SCREEN_HEIGHT));
 
-      updatedEnemies = updatedEnemies
-        .map((enemy) => updateBouncingEnemy(enemy, deltaTime, SCREEN_WIDTH, SCREEN_HEIGHT));
+    // Update enemies
+    gameStateRef.current.enemies = gameStateRef.current.enemies
+      .map((enemy) => updateBouncingEnemy(enemy, currentDeltaTime, SCREEN_WIDTH, SCREEN_HEIGHT - 50));
 
-      const remainingProjectiles: GameObject[] = [];
-      const newEnemies: GameObject[] = [];
-      const hitEnemyIds = new Set<string>();
+    // Handle collisions
+    const remainingProjectiles: GameObject[] = [];
+    const newEnemies: GameObject[] = [];
+    const hitEnemyIds = new Set<string>();
+    let scoreChanged = false;
+    let levelChanged = false;
 
-      updatedProjectiles.forEach((projectile) => {
-        let hit = false;
-        updatedEnemies.forEach((enemy) => {
-          if (!hit && checkCollision(projectile, enemy)) {
-            hit = true;
-            hitEnemyIds.add(enemy.id);
-            
-            const points = 10 * (4 - (enemy.sizeLevel || 1));
-            newState.score += points;
-            
-            if (enemy.sizeLevel === 1) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-            } else {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-            }
-            
-            if (newState.score > 0 && newState.score % 100 === 0) {
-              newState.level += 1;
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-            }
-            
-            const splitEnemies = splitEnemy(enemy);
-            newEnemies.push(...splitEnemies);
+    gameStateRef.current.projectiles.forEach((projectile) => {
+      let hit = false;
+      gameStateRef.current.enemies.forEach((enemy) => {
+        if (!hit && checkCollision(projectile, enemy)) {
+          hit = true;
+          hitEnemyIds.add(enemy.id);
+          
+          const points = 10 * (4 - (enemy.sizeLevel || 1));
+          gameStateRef.current.score += points;
+          scoreChanged = true;
+          
+          if (enemy.sizeLevel === 1) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          } else {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
           }
-        });
-        if (!hit) {
-          remainingProjectiles.push(projectile);
+          
+          if (gameStateRef.current.score > 0 && gameStateRef.current.score % 100 === 0) {
+            gameStateRef.current.level += 1;
+            levelChanged = true;
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+          }
+          
+          const splitEnemies = splitEnemy(enemy);
+          newEnemies.push(...splitEnemies);
         }
       });
-
-      const remainingEnemies = updatedEnemies.filter(enemy => !hitEnemyIds.has(enemy.id));
-      remainingEnemies.push(...newEnemies);
-
-      remainingEnemies.forEach((enemy) => {
-        if (checkCollision(enemy, prev.pete)) {
-          newState.gameOver = true;
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-        }
-      });
-
-      return {
-        ...newState,
-        projectiles: remainingProjectiles,
-        enemies: remainingEnemies,
-      };
+      if (!hit) {
+        remainingProjectiles.push(projectile);
+      }
     });
-  };
+
+    // Update enemies array with remaining enemies and new split enemies
+    gameStateRef.current.enemies = gameStateRef.current.enemies
+      .filter(enemy => !hitEnemyIds.has(enemy.id))
+      .concat(newEnemies);
+    gameStateRef.current.projectiles = remainingProjectiles;
+
+    // Check for collisions with Pete
+    gameStateRef.current.enemies.forEach((enemy) => {
+      if (checkCollision(enemy, gameStateRef.current.pete)) {
+        gameStateRef.current.gameOver = true;
+        setGameOver(true);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      }
+    });
+
+    // Update React state only when necessary
+    if (scoreChanged) {
+      setScore(gameStateRef.current.score);
+    }
+    if (levelChanged) {
+      setLevel(gameStateRef.current.level);
+    }
+
+    // Trigger render for position updates
+    setRenderTrigger(prev => prev + 1);
+
+    // Continue the animation loop if game is not over
+    if (!gameStateRef.current.gameOver) {
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
+    }
+  }, [SCREEN_WIDTH, SCREEN_HEIGHT]);
 
   useEffect(() => {
-    if (!gameState.gameOver && isMounted.current) {
-      gameLoopRef.current = setInterval(gameLoop, GAME_LOOP_INTERVAL);
-      enemySpawnRef.current = setInterval(spawnEnemy, Math.max(500, 2000 - gameState.level * 100));
+    if (!gameOver) {
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
     } else {
       if (gameLoopRef.current) {
-        clearInterval(gameLoopRef.current);
+        cancelAnimationFrame(gameLoopRef.current);
         gameLoopRef.current = undefined;
-      }
-      if (enemySpawnRef.current) {
-        clearInterval(enemySpawnRef.current);
-        enemySpawnRef.current = undefined;
       }
     }
 
     return () => {
       if (gameLoopRef.current) {
-        clearInterval(gameLoopRef.current);
+        cancelAnimationFrame(gameLoopRef.current);
         gameLoopRef.current = undefined;
       }
-      if (enemySpawnRef.current) {
-        clearInterval(enemySpawnRef.current);
-        enemySpawnRef.current = undefined;
-      }
     };
-  }, [gameState.gameOver, gameState.level]);
+  }, [gameOver, gameLoop]);
 
-  useEffect(() => {
-    return () => {
-      isMounted.current = false;
-      
-      if (gameLoopRef.current) {
-        clearInterval(gameLoopRef.current);
-      }
-      if (enemySpawnRef.current) {
-        clearInterval(enemySpawnRef.current);
-      }
-    };
-  }, []);
 
   const resetGame = () => {
-    setGameState({
+    lastUpdateTime.current = 0;
+    lastEnemySpawnTime.current = 0;
+    
+    // Reset ref state
+    gameStateRef.current = {
       pete: {
         id: 'pete',
         x: SCREEN_WIDTH / 2 - PETE_SIZE / 2,
@@ -307,16 +306,22 @@ export const GameScreen: React.FC = () => {
       score: 0,
       gameOver: false,
       level: 1,
-    });
+    };
+    
+    // Reset React state
+    setGameOver(false);
+    setScore(0);
+    setLevel(1);
+    setRenderTrigger(0);
   };
 
   const renderGameContent = () => (
     <>
-      <Starfield isPlaying={!gameState.gameOver} />
+      <Starfield isPlaying={!gameOver} deltaTime={deltaTime} />
       
       <View style={styles.header}>
-        <Text style={styles.scoreText}>Score: {gameState.score}</Text>
-        <Text style={styles.levelText}>Level: {gameState.level}</Text>
+        <Text style={styles.scoreText}>Score: {score}</Text>
+        <Text style={styles.levelText}>Level: {level}</Text>
       </View>
 
       <Animated.View
@@ -339,12 +344,12 @@ export const GameScreen: React.FC = () => {
       />
 
       <Pete
-        x={gameState.pete.x}
-        y={gameState.pete.y}
+        x={gameStateRef.current.pete.x}
+        y={gameStateRef.current.pete.y}
         size={PETE_SIZE}
       />
 
-      {gameState.enemies.map((enemy) => (
+      {gameStateRef.current.enemies.map((enemy) => (
         <Enemy
           key={enemy.id}
           x={enemy.x}
@@ -355,7 +360,7 @@ export const GameScreen: React.FC = () => {
         />
       ))}
 
-      {gameState.projectiles.map((projectile) => (
+      {gameStateRef.current.projectiles.map((projectile) => (
         <Projectile
           key={projectile.id}
           x={projectile.x}
@@ -364,10 +369,10 @@ export const GameScreen: React.FC = () => {
         />
       ))}
 
-      {gameState.gameOver && (
+      {gameOver && (
         <View style={styles.gameOverContainer}>
           <Text style={styles.gameOverText}>Game Over!</Text>
-          <Text style={styles.finalScoreText}>Final Score: {gameState.score}</Text>
+          <Text style={styles.finalScoreText}>Final Score: {score}</Text>
           <TouchableOpacity style={styles.restartButton} onPress={resetGame}>
             <Text style={styles.restartButtonText}>Play Again</Text>
           </TouchableOpacity>
