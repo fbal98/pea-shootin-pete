@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm start)",
+      "mcp__context7__resolve-library-id",
+      "mcp__brave__brave_web_search",
+      "Bash(npm run lint)",
+      "Bash(npx tsc:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:www.mobygames.com)",
+      "WebFetch(domain:playclassic.games)",
+      "Bash(npx expo install:*)",
+      "Bash(npm start:*)",
+      "Bash(grep:*)",
+      "Bash(rm:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
