@@ -56,12 +56,8 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <View style={styles.container}>
           <Text style={styles.title}>Game Crashed!</Text>
-          <Text style={styles.errorText}>
-            {this.state.error && this.state.error.toString()}
-          </Text>
-          <Text style={styles.stackText}>
-            {this.state.error && this.state.error.stack}
-          </Text>
+          <Text style={styles.errorText}>{this.state.error && this.state.error.toString()}</Text>
+          <Text style={styles.stackText}>{this.state.error && this.state.error.stack}</Text>
           <TouchableOpacity style={styles.button} onPress={this.handleReload}>
             <Text style={styles.buttonText}>Reload Game</Text>
           </TouchableOpacity>

@@ -71,7 +71,7 @@ screens/GameScreen.tsx     # Main game logic and state management
 - Score: Size-based (10 pts for large, 20 pts for medium, 30 pts for small)
 - Level up: Every 100 points
 - Split velocities: 150px/s horizontal, 200px/s vertical
-- Move throttle: 32ms for touch position updates
+- Pete move throttle: 16ms for smooth touch position updates (~60fps)
 
 ## Visual Design
 ### Character Appearances
@@ -85,7 +85,7 @@ screens/GameScreen.tsx     # Main game logic and state management
 - **Enemies**: Bouncing motion with gravity, wall/floor collisions, and face features that scale with size
 - **Background**: 50 animated stars scrolling downward synchronized with main game loop using deltaTime
 - **HUD**: Retro-styled with cyan/magenta colors, monospace font, and glow effects
-- **Touch Effects**: Ripple animation on tap with scaling and opacity transitions
+- **Touch Effects**: Ripple animation on tap with eased scaling (quad) and opacity (cubic) transitions
 
 ### Enemy Behavior
 - **Spawning**: Enemies spawn at top with random horizontal velocity, spawn rate increases with level

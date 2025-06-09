@@ -13,7 +13,13 @@
       "Bash(npm start:*)",
       "Bash(grep:*)",
       "Bash(rm:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:medium.com)",
+      "Bash(npm run validate:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run format:*)"
     ],
     "deny": []
   }

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
+import { GAME_CONFIG } from '@/constants/GameConfig';
+import { safeAnimation, ErrorLogger } from '@/utils/errorLogger';
 
 interface ProjectileProps {
   x: number;
@@ -10,44 +12,85 @@ interface ProjectileProps {
 export const Projectile: React.FC<ProjectileProps> = ({ x, y, size }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0.7)).current;
+  const animationsRef = useRef<{
+    pulse?: Animated.CompositeAnimation;
+    glow?: Animated.CompositeAnimation;
+  }>({});
 
   useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1.3,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ])
-    );
+    try {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.3,
+            duration: GAME_CONFIG.PROJECTILE_PULSE_DURATION,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: GAME_CONFIG.PROJECTILE_PULSE_DURATION,
+            useNativeDriver: true,
+          }),
+        ])
+      );
 
-    const glow = Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(glowAnim, {
-          toValue: 0.7,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ])
-    );
+      const glow = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, {
+            toValue: 1,
+            duration: GAME_CONFIG.PROJECTILE_GLOW_DURATION,
+            useNativeDriver: true,
+          }),
+          Animated.timing(glowAnim, {
+            toValue: 0.7,
+            duration: GAME_CONFIG.PROJECTILE_GLOW_DURATION,
+            useNativeDriver: true,
+          }),
+        ])
+      );
 
-    pulse.start();
-    glow.start();
+      // Store references for proper cleanup
+      animationsRef.current = { pulse, glow };
+
+      safeAnimation(
+        () => {
+          pulse.start();
+          glow.start();
+        },
+        'Projectile',
+        'start_animations'
+      );
+    } catch (error) {
+      ErrorLogger.logAnimationError(
+        error instanceof Error ? error : new Error(String(error)),
+        'Projectile',
+        'setup'
+      );
+    }
 
     return () => {
-      pulse.stop();
-      glow.stop();
+      try {
+        // Properly stop all animations
+        if (animationsRef.current.pulse) {
+          animationsRef.current.pulse.stop();
+        }
+        if (animationsRef.current.glow) {
+          animationsRef.current.glow.stop();
+        }
+
+        // Reset animation values to prevent memory leaks
+        scaleAnim.setValue(1);
+        glowAnim.setValue(0.7);
+
+        // Clear references
+        animationsRef.current = {};
+      } catch (error) {
+        ErrorLogger.logAnimationError(
+          error instanceof Error ? error : new Error(String(error)),
+          'Projectile',
+          'cleanup'
+        );
+      }
     };
   }, [scaleAnim, glowAnim]);
 
@@ -60,6 +103,10 @@ export const Projectile: React.FC<ProjectileProps> = ({ x, y, size }) => {
         width: size,
         height: size,
       }}
+      accessible={true}
+      accessibilityRole="image"
+      accessibilityLabel="Pea projectile"
+      accessibilityHint="Glowing green pea moving upward"
     >
       <Animated.View
         style={[

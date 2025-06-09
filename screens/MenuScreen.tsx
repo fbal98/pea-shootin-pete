@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -18,7 +12,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     <View style={styles.container}>
       <Text style={styles.title}>Pea Shootin&apos; Pete</Text>
       <Text style={styles.subtitle}>Defend against the invaders!</Text>
-      
+
       <View style={styles.instructions}>
         <Text style={styles.instructionText}>How to Play:</Text>
         <Text style={styles.instructionText}>• Touch to shoot peas</Text>
@@ -26,7 +20,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
         <Text style={styles.instructionText}>• Don&apos;t let enemies reach the bottom!</Text>
       </View>
 
-      <TouchableOpacity style={styles.playButton} onPress={onStartGame}>
+      <TouchableOpacity
+        style={styles.playButton}
+        onPress={onStartGame}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel="Play Game"
+        accessibilityHint="Start playing Pea Shootin' Pete"
+      >
         <Text style={styles.playButtonText}>Play Game</Text>
       </TouchableOpacity>
     </View>

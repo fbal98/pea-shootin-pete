@@ -1,3 +1,5 @@
+import { nanoid } from 'nanoid/non-secure';
+
 export interface GameObject {
   id: string;
   x: number;
@@ -28,10 +30,7 @@ export const checkCollision = (obj1: GameObject, obj2: GameObject): boolean => {
   );
 };
 
-export const updatePosition = (
-  obj: GameObject,
-  deltaTime: number
-): GameObject => {
+export const updatePosition = (obj: GameObject, deltaTime: number): GameObject => {
   return {
     ...obj,
     x: obj.x + (obj.velocityX || 0) * deltaTime,
@@ -45,10 +44,7 @@ export const isOutOfBounds = (
   screenHeight: number
 ): boolean => {
   return (
-    obj.x + obj.width < 0 ||
-    obj.x > screenWidth ||
-    obj.y + obj.height < 0 ||
-    obj.y > screenHeight
+    obj.x + obj.width < 0 || obj.x > screenWidth || obj.y + obj.height < 0 || obj.y > screenHeight
   );
 };
 
@@ -61,6 +57,9 @@ export const MIN_BOUNCE_VELOCITY = 50; // minimum velocity to keep bouncing
 export const SPLIT_HORIZONTAL_VELOCITY = 150; // horizontal velocity when enemy splits
 export const SPLIT_VERTICAL_VELOCITY = 200; // upward velocity when enemy splits
 
+// UI Constants
+export const HUD_HEIGHT = 50; // Height reserved for HUD at bottom
+
 export const updateBouncingEnemy = (
   enemy: GameObject,
   deltaTime: number,
@@ -68,25 +67,25 @@ export const updateBouncingEnemy = (
   gameAreaHeight: number
 ): GameObject => {
   let newEnemy = { ...enemy };
-  
+
   // Apply gravity
   newEnemy.velocityY = (newEnemy.velocityY || 0) + GRAVITY * deltaTime;
-  
+
   // Update position
   newEnemy.x += (newEnemy.velocityX || 0) * deltaTime;
   newEnemy.y += (newEnemy.velocityY || 0) * deltaTime;
-  
+
   // Bounce off floor
   if (newEnemy.y + newEnemy.height > gameAreaHeight) {
     newEnemy.y = gameAreaHeight - newEnemy.height;
     newEnemy.velocityY = -Math.abs(newEnemy.velocityY || 0) * BOUNCE_DAMPING;
-    
+
     // Stop tiny bounces
     if (Math.abs(newEnemy.velocityY || 0) < MIN_BOUNCE_VELOCITY) {
       newEnemy.velocityY = -MIN_BOUNCE_VELOCITY;
     }
   }
-  
+
   // Bounce off walls
   if (newEnemy.x <= 0) {
     newEnemy.x = 0;
@@ -95,13 +94,13 @@ export const updateBouncingEnemy = (
     newEnemy.x = screenWidth - newEnemy.width;
     newEnemy.velocityX = -Math.abs(newEnemy.velocityX || 0);
   }
-  
+
   // Bounce off ceiling
   if (newEnemy.y <= 0) {
     newEnemy.y = 0;
     newEnemy.velocityY = Math.abs(newEnemy.velocityY || 0);
   }
-  
+
   return newEnemy;
 };
 
@@ -109,18 +108,14 @@ export const splitEnemy = (enemy: GameObject): GameObject[] => {
   if (!enemy.sizeLevel || enemy.sizeLevel <= 1) {
     return []; // Smallest size, don't split
   }
-  
+
   const newSize = enemy.sizeLevel - 1;
   const newWidth = enemy.width * 0.7; // Smaller enemies are 70% the size
   const newHeight = enemy.height * 0.7;
-  
+
   // Create two smaller enemies with opposite horizontal velocities
-  const timestamp = Date.now();
-  const random1 = Math.random().toString(36).substr(2, 9);
-  const random2 = Math.random().toString(36).substr(2, 9);
-  
   const enemy1: GameObject = {
-    id: `${enemy.id}-split1-${timestamp}-${random1}`,
+    id: `${enemy.id}-split1-${nanoid(8)}`,
     x: enemy.x - newWidth / 4,
     y: enemy.y,
     width: newWidth,
@@ -130,9 +125,9 @@ export const splitEnemy = (enemy: GameObject): GameObject[] => {
     type: enemy.type,
     sizeLevel: newSize,
   };
-  
+
   const enemy2: GameObject = {
-    id: `${enemy.id}-split2-${timestamp}-${random2}`,
+    id: `${enemy.id}-split2-${nanoid(8)}`,
     x: enemy.x + enemy.width - newWidth * 0.75,
     y: enemy.y,
     width: newWidth,
@@ -142,6 +137,6 @@ export const splitEnemy = (enemy: GameObject): GameObject[] => {
     type: enemy.type,
     sizeLevel: newSize,
   };
-  
+
   return [enemy1, enemy2];
 };

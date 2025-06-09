@@ -8,6 +8,9 @@ interface PeteProps {
 }
 
 export const Pete: React.FC<PeteProps> = ({ x, y, size }) => {
+  const eyeSize = size * 0.2; // Eyes scale with Pete's size
+  const eyeOffset = size * 0.25 - eyeSize / 2; // Center the eyes properly
+
   return (
     <View
       style={[
@@ -19,17 +22,41 @@ export const Pete: React.FC<PeteProps> = ({ x, y, size }) => {
           height: size,
         },
       ]}
+      accessible={true}
+      accessibilityRole="image"
+      accessibilityLabel="Pete, the main character"
+      accessibilityHint="Yellow character with antenna that shoots peas"
     >
       {/* Eyes */}
-      <View style={[styles.eye, { left: size * 0.25 - 4 }]} />
-      <View style={[styles.eye, { right: size * 0.25 - 4 }]} />
-      
+      <View
+        style={[
+          styles.eye,
+          {
+            left: eyeOffset,
+            width: eyeSize,
+            height: eyeSize,
+            borderRadius: eyeSize / 2,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.eye,
+          {
+            right: eyeOffset,
+            width: eyeSize,
+            height: eyeSize,
+            borderRadius: eyeSize / 2,
+          },
+        ]}
+      />
+
       {/* Mouth */}
       <View style={styles.mouth} />
-      
+
       {/* Antenna */}
-      <View style={styles.antennaStick} />
-      <View style={styles.antennaTop} />
+      <View style={[styles.antennaStick, { height: size * 0.375 }]} />
+      <View style={[styles.antennaTop, { top: -(size * 0.5) }]} />
     </View>
   );
 };
@@ -45,10 +72,7 @@ const styles = StyleSheet.create({
   },
   eye: {
     position: 'absolute',
-    width: 8,
-    height: 8,
     backgroundColor: '#000',
-    borderRadius: 4,
     top: '30%',
   },
   mouth: {
@@ -63,7 +87,6 @@ const styles = StyleSheet.create({
   antennaStick: {
     position: 'absolute',
     width: 2,
-    height: 15,
     backgroundColor: '#333',
     top: -15,
     left: '50%',
@@ -75,7 +98,6 @@ const styles = StyleSheet.create({
     height: 8,
     backgroundColor: '#FF0000',
     borderRadius: 4,
-    top: -20,
     left: '50%',
     marginLeft: -4,
   },
