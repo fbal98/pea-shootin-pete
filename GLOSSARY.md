@@ -6,6 +6,7 @@ A comprehensive reference guide to all game-specific terms, concepts, mechanics,
 
 - [Core Game Concepts](#core-game-concepts)
 - [Game Components](#game-components)
+- [Arcade UI System](#arcade-ui-system)
 - [Physics & Game Mechanics](#physics--game-mechanics)
 - [Touch Input System](#touch-input-system)
 - [Visual Effects & Animations](#visual-effects--animations)
@@ -65,7 +66,48 @@ Projectile rendering component in `components/game/Projectile.tsx`. Displays pea
 Background animation component in `components/game/Starfield.tsx`. Manages animated star field with multiple depth layers and scrolling effects.
 
 ### MenuScreen
-Menu/start screen component in `screens/MenuScreen.tsx` for game navigation and initial UI.
+Arcade-styled menu/start screen component in `screens/MenuScreen.tsx`. Features animated title with multi-color text, neon navigation buttons (START GAME, HOW TO PLAY, SETTINGS), and animated starfield background. Uses elastic entrance animations and hot pink/electric blue color scheme.
+
+---
+
+## Arcade UI System
+
+### ArcadeColors
+Neon color palette defined in `constants/ArcadeColors.ts`:
+- **Hot Pink (#FF1493)**: Primary accent color for buttons and highlights
+- **Electric Blue (#00FFFF)**: Secondary accent color for text and effects
+- **Lime Green (#00FF00)**: Success states and special elements
+- **Yellow (#FFFF00)**: Warning states and secondary highlights
+- **Deep Black (#000000)**: Background color for maximum contrast
+- **Glow Effects**: Semi-transparent versions for shadow/glow effects
+
+### ArcadeButton
+Neon-styled button component in `components/arcade/ArcadeButton.tsx`. Features:
+- Rectangular design with white borders and no border radius
+- Platform-specific glow effects (shadow on iOS, elevation on Android)
+- Size variants: small, medium, large
+- Color variants: primary (hot pink), secondary (electric blue)
+- Uppercase text with letter spacing and monospace fonts
+
+### ArcadeText
+Stylized text component in `components/arcade/ArcadeText.tsx` for titles and headings:
+- Multi-color text support with individual character styling
+- Glow shadow effects and letter spacing
+- Monospace typography (Courier-Bold on iOS)
+- Animation support for entrance effects
+
+### ArcadeContainer
+Container component in `components/arcade/ArcadeContainer.tsx`:
+- Neon border styling consistent with arcade theme
+- Background overlays with transparency
+- Consistent padding and margin spacing
+
+### LED Display System
+Digital-style number formatting used throughout UI:
+- Zero-padded displays (e.g., "00042" for score of 42)
+- Monospace font rendering for consistent character width
+- Neon glow effects around numbers
+- Used in HUD, Game Over screen, and score displays
 
 ---
 
@@ -137,6 +179,19 @@ Visual effect applied to projectiles creating a bright, glowing appearance with 
 
 ### Animation Timing
 Synchronized animation system where all effects use the same deltaTime source for consistent timing across all visual elements.
+
+### Arcade Menu Animations
+Entrance animations for the arcade-style menu system:
+- **Title Animation**: Elastic entrance with scale transformation from 0.8 to 1.0
+- **Button Fade-In**: Staggered opacity transitions with 600ms delay
+- **Continuous Glow**: Persistent shadow/glow effects on all UI elements
+- **Spring Animation**: Game Over screen uses spring physics for dramatic entrance
+
+### LED Number Animation
+Digital display effects for score and level indicators:
+- **Zero Padding**: Consistent character width with leading zeros
+- **Glow Pulsing**: Subtle brightness variations to simulate LED behavior
+- **Color Transitions**: Smooth color changes during level progression
 
 ---
 

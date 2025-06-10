@@ -38,6 +38,12 @@ export const updatePosition = (obj: GameObject, deltaTime: number): GameObject =
   };
 };
 
+// In-place version for performance (no new objects created)
+export const updatePositionInPlace = (obj: GameObject, deltaTime: number): void => {
+  obj.x += (obj.velocityX || 0) * deltaTime;
+  obj.y += (obj.velocityY || 0) * deltaTime;
+};
+
 export const isOutOfBounds = (
   obj: GameObject,
   screenWidth: number,
@@ -64,7 +70,7 @@ export const updateBouncingEnemy = (
   enemy: GameObject,
   deltaTime: number,
   screenWidth: number,
-  gameAreaHeight: number
+  gameAreaBottom: number
 ): GameObject => {
   let newEnemy = { ...enemy };
 
@@ -75,9 +81,25 @@ export const updateBouncingEnemy = (
   newEnemy.x += (newEnemy.velocityX || 0) * deltaTime;
   newEnemy.y += (newEnemy.velocityY || 0) * deltaTime;
 
+  // Debug logging (remove in production)
+  if (__DEV__ && Math.random() < 0.02) { // Log 2% of the time
+    console.log('Enemy physics:', {
+      id: enemy.id.substring(0, 8),
+      oldY: enemy.y,
+      newY: newEnemy.y,
+      deltaY: newEnemy.y - enemy.y,
+      oldVelocityY: enemy.velocityY || 0,
+      newVelocityY: newEnemy.velocityY,
+      gravityApplied: GRAVITY * deltaTime,
+      deltaTime,
+      gameAreaBottom,
+      willBounce: newEnemy.y + newEnemy.height > gameAreaBottom
+    });
+  }
+
   // Bounce off floor
-  if (newEnemy.y + newEnemy.height > gameAreaHeight) {
-    newEnemy.y = gameAreaHeight - newEnemy.height;
+  if (newEnemy.y + newEnemy.height > gameAreaBottom) {
+    newEnemy.y = gameAreaBottom - newEnemy.height;
     newEnemy.velocityY = -Math.abs(newEnemy.velocityY || 0) * BOUNCE_DAMPING;
 
     // Stop tiny bounces
@@ -102,6 +124,47 @@ export const updateBouncingEnemy = (
   }
 
   return newEnemy;
+};
+
+// In-place version for performance (no new objects created)
+export const updateBouncingEnemyInPlace = (
+  enemy: GameObject,
+  deltaTime: number,
+  screenWidth: number,
+  gameAreaBottom: number
+): void => {
+  // Apply gravity
+  enemy.velocityY = (enemy.velocityY || 0) + GRAVITY * deltaTime;
+
+  // Update position
+  enemy.x += (enemy.velocityX || 0) * deltaTime;
+  enemy.y += (enemy.velocityY || 0) * deltaTime;
+
+  // Bounce off floor
+  if (enemy.y + enemy.height > gameAreaBottom) {
+    enemy.y = gameAreaBottom - enemy.height;
+    enemy.velocityY = -Math.abs(enemy.velocityY || 0) * BOUNCE_DAMPING;
+
+    // Stop tiny bounces
+    if (Math.abs(enemy.velocityY || 0) < MIN_BOUNCE_VELOCITY) {
+      enemy.velocityY = -MIN_BOUNCE_VELOCITY;
+    }
+  }
+
+  // Bounce off walls
+  if (enemy.x <= 0) {
+    enemy.x = 0;
+    enemy.velocityX = Math.abs(enemy.velocityX || 0);
+  } else if (enemy.x + enemy.width >= screenWidth) {
+    enemy.x = screenWidth - enemy.width;
+    enemy.velocityX = -Math.abs(enemy.velocityX || 0);
+  }
+
+  // Bounce off ceiling
+  if (enemy.y <= 0) {
+    enemy.y = 0;
+    enemy.velocityY = Math.abs(enemy.velocityY || 0);
+  }
 };
 
 export const splitEnemy = (enemy: GameObject): GameObject[] => {

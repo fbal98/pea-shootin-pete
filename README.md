@@ -1,6 +1,8 @@
 # Pea Shootin' Pete 🟢
 
-A React Native mobile arcade game built with Expo - a modern remaster of the 1994 DOS classic. Control Pete as he defends against bouncing balloon-like enemies that split when hit!
+A React Native mobile arcade game built with Expo - a modern remaster of the 1994 DOS classic with full **arcade-style neon UI**. Control Pete as he defends against bouncing balloon-like enemies that split when hit!
+
+🎨 **New in v2.0**: Complete arcade-style visual overhaul with hot pink/electric blue neon colors, LED-style displays, animated menus, and simplified navigation.
 
 ![React Native](https://img.shields.io/badge/React_Native-0.79.3-blue)
 ![Expo](https://img.shields.io/badge/Expo-53.0.10-black)
@@ -9,6 +11,14 @@ A React Native mobile arcade game built with Expo - a modern remaster of the 199
 
 ## 🎮 Game Features
 
+### Arcade-Style UI & Visual Design
+- **Neon Color Scheme**: Hot pink (#FF1493) and electric blue (#00FFFF) primary colors
+- **LED-Style Displays**: Zero-padded score displays (e.g., "00042") with glow effects  
+- **Animated Menu**: Multi-color title with elastic entrance animations
+- **Arcade Buttons**: Rectangular neon buttons with glow effects and uppercase text
+- **Retro Typography**: Monospace fonts (Courier-Bold) with letter spacing
+
+### Game Mechanics
 - **Touch Controls**: Tap to shoot, drag to move Pete
 - **Enemy Types**: Three enemy variants with unique behaviors
   - Basic (Red): Standard speed
@@ -64,8 +74,8 @@ npm run web
 ### Project Structure
 ```
 pea-shootin-pete/
-├── app/                    # Expo Router navigation
-│   ├── (tabs)/            # Tab-based navigation
+├── app/                    # Expo Router navigation (Slot routing)
+│   ├── index.tsx          # Main entry point (MenuScreen ↔ GameScreen)
 │   └── _layout.tsx        # Root layout with error boundary
 ├── components/            
 │   ├── game/              # Game-specific components
@@ -73,10 +83,15 @@ pea-shootin-pete/
 │   │   ├── Enemy.tsx      # Enemy entities
 │   │   ├── Projectile.tsx # Pea projectiles
 │   │   └── Starfield.tsx  # Background animation
+│   ├── arcade/            # Arcade UI components (NEW)
+│   │   ├── ArcadeButton.tsx    # Neon-styled buttons
+│   │   ├── ArcadeText.tsx      # Multi-color animated text
+│   │   ├── ArcadeContainer.tsx # Styled containers
+│   │   └── index.ts            # Component exports
 │   └── GameErrorBoundary.tsx # Game-specific error handling
 ├── screens/
-│   ├── GameScreen.tsx     # Main game view
-│   └── MenuScreen.tsx     # Start menu
+│   ├── GameScreen.tsx     # Main game view with arcade HUD
+│   └── MenuScreen.tsx     # Arcade-styled start menu
 ├── hooks/
 │   ├── useGameLogic.ts    # Core game loop and mechanics
 │   └── useGameInput.ts    # Touch input handling
@@ -90,7 +105,8 @@ pea-shootin-pete/
 │   ├── errorLogger.ts     # Error tracking
 │   └── PerformanceMonitor.ts # FPS monitoring
 └── constants/
-    └── GameConfig.ts      # Game configuration
+    ├── GameConfig.ts      # Game configuration
+    └── ArcadeColors.ts    # Neon color palette (NEW)
 
 ```
 
@@ -225,11 +241,26 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Expo team for the excellent framework
 - React Native community for tools and libraries
 
-## 🐛 Known Issues
+## 🐛 Known Issues & Recent Fixes
 
-- Web platform has limited haptic feedback support
-- Starfield animation may stutter on low-end devices
-- Audio system not yet implemented
+### Recently Fixed (v2.0)
+- ✅ **Pete Positioning**: Fixed Pete appearing off-screen (Y offset corrected from -80 to -10)
+- ✅ **Component Layering**: Game Over screen and HUD now properly overlay game area
+- ✅ **Navigation System**: Removed tab navigation for cleaner arcade experience
+- ✅ **UI Overhaul**: Complete arcade-style transformation with neon colors
+
+### Current Known Issues
+- ⚠️ **Memory Leaks**: Object pool system has memory leaks during enemy splitting (high priority)
+- ⚠️ **Game Loop Race Conditions**: Multiple animation loops may run simultaneously
+- ⚠️ **Performance**: Excessive re-renders on high enemy counts
+- 🌐 **Web Platform**: Limited haptic feedback support
+- 📱 **Low-end Devices**: Starfield animation may stutter
+- 🔊 **Audio**: Sound system not yet implemented
+
+### Performance Monitoring
+- Real-time FPS counter available in development builds
+- Memory usage tracking for object pools
+- Frame time monitoring for optimization
 
 ## 📮 Contact
 

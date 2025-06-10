@@ -24,7 +24,23 @@
       "Bash(kill:*)",
       "Bash(rg:*)",
       "Bash(curl:*)",
-      "Bash(node test-store.js)"
+      "Bash(node test-store.js)",
+      "Bash(true)",
+      "Bash(npm run web:*)",
+      "Bash(git checkout:*)",
+      "Bash(pkill:*)",
+      "Bash(node:*)",
+      "Bash(npm run lint:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(npm run ios:*)",
+      "Bash(open:*)",
+      "Bash(xcrun simctl install:*)",
+      "Bash(EXPO_USE_FAST_REFRESH=false npx expo start --ios --non-interactive)",
+      "Bash(CI=1 npx expo start --ios)",
+      "Bash(xcrun simctl openurl:*)",
+      "Bash(xcrun simctl io:*)",
+      "Bash(pkill:*)"
     ],
     "deny": []
   }

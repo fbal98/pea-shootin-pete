@@ -29,6 +29,8 @@ export class PerformanceMonitor {
   private config: PerformanceConfig;
   private listeners: Array<(metrics: PerformanceMetrics) => void> = [];
   private isRunning = false;
+  private lastNotificationTime = 0;
+  private notificationThrottle = 250; // Throttle notifications to ~4 times per second
 
   private constructor(config: Partial<PerformanceConfig> = {}) {
     this.config = {
@@ -55,6 +57,7 @@ export class PerformanceMonitor {
 
     this.isRunning = true;
     this.lastFrameTime = performance.now();
+    this.lastNotificationTime = performance.now();
     this.frameTimes = [];
     this.totalFrames = 0;
     this.droppedFrames = 0;
@@ -103,16 +106,20 @@ export class PerformanceMonitor {
       this.droppedFrames++;
     }
 
-    // Notify listeners with current metrics
-    const metrics = this.getMetrics();
-    this.notifyListeners(metrics);
+    // Throttle notifications to prevent excessive React re-renders
+    const now = performance.now();
+    if (now - this.lastNotificationTime >= this.notificationThrottle) {
+      const metrics = this.getMetrics();
+      this.notifyListeners(metrics);
+      this.lastNotificationTime = now;
 
-    // Log warnings for poor performance
-    if (this.config.enableLogging) {
-      if (metrics.fps < this.config.criticalThreshold) {
-        console.warn('🔴 Critical FPS drop:', metrics.fps.toFixed(1), 'fps');
-      } else if (metrics.fps < this.config.warningThreshold) {
-        console.warn('🟡 FPS warning:', metrics.fps.toFixed(1), 'fps');
+      // Log warnings for poor performance
+      if (this.config.enableLogging) {
+        if (metrics.fps < this.config.criticalThreshold) {
+          console.warn('🔴 Critical FPS drop:', metrics.fps.toFixed(1), 'fps');
+        } else if (metrics.fps < this.config.warningThreshold) {
+          console.warn('🟡 FPS warning:', metrics.fps.toFixed(1), 'fps');
+        }
       }
     }
   }
@@ -194,6 +201,7 @@ export class PerformanceMonitor {
     this.totalFrames = 0;
     this.droppedFrames = 0;
     this.lastFrameTime = performance.now();
+    this.lastNotificationTime = performance.now();
   }
 
   private notifyListeners(metrics: PerformanceMetrics): void {

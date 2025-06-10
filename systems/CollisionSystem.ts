@@ -1,5 +1,6 @@
 import { GameObject } from '@/utils/gameEngine';
 import { GAME_CONFIG } from '@/constants/GameConfig';
+import { GameObjectPools } from '@/utils/ObjectPool';
 
 export interface CollisionEvent {
   type: 'projectile-enemy' | 'enemy-pete';
@@ -36,7 +37,8 @@ export class CollisionSystem {
   static processCollisions(
     projectiles: GameObject[],
     enemies: GameObject[],
-    pete: GameObject
+    pete: GameObject,
+    objectPools: GameObjectPools
   ): CollisionResult {
     const result: CollisionResult = {
       events: [],
@@ -48,7 +50,7 @@ export class CollisionSystem {
     };
 
     // Check projectile-enemy collisions
-    this.processProjectileEnemyCollisions(projectiles, enemies, result);
+    this.processProjectileEnemyCollisions(projectiles, enemies, result, objectPools);
 
     // Check enemy-pete collisions
     this.processEnemyPeteCollisions(enemies, pete, result);
@@ -62,7 +64,8 @@ export class CollisionSystem {
   private static processProjectileEnemyCollisions(
     projectiles: GameObject[],
     enemies: GameObject[],
-    result: CollisionResult
+    result: CollisionResult,
+    objectPools: GameObjectPools
   ): void {
     for (const projectile of projectiles) {
       if (result.hitProjectileIds.has(projectile.id)) continue;
@@ -87,7 +90,7 @@ export class CollisionSystem {
           result.scoreIncrease += points;
 
           // Handle enemy splitting
-          const splitEnemies = this.splitEnemy(enemy);
+          const splitEnemies = this.splitEnemy(enemy, objectPools);
           result.splitEnemies.push(...splitEnemies);
 
           // Only one collision per projectile
@@ -138,7 +141,7 @@ export class CollisionSystem {
   /**
    * Split an enemy into smaller enemies if possible
    */
-  private static splitEnemy(enemy: GameObject): GameObject[] {
+  private static splitEnemy(enemy: GameObject, objectPools: GameObjectPools): GameObject[] {
     if (!enemy.sizeLevel || enemy.sizeLevel <= 1) {
       return []; // Smallest size, don't split
     }
@@ -148,30 +151,28 @@ export class CollisionSystem {
     const newWidth = GAME_CONFIG.ENEMY_BASE_SIZE * sizeMultiplier;
     const newHeight = GAME_CONFIG.ENEMY_BASE_SIZE * sizeMultiplier;
 
-    // Create two smaller enemies with opposite horizontal velocities
-    const enemy1: GameObject = {
-      id: `${enemy.id}-split1-${Date.now()}-${Math.random()}`,
-      x: enemy.x - newWidth / 4,
-      y: enemy.y,
-      width: newWidth,
-      height: newHeight,
-      velocityX: -GAME_CONFIG.SPLIT_HORIZONTAL_VELOCITY,
-      velocityY: -GAME_CONFIG.SPLIT_VERTICAL_VELOCITY,
-      type: enemy.type,
-      sizeLevel: newSizeLevel,
-    };
+    // Create two smaller enemies using object pool
+    const enemy1 = objectPools.acquireEnemy();
+    enemy1.id = `${enemy.id}-split1-${Date.now()}-${Math.random()}`;
+    enemy1.x = enemy.x - newWidth / 4;
+    enemy1.y = enemy.y;
+    enemy1.width = newWidth;
+    enemy1.height = newHeight;
+    enemy1.velocityX = -GAME_CONFIG.SPLIT_HORIZONTAL_VELOCITY;
+    enemy1.velocityY = -GAME_CONFIG.SPLIT_VERTICAL_VELOCITY;
+    enemy1.type = enemy.type;
+    enemy1.sizeLevel = newSizeLevel;
 
-    const enemy2: GameObject = {
-      id: `${enemy.id}-split2-${Date.now()}-${Math.random()}`,
-      x: enemy.x + enemy.width - newWidth * 0.75,
-      y: enemy.y,
-      width: newWidth,
-      height: newHeight,
-      velocityX: GAME_CONFIG.SPLIT_HORIZONTAL_VELOCITY,
-      velocityY: -GAME_CONFIG.SPLIT_VERTICAL_VELOCITY,
-      type: enemy.type,
-      sizeLevel: newSizeLevel,
-    };
+    const enemy2 = objectPools.acquireEnemy();
+    enemy2.id = `${enemy.id}-split2-${Date.now()}-${Math.random()}`;
+    enemy2.x = enemy.x + enemy.width - newWidth * 0.75;
+    enemy2.y = enemy.y;
+    enemy2.width = newWidth;
+    enemy2.height = newHeight;
+    enemy2.velocityX = GAME_CONFIG.SPLIT_HORIZONTAL_VELOCITY;
+    enemy2.velocityY = -GAME_CONFIG.SPLIT_VERTICAL_VELOCITY;
+    enemy2.type = enemy.type;
+    enemy2.sizeLevel = newSizeLevel;
 
     return [enemy1, enemy2];
   }

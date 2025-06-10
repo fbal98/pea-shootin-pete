@@ -1,5 +1,10 @@
-import React from 'react';
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet, View, Dimensions } from 'react-native';
+import { ArcadeContainer } from '@/components/arcade/ArcadeContainer';
+import { ArcadeButton } from '@/components/arcade/ArcadeButton';
+import { ArcadeText } from '@/components/arcade/ArcadeText';
+import { ArcadeColors } from '@/constants/ArcadeColors';
+import { Starfield } from '@/components/game/Starfield';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -8,28 +13,108 @@ interface MenuScreenProps {
 }
 
 export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
+  const titleScale = useRef(new Animated.Value(0.8)).current;
+  const titleOpacity = useRef(new Animated.Value(0)).current;
+  const buttonsOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Animate title entrance
+    Animated.parallel([
+      Animated.timing(titleScale, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.elastic(1),
+        useNativeDriver: true,
+      }),
+      Animated.timing(titleOpacity, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Animate buttons entrance
+    Animated.timing(buttonsOpacity, {
+      toValue: 1,
+      duration: 600,
+      delay: 600,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const handleHowToPlay = () => {
+    // Placeholder for How to Play screen
+    console.log('How to Play pressed');
+  };
+
+  const handleSettings = () => {
+    // Placeholder for Settings screen
+    console.log('Settings pressed');
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Pea Shootin&apos; Pete</Text>
-      <Text style={styles.subtitle}>Defend against the invaders!</Text>
+      {/* Animated starfield background */}
+      <Starfield isPlaying={true} />
+      
+      <ArcadeContainer showBorder={false}>
+        <View style={styles.content}>
+          {/* Animated Title */}
+          <Animated.View
+            style={[
+              styles.titleContainer,
+              {
+                transform: [{ scale: titleScale }],
+                opacity: titleOpacity,
+              },
+            ]}
+          >
+            <ArcadeText size="title" color="pink" glow>
+              PEA
+            </ArcadeText>
+            <ArcadeText size="xlarge" color="blue" glow>
+              SHOOTIN'
+            </ArcadeText>
+            <ArcadeText size="title" color="green" glow>
+              PETE
+            </ArcadeText>
+          </Animated.View>
 
-      <View style={styles.instructions}>
-        <Text style={styles.instructionText}>How to Play:</Text>
-        <Text style={styles.instructionText}>• Touch to shoot peas</Text>
-        <Text style={styles.instructionText}>• Drag to move Pete</Text>
-        <Text style={styles.instructionText}>• Don&apos;t let enemies reach the bottom!</Text>
-      </View>
+          {/* Menu Buttons */}
+          <Animated.View
+            style={[
+              styles.buttonsContainer,
+              { opacity: buttonsOpacity },
+            ]}
+          >
+            <ArcadeButton
+              text="PLAY"
+              onPress={onStartGame}
+              variant="primary"
+              size="large"
+            />
+            <ArcadeButton
+              text="HOW TO PLAY"
+              onPress={handleHowToPlay}
+              variant="secondary"
+              size="medium"
+            />
+            <ArcadeButton
+              text="SETTINGS"
+              onPress={handleSettings}
+              variant="secondary"
+              size="medium"
+            />
+          </Animated.View>
 
-      <TouchableOpacity
-        style={styles.playButton}
-        onPress={onStartGame}
-        accessible={true}
-        accessibilityRole="button"
-        accessibilityLabel="Play Game"
-        accessibilityHint="Start playing Pea Shootin' Pete"
-      >
-        <Text style={styles.playButtonText}>Play Game</Text>
-      </TouchableOpacity>
+          {/* Retro arcade text */}
+          <Animated.View style={{ opacity: buttonsOpacity }}>
+            <ArcadeText size="small" color="yellow" glow style={styles.arcadeText}>
+              © 2025 ARCADE REMASTER
+            </ArcadeText>
+          </Animated.View>
+        </View>
+      </ArcadeContainer>
     </View>
   );
 };
@@ -37,43 +122,23 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: ArcadeColors.deepBlack,
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingVertical: 40,
   },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: 10,
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 60,
   },
-  subtitle: {
-    fontSize: 18,
-    color: '#fff',
+  buttonsContainer: {
+    alignItems: 'center',
     marginBottom: 40,
   },
-  instructions: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 20,
-    borderRadius: 10,
-    marginBottom: 40,
-    width: SCREEN_WIDTH * 0.8,
-  },
-  instructionText: {
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 5,
-  },
-  playButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 50,
-    paddingVertical: 20,
-    borderRadius: 30,
-  },
-  playButtonText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
+  arcadeText: {
+    marginTop: 20,
   },
 });

@@ -16,11 +16,10 @@ interface StarfieldProps {
   deltaTime?: number;
 }
 
-export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime = 0 }) => {
+export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime: _deltaTime = 0 }) => {
   const dimensions = useWindowDimensions();
   const [stars, setStars] = useState<Star[]>([]);
   const initializedRef = useRef(false);
-  const animationFrameRef = useRef<number | undefined>(undefined);
   const screenDimensionsRef = useRef({ width: dimensions.width, height: dimensions.height });
 
   // Update dimensions ref without causing re-renders
@@ -65,7 +64,7 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime = 0 }
         opacity,
       };
     },
-    [] // Empty dependencies - uses ref instead
+    [screenDimensionsRef] // Include screenDimensionsRef in dependencies
   );
 
   // Initialize stars once
@@ -77,17 +76,30 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime = 0 }
       }
       setStars(initialStars);
       initializedRef.current = true;
+      
     }
   }, [createStar]);
 
-  // Animation loop using proper React state updates
-  useEffect(() => {
-    if (!isPlaying || deltaTime === 0) return;
+  // Animation loop with its own timing
+  const animationFrameRef = useRef<number | undefined>(undefined);
+  const lastUpdateTimeRef = useRef<number>(0);
+  const accumulatorRef = useRef(0);
 
-    const updateStars = () => {
+  useEffect(() => {
+    if (!isPlaying) {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = undefined;
+      }
+      return;
+    }
+
+    const targetFrameTime = 33; // ~30fps for starfield
+
+    const updateStars = (currentDeltaTime: number) => {
       setStars(prevStars =>
         prevStars.map(star => {
-          const newY = star.y + star.speed * deltaTime;
+          const newY = star.y + star.speed * currentDeltaTime;
 
           // Reset star if it goes off screen
           if (newY > screenDimensionsRef.current.height + star.size) {
@@ -97,24 +109,39 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime = 0 }
           return { ...star, y: newY };
         })
       );
+      
     };
 
-    // Throttle updates to ~30fps for starfield (less frequent than game loop)
-    const throttledUpdate = () => {
-      updateStars();
-      animationFrameRef.current = requestAnimationFrame(() => {
-        setTimeout(throttledUpdate, 33); // ~30fps
-      });
+    const animationLoop = (timestamp: number) => {
+      if (!isPlaying) return;
+
+      if (lastUpdateTimeRef.current === 0) {
+        lastUpdateTimeRef.current = timestamp;
+      }
+
+      const elapsed = timestamp - lastUpdateTimeRef.current;
+      lastUpdateTimeRef.current = timestamp;
+      accumulatorRef.current += elapsed;
+
+      // Throttle updates to ~30fps for starfield
+      if (accumulatorRef.current >= targetFrameTime) {
+        const deltaTimeSeconds = accumulatorRef.current / 1000;
+        updateStars(deltaTimeSeconds);
+        accumulatorRef.current = 0;
+      }
+
+      animationFrameRef.current = requestAnimationFrame(animationLoop);
     };
 
-    animationFrameRef.current = requestAnimationFrame(throttledUpdate);
+    animationFrameRef.current = requestAnimationFrame(animationLoop);
 
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = undefined;
       }
     };
-  }, [isPlaying, deltaTime, createStar]);
+  }, [isPlaying, createStar]);
 
   return (
     <View style={styles.container}>

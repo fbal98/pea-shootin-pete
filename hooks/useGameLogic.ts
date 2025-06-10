@@ -1,17 +1,12 @@
-import { useCallback, useRef, useEffect, useMemo } from 'react';
+import { useCallback, useRef, useEffect, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { nanoid } from 'nanoid/non-secure';
 import {
-  useGameStore,
   useGameActions,
-  useGameState,
-  useLevel,
-  useGameOver,
-  useIsPlaying,
-  useIsPaused,
+  useUIState,
 } from '@/store/gameStore';
-import { GameObject, updatePosition, isOutOfBounds, updateBouncingEnemy } from '@/utils/gameEngine';
+import { GameObject, updatePositionInPlace, isOutOfBounds, updateBouncingEnemyInPlace } from '@/utils/gameEngine';
 import { CollisionSystem } from '@/systems/CollisionSystem';
 import { GAME_CONFIG, EnemyType } from '@/constants/GameConfig';
 import { ErrorLogger, safeHapticFeedback } from '@/utils/errorLogger';
@@ -22,16 +17,34 @@ import * as Haptics from 'expo-haptics';
 export const useGameLogic = () => {
   const dimensions = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  
+  // UI state from Zustand
+  const uiState = useUIState();
+  const actions = useGameActions();
 
-  // Refs for game loop state
+  // Game object refs (the real game state)
+  const peteRef = useRef<GameObject>({
+    id: 'pete',
+    x: 0,
+    y: 0,
+    width: GAME_CONFIG.PETE_SIZE,
+    height: GAME_CONFIG.PETE_SIZE,
+  });
+  const enemiesRef = useRef<GameObject[]>([]);
+  const projectilesRef = useRef<GameObject[]>([]);
+
+  // Game loop refs
   const gameLoopRef = useRef<number | undefined>(undefined);
   const lastUpdateTime = useRef<number>(0);
   const lastEnemySpawnTime = useRef<number>(0);
   const lastHapticTime = useRef<number>(0);
   const performanceMonitor = useRef(PerformanceMonitor.getInstance());
   const objectPools = useRef(GameObjectPools.getInstance());
+  
+  // Force re-render ticker
+  const [renderTick, setRenderTick] = useState(0);
 
-  // Memoize screen calculations to prevent infinite re-renders
+  // Screen dimensions
   const screenDimensions = useMemo(() => {
     const width = dimensions.width;
     const height = dimensions.height;
@@ -46,53 +59,10 @@ export const useGameLogic = () => {
     };
   }, [dimensions.width, dimensions.height, insets.top, insets.bottom]);
 
-  // Store the screenDimensions in a ref to prevent stale closures
-  const screenDimensionsRef = useRef(screenDimensions);
-  useEffect(() => {
-    screenDimensionsRef.current = screenDimensions;
-  }, [screenDimensions]);
-
-  // Get stable actions reference
-  const actions = useGameActions();
-  const actionsRef = useRef(actions);
-  
-  useEffect(() => {
-    actionsRef.current = actions;
-  }, [actions]);
-
-  // Get game state with shallow comparison
-  const gameState = useGameState();
-
-  // Get individual state values that are used in callbacks
-  const level = useLevel();
-  const gameOver = useGameOver();
-  const isPlaying = useIsPlaying();
-  const isPaused = useIsPaused();
-
-  // Store these values in refs to prevent unnecessary re-renders
-  const levelRef = useRef(level);
-  const gameOverRef = useRef(gameOver);
-  const isPlayingRef = useRef(isPlaying);
-  const isPausedRef = useRef(isPaused);
-  const gameStateRef = useRef<typeof gameState>(gameState);
-
-  // Update individual state refs (these change less frequently)
-  useEffect(() => {
-    levelRef.current = level;
-    gameOverRef.current = gameOver;
-    isPlayingRef.current = isPlaying;
-    isPausedRef.current = isPaused;
-  }, [level, gameOver, isPlaying, isPaused]);
-
-  // Update gameState ref separately (this changes frequently)
-  useEffect(() => {
-    gameStateRef.current = gameState;
-  }, [gameState]);
-
-  // Enemy spawning logic
-  const spawnEnemyInternal = useCallback(() => {
+  // Enemy creation function
+  const createNewEnemy = useCallback((): GameObject | null => {
     try {
-      const currentLevel = gameStateRef.current.level;
+      const currentLevel = uiState.level;
       let type: EnemyType = 'basic';
       const rand = Math.random();
 
@@ -116,8 +86,8 @@ export const useGameLogic = () => {
       // Get enemy from object pool
       const enemy = objectPools.current.acquireEnemy();
       enemy.id = `enemy-${nanoid(8)}`;
-      enemy.x = Math.random() * (screenDimensionsRef.current.SCREEN_WIDTH - size);
-      enemy.y = screenDimensionsRef.current.GAME_AREA_TOP + 10;
+      enemy.x = Math.random() * (screenDimensions.SCREEN_WIDTH - size);
+      enemy.y = screenDimensions.GAME_AREA_TOP + 10;
       enemy.width = size;
       enemy.height = size;
       enemy.velocityX = horizontalSpeed;
@@ -125,237 +95,72 @@ export const useGameLogic = () => {
       enemy.type = type;
       enemy.sizeLevel = sizeLevel;
 
-      actionsRef.current.addEnemy(enemy);
+      return enemy;
     } catch (error) {
       ErrorLogger.logGameLogicError(
         error instanceof Error ? error : new Error(String(error)),
-        'spawn_enemy',
-        gameStateRef.current
+        'create_enemy'
       );
+      return null;
     }
-  }, []);
+  }, [uiState.level, screenDimensions]);
 
-  // Store spawn enemy function in ref to avoid dependency chain
-  const spawnEnemyRef = useRef(spawnEnemyInternal);
-  useEffect(() => {
-    spawnEnemyRef.current = spawnEnemyInternal;
-  }, [spawnEnemyInternal]);
-
-  const spawnEnemy = useCallback(() => {
-    spawnEnemyRef.current();
-  }, []);
-
-  // Projectile shooting logic
+  // Projectile shooting
   const shootProjectile = useCallback(() => {
     try {
-      if (gameStateRef.current.gameOver) return;
-
-      const pete = gameStateRef.current.pete;
-      
-      // Get projectile from object pool
       const projectile = objectPools.current.acquireProjectile();
+      const pete = peteRef.current;
+      
       projectile.id = `projectile-${nanoid(8)}`;
-      projectile.x = pete.x + GAME_CONFIG.PETE_SIZE / 2 - GAME_CONFIG.PROJECTILE_SIZE / 2;
+      projectile.x = pete.x + pete.width / 2 - GAME_CONFIG.PROJECTILE_SIZE / 2;
       projectile.y = pete.y;
       projectile.width = GAME_CONFIG.PROJECTILE_SIZE;
       projectile.height = GAME_CONFIG.PROJECTILE_SIZE;
       projectile.velocityX = 0;
       projectile.velocityY = -GAME_CONFIG.PROJECTILE_SPEED;
 
-      actionsRef.current.addProjectile(projectile);
+      projectilesRef.current.push(projectile);
     } catch (error) {
       ErrorLogger.logGameLogicError(
         error instanceof Error ? error : new Error(String(error)),
-        'shoot_projectile',
-        gameStateRef.current
+        'shoot_projectile'
       );
     }
   }, []);
 
-  // Main game loop
-  const gameLoop = useCallback(
-    (timestamp: number) => {
-      try {
-        // Record frame for performance monitoring
-        performanceMonitor.current.recordFrame(timestamp);
-
-        if (lastUpdateTime.current === 0) {
-          lastUpdateTime.current = timestamp;
-          lastEnemySpawnTime.current = timestamp;
-        }
-
-        const currentDeltaTime = (timestamp - lastUpdateTime.current) / 1000;
-        lastUpdateTime.current = timestamp;
-
-        // Get current state
-        const currentState = gameStateRef.current;
-
-        // Check if game is over
-        if (currentState.gameOver) return;
-
-        // Handle enemy spawning
-        const enemySpawnIntervalMs = actionsRef.current.enemySpawnInterval();
-        if (timestamp - lastEnemySpawnTime.current > enemySpawnIntervalMs) {
-          lastEnemySpawnTime.current = timestamp;
-          spawnEnemyRef.current();
-        }
-
-        // Update projectiles
-        const updatedProjectiles = currentState.projectiles
-          .map((projectile: GameObject) => updatePosition(projectile, currentDeltaTime))
-          .filter((projectile: GameObject) => {
-            const outOfBounds = isOutOfBounds(
-              projectile,
-              screenDimensionsRef.current.SCREEN_WIDTH,
-              screenDimensionsRef.current.SCREEN_HEIGHT
-            );
-            if (outOfBounds) {
-              // Return projectile to pool when it goes out of bounds
-              objectPools.current.releaseProjectile(projectile);
-            }
-            return !outOfBounds;
-          });
-
-        if (updatedProjectiles.length !== currentState.projectiles.length) {
-          actionsRef.current.setProjectiles(updatedProjectiles);
-        }
-
-        // Update enemies
-        const updatedEnemies = currentState.enemies.map((enemy: GameObject) =>
-          updateBouncingEnemy(
-            enemy,
-            currentDeltaTime,
-            screenDimensionsRef.current.SCREEN_WIDTH,
-            screenDimensionsRef.current.GAME_AREA_BOTTOM
-          )
-        );
-
-        actionsRef.current.setEnemies(updatedEnemies);
-
-        // Handle collisions
-        const collisionResult = CollisionSystem.processCollisions(
-          updatedProjectiles,
-          updatedEnemies,
-          currentState.pete
-        );
-
-        if (collisionResult.events.length > 0) {
-          // Process collision events
-          for (const event of collisionResult.events) {
-            if (event.type === 'projectile-enemy') {
-              // Handle haptic feedback with throttling
-              const now = Date.now();
-              if (now - lastHapticTime.current >= GAME_CONFIG.HAPTIC_THROTTLE_MS) {
-                lastHapticTime.current = now;
-                const hapticType = event.enemy.sizeLevel === 1 ? 'Light' : 'Medium';
-                safeHapticFeedback(
-                  () =>
-                    Haptics.impactAsync(
-                      event.enemy.sizeLevel === 1
-                        ? Haptics.ImpactFeedbackStyle.Light
-                        : Haptics.ImpactFeedbackStyle.Medium
-                    ),
-                  hapticType
-                );
-              }
-            } else if (event.type === 'enemy-pete') {
-              actionsRef.current.setGameOver(true);
-              safeHapticFeedback(
-                () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
-                'GameOver'
-              );
-              return;
-            }
-          }
-
-          // Update score
-          if (collisionResult.scoreIncrease > 0) {
-            actionsRef.current.updateScore(collisionResult.scoreIncrease);
-
-            // Check for level up with haptic feedback
-            const newScore = currentState.score + collisionResult.scoreIncrease;
-            const newLevel = Math.floor(newScore / GAME_CONFIG.LEVEL_UP_THRESHOLD) + 1;
-            if (newLevel > currentState.level) {
-              safeHapticFeedback(
-                () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
-                'LevelUp'
-              );
-            }
-          }
-
-          // Update game objects and return hit objects to pools
-          const remainingProjectiles = updatedProjectiles.filter((p: GameObject) => {
-            const isHit = collisionResult.hitProjectileIds.has(p.id);
-            if (isHit) {
-              objectPools.current.releaseProjectile(p);
-            }
-            return !isHit;
-          });
-          const remainingEnemies = updatedEnemies
-            .filter((e: GameObject) => {
-              const isHit = collisionResult.hitEnemyIds.has(e.id);
-              if (isHit) {
-                objectPools.current.releaseEnemy(e);
-              }
-              return !isHit;
-            })
-            .concat(collisionResult.splitEnemies);
-
-          actionsRef.current.setProjectiles(remainingProjectiles);
-          actionsRef.current.setEnemies(remainingEnemies);
-        }
-
-        // Continue the animation loop if game is not over
-        if (!currentState.gameOver) {
-          gameLoopRef.current = requestAnimationFrame(gameLoop);
-        }
-      } catch (error) {
-        ErrorLogger.logGameLogicError(
-          error instanceof Error ? error : new Error(String(error)),
-          'game_loop',
-          gameStateRef.current
-        );
-        actionsRef.current.setGameOver(true);
-      }
-    },
-    []
-  );
-
-  // Start/stop game loop
-  useEffect(() => {
-    if (isPlaying && !gameOver && !isPaused) {
-      performanceMonitor.current.start();
-      gameLoopRef.current = requestAnimationFrame(gameLoop);
-    } else {
-      if (gameLoopRef.current) {
-        cancelAnimationFrame(gameLoopRef.current);
-        gameLoopRef.current = undefined;
-      }
-      performanceMonitor.current.stop();
-    }
-
-    return () => {
-      if (gameLoopRef.current) {
-        cancelAnimationFrame(gameLoopRef.current);
-        gameLoopRef.current = undefined;
-      }
-      performanceMonitor.current.stop();
-    };
-  }, [isPlaying, gameOver, isPaused, gameLoop]);
+  // Update Pete position
+  const updatePetePosition = useCallback((newX: number) => {
+    peteRef.current.x = Math.max(0, Math.min(newX, screenDimensions.SCREEN_WIDTH - GAME_CONFIG.PETE_SIZE));
+  }, [screenDimensions.SCREEN_WIDTH]);
 
   // Reset game
   const resetGame = useCallback(() => {
     try {
+      // Stop current game loop
+      if (gameLoopRef.current) {
+        cancelAnimationFrame(gameLoopRef.current);
+        gameLoopRef.current = undefined;
+      }
+
+      // Reset timers
       lastUpdateTime.current = 0;
       lastEnemySpawnTime.current = 0;
       lastHapticTime.current = 0;
 
-      // Return all current objects to pools before reset
-      const currentState = gameStateRef.current;
-      currentState.projectiles.forEach((p: GameObject) => objectPools.current.releaseProjectile(p));
-      currentState.enemies.forEach((e: GameObject) => objectPools.current.releaseEnemy(e));
+      // Return all objects to pools
+      projectilesRef.current.forEach(p => objectPools.current.releaseProjectile(p));
+      enemiesRef.current.forEach(e => objectPools.current.releaseEnemy(e));
 
-      actionsRef.current.resetGame(screenDimensionsRef.current.SCREEN_WIDTH, screenDimensionsRef.current.GAME_AREA_BOTTOM);
+      // Clear game object arrays
+      projectilesRef.current = [];
+      enemiesRef.current = [];
+
+      // Reset Pete position at bottom of game area
+      peteRef.current.x = screenDimensions.SCREEN_WIDTH / 2 - GAME_CONFIG.PETE_SIZE / 2;
+      peteRef.current.y = screenDimensions.GAME_AREA_BOTTOM - GAME_CONFIG.PETE_SIZE - 10;
+
+      // Reset UI state in Zustand
+      actions.resetGame();
 
       // Log pool stats in development
       if (__DEV__) {
@@ -367,15 +172,220 @@ export const useGameLogic = () => {
         'reset_game'
       );
     }
-  }, []);
+  }, [screenDimensions, actions]);
+
+  // Game loop
+  const gameLoop = useCallback((timestamp: number) => {
+    try {
+      // Initialize timer on first run
+      if (lastUpdateTime.current === 0) {
+        lastUpdateTime.current = timestamp;
+        lastEnemySpawnTime.current = timestamp;
+      }
+
+      const deltaTime = (timestamp - lastUpdateTime.current) / 1000;
+      lastUpdateTime.current = timestamp;
+
+      // Check if game should continue
+      if (uiState.gameOver || !uiState.isPlaying) {
+        return;
+      }
+
+      // Update projectiles
+      projectilesRef.current.forEach(projectile => {
+        updatePositionInPlace(projectile, deltaTime);
+      });
+
+      // Remove out-of-bounds projectiles
+      projectilesRef.current = projectilesRef.current.filter(projectile => {
+        const outOfBounds = isOutOfBounds(
+          projectile,
+          screenDimensions.SCREEN_WIDTH,
+          screenDimensions.SCREEN_HEIGHT
+        );
+        if (outOfBounds) {
+          objectPools.current.releaseProjectile(projectile);
+        }
+        return !outOfBounds;
+      });
+
+      // Update enemies
+      enemiesRef.current.forEach(enemy => {
+        updateBouncingEnemyInPlace(
+          enemy,
+          deltaTime,
+          screenDimensions.SCREEN_WIDTH,
+          screenDimensions.GAME_AREA_BOTTOM
+        );
+      });
+
+      // Remove out-of-bounds enemies (similar to projectiles)
+      enemiesRef.current = enemiesRef.current.filter(enemy => {
+        const outOfBounds = isOutOfBounds(
+          enemy,
+          screenDimensions.SCREEN_WIDTH,
+          screenDimensions.SCREEN_HEIGHT + 100 // Add buffer to account for bouncing
+        );
+        if (outOfBounds) {
+          objectPools.current.releaseEnemy(enemy);
+          if (__DEV__) {
+            console.log('Removing out-of-bounds enemy:', {
+              id: enemy.id.substring(0, 8),
+              x: Math.round(enemy.x),
+              y: Math.round(enemy.y),
+              remaining: enemiesRef.current.length - 1
+            });
+          }
+        }
+        return !outOfBounds;
+      });
+
+      // Spawn new enemies
+      const enemySpawnIntervalMs = actions.enemySpawnInterval();
+      if (timestamp - lastEnemySpawnTime.current > enemySpawnIntervalMs) {
+        lastEnemySpawnTime.current = timestamp;
+        const newEnemy = createNewEnemy();
+        if (newEnemy) {
+          enemiesRef.current.push(newEnemy);
+          
+          if (__DEV__) {
+            console.log('Spawning enemy:', {
+              id: newEnemy.id.substring(0, 8),
+              y: newEnemy.y,
+              count: enemiesRef.current.length
+            });
+          }
+        }
+      }
+
+      // Handle collisions
+      const collisionResult = CollisionSystem.processCollisions(
+        projectilesRef.current,
+        enemiesRef.current,
+        peteRef.current,
+        objectPools.current
+      );
+
+      if (collisionResult.events.length > 0) {
+        // Process collision events
+        for (const event of collisionResult.events) {
+          if (event.type === 'projectile-enemy') {
+            // Handle haptic feedback with throttling
+            const now = Date.now();
+            if (now - lastHapticTime.current >= GAME_CONFIG.HAPTIC_THROTTLE_MS) {
+              lastHapticTime.current = now;
+              const hapticType = event.enemy.sizeLevel === 1 ? 'Light' : 'Medium';
+              safeHapticFeedback(
+                () =>
+                  Haptics.impactAsync(
+                    event.enemy.sizeLevel === 1
+                      ? Haptics.ImpactFeedbackStyle.Light
+                      : Haptics.ImpactFeedbackStyle.Medium
+                  ),
+                hapticType
+              );
+            }
+          } else if (event.type === 'enemy-pete') {
+            actions.setGameOver(true);
+            safeHapticFeedback(
+              () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
+              'GameOver'
+            );
+            return;
+          }
+        }
+      }
+
+      // Update score
+      if (collisionResult.scoreIncrease > 0) {
+        actions.updateScore(collisionResult.scoreIncrease);
+
+        // Check for level up with haptic feedback
+        const newScore = uiState.score + collisionResult.scoreIncrease;
+        const newLevel = Math.floor(newScore / GAME_CONFIG.LEVEL_UP_THRESHOLD) + 1;
+        if (newLevel > uiState.level) {
+          safeHapticFeedback(
+            () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+            'LevelUp'
+          );
+        }
+      }
+
+      // Remove hit objects
+      projectilesRef.current = projectilesRef.current.filter(p => {
+        const isHit = collisionResult.hitProjectileIds.has(p.id);
+        if (isHit) {
+          objectPools.current.releaseProjectile(p);
+        }
+        return !isHit;
+      });
+
+      enemiesRef.current = enemiesRef.current.filter(e => {
+        const isHit = collisionResult.hitEnemyIds.has(e.id);
+        if (isHit) {
+          objectPools.current.releaseEnemy(e);
+        }
+        return !isHit;
+      });
+
+      // Add newly split enemies
+      enemiesRef.current.push(...collisionResult.splitEnemies);
+
+      // Force React re-render
+      setRenderTick(t => t + 1);
+
+      // Continue game loop
+      if (!uiState.gameOver && uiState.isPlaying) {
+        gameLoopRef.current = requestAnimationFrame(gameLoop);
+      }
+    } catch (error) {
+      ErrorLogger.logGameLogicError(
+        error instanceof Error ? error : new Error(String(error)),
+        'game_loop'
+      );
+    }
+  }, [uiState, screenDimensions, actions, createNewEnemy]);
+
+  // Initialize Pete position when screen dimensions are available
+  useEffect(() => {
+    if (peteRef.current.x === 0 && peteRef.current.y === 0) {
+      peteRef.current.x = screenDimensions.SCREEN_WIDTH / 2 - GAME_CONFIG.PETE_SIZE / 2;
+      peteRef.current.y = screenDimensions.GAME_AREA_BOTTOM - GAME_CONFIG.PETE_SIZE - 10;
+    }
+  }, [screenDimensions]);
+
+  // Start/stop game loop based on playing state
+  useEffect(() => {
+    if (uiState.isPlaying && !uiState.gameOver && !gameLoopRef.current) {
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
+    } else if ((!uiState.isPlaying || uiState.gameOver) && gameLoopRef.current) {
+      cancelAnimationFrame(gameLoopRef.current);
+      gameLoopRef.current = undefined;
+    }
+
+    return () => {
+      if (gameLoopRef.current) {
+        cancelAnimationFrame(gameLoopRef.current);
+        gameLoopRef.current = undefined;
+      }
+    };
+  }, [uiState.isPlaying, uiState.gameOver, gameLoop]);
 
   return {
-    gameState,
+    // Game object refs for rendering
+    peteRef,
+    enemiesRef,
+    projectilesRef,
+    
+    // UI state
+    uiState,
+    
+    // Actions
     shootProjectile,
+    updatePetePosition,
     resetGame,
-    GAME_AREA_TOP: screenDimensions.GAME_AREA_TOP,
-    GAME_AREA_BOTTOM: screenDimensions.GAME_AREA_BOTTOM,
-    GAME_AREA_HEIGHT: screenDimensions.GAME_AREA_HEIGHT,
-    SCREEN_WIDTH: screenDimensions.SCREEN_WIDTH,
+    
+    // Screen dimensions
+    ...screenDimensions,
   };
 };
