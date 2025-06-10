@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-  View,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  Platform,
-  Animated,
-  useWindowDimensions,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, StyleSheet, Text, TouchableOpacity, Platform, Animated } from 'react-native';
 import { Pete } from '@/components/game/Pete';
 import { Enemy } from '@/components/game/Enemy';
 import { Projectile } from '@/components/game/Projectile';
@@ -20,11 +11,8 @@ import { useGameInput } from '@/hooks/useGameInput';
 import { GAME_CONFIG } from '@/constants/GameConfig';
 
 export const GameScreen: React.FC = () => {
-  const { width: SCREEN_WIDTH } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-
   // Use our custom hooks for clean separation of concerns
-  const { gameState, shootProjectile, resetGame, GAME_AREA_TOP } = useGameLogic();
+  const { gameState, shootProjectile, resetGame, GAME_AREA_TOP, SCREEN_WIDTH } = useGameLogic();
 
   const { handleTouch, handleTouchMove, rippleAnim, rippleOpacity, ripplePosition } = useGameInput(
     SCREEN_WIDTH,
@@ -37,7 +25,7 @@ export const GameScreen: React.FC = () => {
       style={[
         styles.header,
         {
-          paddingTop: insets.top + GAME_CONFIG.SAFE_AREA_PADDING,
+          paddingTop: GAME_CONFIG.SAFE_AREA_PADDING,
           height: GAME_CONFIG.HEADER_HEIGHT,
         },
       ]}
@@ -92,7 +80,7 @@ export const GameScreen: React.FC = () => {
 
   // Render all enemies
   const renderEnemies = () =>
-    gameState.enemies.map(enemy => (
+    gameState.enemies.map((enemy: any) => (
       <GameErrorBoundary
         key={enemy.id}
         fallbackComponent={
@@ -123,7 +111,7 @@ export const GameScreen: React.FC = () => {
 
   // Render all projectiles
   const renderProjectiles = () =>
-    gameState.projectiles.map(projectile => (
+    gameState.projectiles.map((projectile: any) => (
       <GameErrorBoundary
         key={projectile.id}
         fallbackComponent={

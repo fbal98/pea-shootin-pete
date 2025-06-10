@@ -17,10 +17,16 @@ interface StarfieldProps {
 }
 
 export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime = 0 }) => {
-  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+  const dimensions = useWindowDimensions();
   const [stars, setStars] = useState<Star[]>([]);
   const initializedRef = useRef(false);
   const animationFrameRef = useRef<number | undefined>(undefined);
+  const screenDimensionsRef = useRef({ width: dimensions.width, height: dimensions.height });
+
+  // Update dimensions ref without causing re-renders
+  useEffect(() => {
+    screenDimensionsRef.current = { width: dimensions.width, height: dimensions.height };
+  }, [dimensions.width, dimensions.height]);
 
   const createStar = useCallback(
     (y?: number): Star => {
@@ -52,14 +58,14 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime = 0 }
 
       return {
         id: `star-${Date.now()}-${Math.random()}`,
-        x: Math.random() * SCREEN_WIDTH,
-        y: y ?? Math.random() * SCREEN_HEIGHT,
+        x: Math.random() * screenDimensionsRef.current.width,
+        y: y ?? Math.random() * screenDimensionsRef.current.height,
         size,
         speed,
         opacity,
       };
     },
-    [SCREEN_WIDTH, SCREEN_HEIGHT]
+    [] // Empty dependencies - uses ref instead
   );
 
   // Initialize stars once
@@ -84,7 +90,7 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime = 0 }
           const newY = star.y + star.speed * deltaTime;
 
           // Reset star if it goes off screen
-          if (newY > SCREEN_HEIGHT + star.size) {
+          if (newY > screenDimensionsRef.current.height + star.size) {
             return createStar(-star.size);
           }
 
@@ -108,7 +114,7 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime = 0 }
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, deltaTime, SCREEN_HEIGHT, createStar]);
+  }, [isPlaying, deltaTime, createStar]);
 
   return (
     <View style={styles.container}>

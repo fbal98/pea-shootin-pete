@@ -35,7 +35,7 @@ export class PerformanceMonitor {
       sampleSize: 60, // Track last 60 frames for FPS calculation
       warningThreshold: 50, // Warn if FPS drops below 50
       criticalThreshold: 30, // Critical if FPS drops below 30
-      enableLogging: __DEV__, // Only log in development
+      enableLogging: false, // Disable logging to reduce console noise
       ...config,
     };
   }
@@ -208,28 +208,51 @@ export class PerformanceMonitor {
 }
 
 // React hook for using performance monitoring
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export const usePerformanceMonitor = (enabled: boolean = __DEV__) => {
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
-  const [monitor] = useState(() => PerformanceMonitor.getInstance());
+  const monitorRef = useRef<PerformanceMonitor | undefined>(undefined);
+  const hasStartedRef = useRef(false);
+
+  // Get or create monitor instance
+  if (!monitorRef.current) {
+    monitorRef.current = PerformanceMonitor.getInstance();
+  }
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !monitorRef.current) return;
 
-    monitor.start();
+    const monitor = monitorRef.current;
+
+    // Only start if not already running
+    if (!hasStartedRef.current && monitor) {
+      monitor.start();
+      hasStartedRef.current = true;
+    }
 
     const unsubscribe = monitor.addListener(setMetrics);
 
     return () => {
       unsubscribe();
-      monitor.stop();
+      // Don't stop the monitor on cleanup - let it keep running
+      // This prevents start/stop cycles on re-renders
     };
-  }, [enabled, monitor]);
+  }, [enabled]);
+
+  // Only stop monitor when component is truly unmounting
+  useEffect(() => {
+    return () => {
+      if (hasStartedRef.current && monitorRef.current) {
+        monitorRef.current.stop();
+        hasStartedRef.current = false;
+      }
+    };
+  }, []);
 
   return {
     metrics,
-    monitor,
-    summary: monitor.getSummary(),
+    monitor: monitorRef.current,
+    summary: monitorRef.current?.getSummary() || '',
   };
 };

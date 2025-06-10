@@ -1,8 +1,16 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useMemo } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { nanoid } from 'nanoid/non-secure';
-import { useGameStore, useGameActions } from '@/store/gameStore';
+import {
+  useGameStore,
+  useGameActions,
+  useGameState,
+  useLevel,
+  useGameOver,
+  useIsPlaying,
+  useIsPaused,
+} from '@/store/gameStore';
 import { GameObject, updatePosition, isOutOfBounds, updateBouncingEnemy } from '@/utils/gameEngine';
 import { CollisionSystem } from '@/systems/CollisionSystem';
 import { GAME_CONFIG, EnemyType } from '@/constants/GameConfig';
@@ -12,8 +20,10 @@ import { GameObjectPools } from '@/utils/ObjectPool';
 import * as Haptics from 'expo-haptics';
 
 export const useGameLogic = () => {
-  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+  const dimensions = useWindowDimensions();
   const insets = useSafeAreaInsets();
+
+  // Refs for game loop state
   const gameLoopRef = useRef<number | undefined>(undefined);
   const lastUpdateTime = useRef<number>(0);
   const lastEnemySpawnTime = useRef<number>(0);
@@ -21,28 +31,53 @@ export const useGameLogic = () => {
   const performanceMonitor = useRef(PerformanceMonitor.getInstance());
   const objectPools = useRef(GameObjectPools.getInstance());
 
-  // Calculate game area
-  const GAME_AREA_TOP = insets.top + GAME_CONFIG.HEADER_HEIGHT;
-  const GAME_AREA_BOTTOM = SCREEN_HEIGHT - insets.bottom - GAME_CONFIG.BOTTOM_PADDING;
-  const GAME_AREA_HEIGHT = GAME_AREA_BOTTOM - GAME_AREA_TOP;
+  // Memoize screen calculations to prevent infinite re-renders
+  const screenDimensions = useMemo(() => {
+    const width = dimensions.width;
+    const height = dimensions.height;
+    const gameAreaTop = insets.top + GAME_CONFIG.HEADER_HEIGHT;
+    const gameAreaBottom = height - insets.bottom - GAME_CONFIG.BOTTOM_PADDING;
+    return {
+      SCREEN_WIDTH: width,
+      SCREEN_HEIGHT: height,
+      GAME_AREA_TOP: gameAreaTop,
+      GAME_AREA_BOTTOM: gameAreaBottom,
+      GAME_AREA_HEIGHT: gameAreaBottom - gameAreaTop,
+    };
+  }, [dimensions.width, dimensions.height, insets.top, insets.bottom]);
 
-  // Store selectors
-  const gameState = useGameStore();
+  // Get stable actions reference
   const actions = useGameActions();
+
+  // Get game state with shallow comparison
+  const gameState = useGameState();
+
+  // Get individual state values that are used in callbacks
+  const level = useLevel();
+  const gameOver = useGameOver();
+  const isPlaying = useIsPlaying();
+  const isPaused = useIsPaused();
+
+  // Store refs for frequently changing values to avoid re-renders
+  const gameStateRef = useRef<typeof gameState>(gameState);
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
 
   // Enemy spawning logic
   const spawnEnemy = useCallback(() => {
     try {
+      const currentLevel = gameStateRef.current.level;
       let type: EnemyType = 'basic';
       const rand = Math.random();
 
       if (
-        gameState.level >= GAME_CONFIG.ENEMY_TYPE_UNLOCK_LEVELS.STRONG &&
+        currentLevel >= GAME_CONFIG.ENEMY_TYPE_UNLOCK_LEVELS.STRONG &&
         rand < GAME_CONFIG.ENEMY_TYPE_SPAWN_CHANCES.STRONG
       ) {
         type = 'strong';
       } else if (
-        gameState.level >= GAME_CONFIG.ENEMY_TYPE_UNLOCK_LEVELS.FAST &&
+        currentLevel >= GAME_CONFIG.ENEMY_TYPE_UNLOCK_LEVELS.FAST &&
         rand < GAME_CONFIG.ENEMY_TYPE_SPAWN_CHANCES.FAST
       ) {
         type = 'fast';
@@ -56,8 +91,8 @@ export const useGameLogic = () => {
       // Get enemy from object pool
       const enemy = objectPools.current.acquireEnemy();
       enemy.id = `enemy-${nanoid(8)}`;
-      enemy.x = Math.random() * (SCREEN_WIDTH - size);
-      enemy.y = GAME_AREA_TOP + 10;
+      enemy.x = Math.random() * (screenDimensions.SCREEN_WIDTH - size);
+      enemy.y = screenDimensions.GAME_AREA_TOP + 10;
       enemy.width = size;
       enemy.height = size;
       enemy.velocityX = horizontalSpeed;
@@ -70,21 +105,22 @@ export const useGameLogic = () => {
       ErrorLogger.logGameLogicError(
         error instanceof Error ? error : new Error(String(error)),
         'spawn_enemy',
-        gameState
+        gameStateRef.current
       );
     }
-  }, [gameState.level, SCREEN_WIDTH, GAME_AREA_TOP, actions]);
+  }, [actions, screenDimensions]);
 
   // Projectile shooting logic
   const shootProjectile = useCallback(() => {
     try {
-      if (gameState.gameOver) return;
+      if (gameStateRef.current.gameOver) return;
 
+      const pete = gameStateRef.current.pete;
       // Get projectile from object pool
       const projectile = objectPools.current.acquireProjectile();
       projectile.id = `projectile-${nanoid(8)}`;
-      projectile.x = gameState.pete.x + GAME_CONFIG.PETE_SIZE / 2 - GAME_CONFIG.PROJECTILE_SIZE / 2;
-      projectile.y = gameState.pete.y;
+      projectile.x = pete.x + GAME_CONFIG.PETE_SIZE / 2 - GAME_CONFIG.PROJECTILE_SIZE / 2;
+      projectile.y = pete.y;
       projectile.width = GAME_CONFIG.PROJECTILE_SIZE;
       projectile.height = GAME_CONFIG.PROJECTILE_SIZE;
       projectile.velocityX = 0;
@@ -95,10 +131,10 @@ export const useGameLogic = () => {
       ErrorLogger.logGameLogicError(
         error instanceof Error ? error : new Error(String(error)),
         'shoot_projectile',
-        gameState
+        gameStateRef.current
       );
     }
-  }, [gameState.gameOver, gameState.pete, actions]);
+  }, [actions]);
 
   // Main game loop
   const gameLoop = useCallback(
@@ -115,21 +151,28 @@ export const useGameLogic = () => {
         const currentDeltaTime = (timestamp - lastUpdateTime.current) / 1000;
         lastUpdateTime.current = timestamp;
 
+        // Get current state
+        const currentState = gameStateRef.current;
+
         // Check if game is over
-        if (gameState.gameOver) return;
+        if (currentState.gameOver) return;
 
         // Handle enemy spawning
-        const enemySpawnInterval = actions.enemySpawnInterval();
-        if (timestamp - lastEnemySpawnTime.current > enemySpawnInterval) {
+        const enemySpawnIntervalMs = actions.enemySpawnInterval();
+        if (timestamp - lastEnemySpawnTime.current > enemySpawnIntervalMs) {
           lastEnemySpawnTime.current = timestamp;
           spawnEnemy();
         }
 
         // Update projectiles
-        const updatedProjectiles = gameState.projectiles
-          .map(projectile => updatePosition(projectile, currentDeltaTime))
-          .filter(projectile => {
-            const outOfBounds = isOutOfBounds(projectile, SCREEN_WIDTH, SCREEN_HEIGHT);
+        const updatedProjectiles = currentState.projectiles
+          .map((projectile: GameObject) => updatePosition(projectile, currentDeltaTime))
+          .filter((projectile: GameObject) => {
+            const outOfBounds = isOutOfBounds(
+              projectile,
+              screenDimensions.SCREEN_WIDTH,
+              screenDimensions.SCREEN_HEIGHT
+            );
             if (outOfBounds) {
               // Return projectile to pool when it goes out of bounds
               objectPools.current.releaseProjectile(projectile);
@@ -137,22 +180,27 @@ export const useGameLogic = () => {
             return !outOfBounds;
           });
 
-        if (updatedProjectiles.length !== gameState.projectiles.length) {
+        if (updatedProjectiles.length !== currentState.projectiles.length) {
           actions.setProjectiles(updatedProjectiles);
         }
 
         // Update enemies
-        const updatedEnemies = gameState.enemies.map(enemy =>
-          updateBouncingEnemy(enemy, currentDeltaTime, SCREEN_WIDTH, GAME_AREA_BOTTOM)
+        const updatedEnemies = currentState.enemies.map((enemy: GameObject) =>
+          updateBouncingEnemy(
+            enemy,
+            currentDeltaTime,
+            screenDimensions.SCREEN_WIDTH,
+            screenDimensions.GAME_AREA_BOTTOM
+          )
         );
 
         actions.setEnemies(updatedEnemies);
 
         // Handle collisions
         const collisionResult = CollisionSystem.processCollisions(
-          gameState.projectiles,
-          gameState.enemies,
-          gameState.pete
+          updatedProjectiles,
+          updatedEnemies,
+          currentState.pete
         );
 
         if (collisionResult.events.length > 0) {
@@ -189,9 +237,9 @@ export const useGameLogic = () => {
             actions.updateScore(collisionResult.scoreIncrease);
 
             // Check for level up with haptic feedback
-            const newScore = gameState.score + collisionResult.scoreIncrease;
+            const newScore = currentState.score + collisionResult.scoreIncrease;
             const newLevel = Math.floor(newScore / GAME_CONFIG.LEVEL_UP_THRESHOLD) + 1;
-            if (newLevel > gameState.level) {
+            if (newLevel > currentState.level) {
               safeHapticFeedback(
                 () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
                 'LevelUp'
@@ -200,15 +248,15 @@ export const useGameLogic = () => {
           }
 
           // Update game objects and return hit objects to pools
-          const remainingProjectiles = gameState.projectiles.filter(p => {
+          const remainingProjectiles = updatedProjectiles.filter((p: GameObject) => {
             const isHit = collisionResult.hitProjectileIds.has(p.id);
             if (isHit) {
               objectPools.current.releaseProjectile(p);
             }
             return !isHit;
           });
-          const remainingEnemies = gameState.enemies
-            .filter(e => {
+          const remainingEnemies = updatedEnemies
+            .filter((e: GameObject) => {
               const isHit = collisionResult.hitEnemyIds.has(e.id);
               if (isHit) {
                 objectPools.current.releaseEnemy(e);
@@ -222,24 +270,24 @@ export const useGameLogic = () => {
         }
 
         // Continue the animation loop if game is not over
-        if (!gameState.gameOver) {
+        if (!currentState.gameOver) {
           gameLoopRef.current = requestAnimationFrame(gameLoop);
         }
       } catch (error) {
         ErrorLogger.logGameLogicError(
           error instanceof Error ? error : new Error(String(error)),
           'game_loop',
-          gameState
+          gameStateRef.current
         );
         actions.setGameOver(true);
       }
     },
-    [gameState, actions, spawnEnemy, SCREEN_WIDTH, SCREEN_HEIGHT, GAME_AREA_BOTTOM]
+    [actions, spawnEnemy, screenDimensions]
   );
 
   // Start/stop game loop
   useEffect(() => {
-    if (gameState.isPlaying && !gameState.gameOver && !gameState.isPaused) {
+    if (isPlaying && !gameOver && !isPaused) {
       performanceMonitor.current.start();
       gameLoopRef.current = requestAnimationFrame(gameLoop);
     } else {
@@ -257,7 +305,7 @@ export const useGameLogic = () => {
       }
       performanceMonitor.current.stop();
     };
-  }, [gameState.isPlaying, gameState.gameOver, gameState.isPaused, gameLoop]);
+  }, [isPlaying, gameOver, isPaused, gameLoop]);
 
   // Reset game
   const resetGame = useCallback(() => {
@@ -267,10 +315,11 @@ export const useGameLogic = () => {
       lastHapticTime.current = 0;
 
       // Return all current objects to pools before reset
-      gameState.projectiles.forEach(p => objectPools.current.releaseProjectile(p));
-      gameState.enemies.forEach(e => objectPools.current.releaseEnemy(e));
+      const currentState = gameStateRef.current;
+      currentState.projectiles.forEach((p: GameObject) => objectPools.current.releaseProjectile(p));
+      currentState.enemies.forEach((e: GameObject) => objectPools.current.releaseEnemy(e));
 
-      actions.resetGame(SCREEN_WIDTH, GAME_AREA_BOTTOM);
+      actions.resetGame(screenDimensions.SCREEN_WIDTH, screenDimensions.GAME_AREA_BOTTOM);
 
       // Log pool stats in development
       if (__DEV__) {
@@ -282,14 +331,15 @@ export const useGameLogic = () => {
         'reset_game'
       );
     }
-  }, [actions, SCREEN_WIDTH, GAME_AREA_BOTTOM, gameState.projectiles, gameState.enemies]);
+  }, [actions, screenDimensions]);
 
   return {
     gameState,
     shootProjectile,
     resetGame,
-    GAME_AREA_TOP,
-    GAME_AREA_BOTTOM,
-    GAME_AREA_HEIGHT,
+    GAME_AREA_TOP: screenDimensions.GAME_AREA_TOP,
+    GAME_AREA_BOTTOM: screenDimensions.GAME_AREA_BOTTOM,
+    GAME_AREA_HEIGHT: screenDimensions.GAME_AREA_HEIGHT,
+    SCREEN_WIDTH: screenDimensions.SCREEN_WIDTH,
   };
 };

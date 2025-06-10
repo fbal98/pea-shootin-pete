@@ -41,18 +41,7 @@ config.watchFolders = [
   __dirname + '/utils',
 ];
 
-// Optimize cache for faster builds
-config.cacheStores = [
-  {
-    name: 'filesystem',
-    options: {
-      // Increase cache size for better performance
-      cacheDirectory: require('path').resolve(__dirname, '.metro-cache'),
-      // Enable compression to save disk space
-      compression: 'gzip',
-    },
-  },
-];
+// Let Metro use its default cache system
 
 // Performance optimizations for development
 if (process.env.NODE_ENV === 'development') {

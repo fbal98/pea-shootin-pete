@@ -1,30 +1,43 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useCallback, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { MenuScreen } from '@/screens/MenuScreen';
 import { GameScreen } from '@/screens/GameScreen';
-import { useGameStore, useGameActions } from '@/store/gameStore';
+// import { GameScreenMinimal } from '@/screens/GameScreenMinimal';
+import { useGameActions, useIsPlaying } from '@/store/gameStore';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GAME_CONFIG } from '@/constants/GameConfig';
 
 export default function HomeScreen() {
-  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+  const dimensions = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const isPlaying = useGameStore(state => state.isPlaying);
+  const isPlaying = useIsPlaying();
   const actions = useGameActions();
+  const hasInitialized = useRef(false);
 
-  // Calculate game area for initial Pete position
-  const GAME_AREA_BOTTOM = SCREEN_HEIGHT - insets.bottom - GAME_CONFIG.BOTTOM_PADDING;
+  // Memoize screen calculations to prevent infinite re-renders
+  const { SCREEN_WIDTH, GAME_AREA_BOTTOM } = useMemo(
+    () => ({
+      SCREEN_WIDTH: dimensions.width,
+      GAME_AREA_BOTTOM: dimensions.height - insets.bottom - GAME_CONFIG.BOTTOM_PADDING,
+    }),
+    [dimensions.width, dimensions.height, insets.bottom]
+  );
 
-  // Initialize game state when component mounts
+  // Initialize game state only once when component mounts
   useEffect(() => {
-    actions.resetGame(SCREEN_WIDTH, GAME_AREA_BOTTOM);
-  }, [SCREEN_WIDTH, GAME_AREA_BOTTOM, actions]);
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
 
-  const handleStartGame = () => {
+    const { width } = dimensions;
+    const gameAreaBottom = dimensions.height - insets.bottom - GAME_CONFIG.BOTTOM_PADDING;
+    actions.resetGame(width, gameAreaBottom);
+  }, [dimensions, insets, actions]);
+
+  const handleStartGame = useCallback(() => {
     actions.resetGame(SCREEN_WIDTH, GAME_AREA_BOTTOM);
     actions.setIsPlaying(true);
-  };
+  }, [SCREEN_WIDTH, GAME_AREA_BOTTOM, actions]);
 
   return (
     <View style={styles.container}>

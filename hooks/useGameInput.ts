@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { GestureResponderEvent, Animated, Easing } from 'react-native';
-import { useGameStore, useGameActions } from '@/store/gameStore';
+import { useGameActions, useGameState, usePete, useGameOver } from '@/store/gameStore';
 import { GAME_CONFIG } from '@/constants/GameConfig';
 import { safeHapticFeedback, ErrorLogger } from '@/utils/errorLogger';
 import * as Haptics from 'expo-haptics';
@@ -11,7 +11,9 @@ interface RipplePosition {
 }
 
 export const useGameInput = (screenWidth: number, shootProjectile: () => void) => {
-  const gameState = useGameStore();
+  // Get optimized selectors
+  const pete = usePete();
+  const gameOver = useGameOver();
   const actions = useGameActions();
 
   // Ripple effect state
@@ -61,7 +63,7 @@ export const useGameInput = (screenWidth: number, shootProjectile: () => void) =
   const handleGameTouch = useCallback(
     (x: number, y: number) => {
       try {
-        if (gameState.gameOver) return;
+        if (gameOver) return;
 
         // Haptic feedback with throttling
         const now = Date.now();
@@ -80,7 +82,7 @@ export const useGameInput = (screenWidth: number, shootProjectile: () => void) =
         );
 
         const updatedPete = {
-          ...gameState.pete,
+          ...pete,
           x: newX,
         };
         actions.setPete(updatedPete);
@@ -95,7 +97,7 @@ export const useGameInput = (screenWidth: number, shootProjectile: () => void) =
         );
       }
     },
-    [gameState.gameOver, gameState.pete, screenWidth, actions, showRippleEffect, shootProjectile]
+    [gameOver, pete, screenWidth, actions, showRippleEffect, shootProjectile]
   );
 
   // Handle touch events from React Native
@@ -107,12 +109,6 @@ export const useGameInput = (screenWidth: number, shootProjectile: () => void) =
     [handleGameTouch]
   );
 
-  // Handle drag movement (touch move)
-  const handleTouchMove = useCallback((event: GestureResponderEvent) => {
-    const { locationX } = event.nativeEvent;
-    updatePetePosition(locationX);
-  }, []);
-
   // Update Pete position with throttling
   const updatePetePosition = useCallback(
     (x: number) => {
@@ -121,7 +117,7 @@ export const useGameInput = (screenWidth: number, shootProjectile: () => void) =
         if (now - lastMoveTime.current < GAME_CONFIG.PETE_MOVE_THROTTLE_MS) return;
         lastMoveTime.current = now;
 
-        if (gameState.gameOver) return;
+        if (gameOver) return;
 
         const newX = Math.max(
           0,
@@ -129,7 +125,7 @@ export const useGameInput = (screenWidth: number, shootProjectile: () => void) =
         );
 
         const updatedPete = {
-          ...gameState.pete,
+          ...pete,
           x: newX,
         };
         actions.setPete(updatedPete);
@@ -141,7 +137,16 @@ export const useGameInput = (screenWidth: number, shootProjectile: () => void) =
         );
       }
     },
-    [gameState.gameOver, gameState.pete, screenWidth, actions]
+    [gameOver, pete, screenWidth, actions]
+  );
+
+  // Handle drag movement (touch move)
+  const handleTouchMove = useCallback(
+    (event: GestureResponderEvent) => {
+      const { locationX } = event.nativeEvent;
+      updatePetePosition(locationX);
+    },
+    [updatePetePosition]
   );
 
   return {
