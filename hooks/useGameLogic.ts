@@ -46,8 +46,19 @@ export const useGameLogic = () => {
     };
   }, [dimensions.width, dimensions.height, insets.top, insets.bottom]);
 
+  // Store the screenDimensions in a ref to prevent stale closures
+  const screenDimensionsRef = useRef(screenDimensions);
+  useEffect(() => {
+    screenDimensionsRef.current = screenDimensions;
+  }, [screenDimensions]);
+
   // Get stable actions reference
   const actions = useGameActions();
+  const actionsRef = useRef(actions);
+  
+  useEffect(() => {
+    actionsRef.current = actions;
+  }, [actions]);
 
   // Get game state with shallow comparison
   const gameState = useGameState();
@@ -58,14 +69,28 @@ export const useGameLogic = () => {
   const isPlaying = useIsPlaying();
   const isPaused = useIsPaused();
 
-  // Store refs for frequently changing values to avoid re-renders
+  // Store these values in refs to prevent unnecessary re-renders
+  const levelRef = useRef(level);
+  const gameOverRef = useRef(gameOver);
+  const isPlayingRef = useRef(isPlaying);
+  const isPausedRef = useRef(isPaused);
   const gameStateRef = useRef<typeof gameState>(gameState);
+
+  // Update individual state refs (these change less frequently)
+  useEffect(() => {
+    levelRef.current = level;
+    gameOverRef.current = gameOver;
+    isPlayingRef.current = isPlaying;
+    isPausedRef.current = isPaused;
+  }, [level, gameOver, isPlaying, isPaused]);
+
+  // Update gameState ref separately (this changes frequently)
   useEffect(() => {
     gameStateRef.current = gameState;
   }, [gameState]);
 
   // Enemy spawning logic
-  const spawnEnemy = useCallback(() => {
+  const spawnEnemyInternal = useCallback(() => {
     try {
       const currentLevel = gameStateRef.current.level;
       let type: EnemyType = 'basic';
@@ -91,8 +116,8 @@ export const useGameLogic = () => {
       // Get enemy from object pool
       const enemy = objectPools.current.acquireEnemy();
       enemy.id = `enemy-${nanoid(8)}`;
-      enemy.x = Math.random() * (screenDimensions.SCREEN_WIDTH - size);
-      enemy.y = screenDimensions.GAME_AREA_TOP + 10;
+      enemy.x = Math.random() * (screenDimensionsRef.current.SCREEN_WIDTH - size);
+      enemy.y = screenDimensionsRef.current.GAME_AREA_TOP + 10;
       enemy.width = size;
       enemy.height = size;
       enemy.velocityX = horizontalSpeed;
@@ -100,7 +125,7 @@ export const useGameLogic = () => {
       enemy.type = type;
       enemy.sizeLevel = sizeLevel;
 
-      actions.addEnemy(enemy);
+      actionsRef.current.addEnemy(enemy);
     } catch (error) {
       ErrorLogger.logGameLogicError(
         error instanceof Error ? error : new Error(String(error)),
@@ -108,7 +133,17 @@ export const useGameLogic = () => {
         gameStateRef.current
       );
     }
-  }, [actions, screenDimensions]);
+  }, []);
+
+  // Store spawn enemy function in ref to avoid dependency chain
+  const spawnEnemyRef = useRef(spawnEnemyInternal);
+  useEffect(() => {
+    spawnEnemyRef.current = spawnEnemyInternal;
+  }, [spawnEnemyInternal]);
+
+  const spawnEnemy = useCallback(() => {
+    spawnEnemyRef.current();
+  }, []);
 
   // Projectile shooting logic
   const shootProjectile = useCallback(() => {
@@ -116,6 +151,7 @@ export const useGameLogic = () => {
       if (gameStateRef.current.gameOver) return;
 
       const pete = gameStateRef.current.pete;
+      
       // Get projectile from object pool
       const projectile = objectPools.current.acquireProjectile();
       projectile.id = `projectile-${nanoid(8)}`;
@@ -126,7 +162,7 @@ export const useGameLogic = () => {
       projectile.velocityX = 0;
       projectile.velocityY = -GAME_CONFIG.PROJECTILE_SPEED;
 
-      actions.addProjectile(projectile);
+      actionsRef.current.addProjectile(projectile);
     } catch (error) {
       ErrorLogger.logGameLogicError(
         error instanceof Error ? error : new Error(String(error)),
@@ -134,7 +170,7 @@ export const useGameLogic = () => {
         gameStateRef.current
       );
     }
-  }, [actions]);
+  }, []);
 
   // Main game loop
   const gameLoop = useCallback(
@@ -158,10 +194,10 @@ export const useGameLogic = () => {
         if (currentState.gameOver) return;
 
         // Handle enemy spawning
-        const enemySpawnIntervalMs = actions.enemySpawnInterval();
+        const enemySpawnIntervalMs = actionsRef.current.enemySpawnInterval();
         if (timestamp - lastEnemySpawnTime.current > enemySpawnIntervalMs) {
           lastEnemySpawnTime.current = timestamp;
-          spawnEnemy();
+          spawnEnemyRef.current();
         }
 
         // Update projectiles
@@ -170,8 +206,8 @@ export const useGameLogic = () => {
           .filter((projectile: GameObject) => {
             const outOfBounds = isOutOfBounds(
               projectile,
-              screenDimensions.SCREEN_WIDTH,
-              screenDimensions.SCREEN_HEIGHT
+              screenDimensionsRef.current.SCREEN_WIDTH,
+              screenDimensionsRef.current.SCREEN_HEIGHT
             );
             if (outOfBounds) {
               // Return projectile to pool when it goes out of bounds
@@ -181,7 +217,7 @@ export const useGameLogic = () => {
           });
 
         if (updatedProjectiles.length !== currentState.projectiles.length) {
-          actions.setProjectiles(updatedProjectiles);
+          actionsRef.current.setProjectiles(updatedProjectiles);
         }
 
         // Update enemies
@@ -189,12 +225,12 @@ export const useGameLogic = () => {
           updateBouncingEnemy(
             enemy,
             currentDeltaTime,
-            screenDimensions.SCREEN_WIDTH,
-            screenDimensions.GAME_AREA_BOTTOM
+            screenDimensionsRef.current.SCREEN_WIDTH,
+            screenDimensionsRef.current.GAME_AREA_BOTTOM
           )
         );
 
-        actions.setEnemies(updatedEnemies);
+        actionsRef.current.setEnemies(updatedEnemies);
 
         // Handle collisions
         const collisionResult = CollisionSystem.processCollisions(
@@ -223,7 +259,7 @@ export const useGameLogic = () => {
                 );
               }
             } else if (event.type === 'enemy-pete') {
-              actions.setGameOver(true);
+              actionsRef.current.setGameOver(true);
               safeHapticFeedback(
                 () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
                 'GameOver'
@@ -234,7 +270,7 @@ export const useGameLogic = () => {
 
           // Update score
           if (collisionResult.scoreIncrease > 0) {
-            actions.updateScore(collisionResult.scoreIncrease);
+            actionsRef.current.updateScore(collisionResult.scoreIncrease);
 
             // Check for level up with haptic feedback
             const newScore = currentState.score + collisionResult.scoreIncrease;
@@ -265,8 +301,8 @@ export const useGameLogic = () => {
             })
             .concat(collisionResult.splitEnemies);
 
-          actions.setProjectiles(remainingProjectiles);
-          actions.setEnemies(remainingEnemies);
+          actionsRef.current.setProjectiles(remainingProjectiles);
+          actionsRef.current.setEnemies(remainingEnemies);
         }
 
         // Continue the animation loop if game is not over
@@ -279,10 +315,10 @@ export const useGameLogic = () => {
           'game_loop',
           gameStateRef.current
         );
-        actions.setGameOver(true);
+        actionsRef.current.setGameOver(true);
       }
     },
-    [actions, spawnEnemy, screenDimensions]
+    []
   );
 
   // Start/stop game loop
@@ -319,7 +355,7 @@ export const useGameLogic = () => {
       currentState.projectiles.forEach((p: GameObject) => objectPools.current.releaseProjectile(p));
       currentState.enemies.forEach((e: GameObject) => objectPools.current.releaseEnemy(e));
 
-      actions.resetGame(screenDimensions.SCREEN_WIDTH, screenDimensions.GAME_AREA_BOTTOM);
+      actionsRef.current.resetGame(screenDimensionsRef.current.SCREEN_WIDTH, screenDimensionsRef.current.GAME_AREA_BOTTOM);
 
       // Log pool stats in development
       if (__DEV__) {
@@ -331,7 +367,7 @@ export const useGameLogic = () => {
         'reset_game'
       );
     }
-  }, [actions, screenDimensions]);
+  }, []);
 
   return {
     gameState,
