@@ -71,6 +71,7 @@ export const ArcadeContainer: React.FC<ArcadeContainerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     backgroundColor: ArcadeColors.deepBlack,
     padding: 20,
   },

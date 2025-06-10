@@ -127,7 +127,7 @@ The game features a complete arcade-style transformation:
 - **Secondary Colors**: Lime Green (#00FF00) and Yellow (#FFFF00) 
 - **Background**: Deep Black (#000000) for maximum contrast
 - **Glow Effects**: Semi-transparent versions of all colors for neon lighting
-- **Typography**: White text with monospace fonts (Courier-Bold on iOS)
+- **Typography**: White text with monospace fonts (Courier on iOS)
 
 #### Arcade Components
 - **ArcadeButton**: Rectangular buttons with neon borders, glow effects, and uppercase text
@@ -189,6 +189,27 @@ The game features a complete arcade-style transformation:
 
 ### Recent Bug Fixes & Optimizations
 
+#### Font Loading and UI Rendering (Critical)
+- **Issue**: App showing blank screen with loading bars due to font loading blocking UI render
+- **Root Cause**: `app/_layout.tsx` returned `null` when fonts weren't loaded, preventing entire app from rendering
+- **Solution**: Removed font loading blocking behavior to allow app to render with fallback fonts
+- **Location**: `app/_layout.tsx:19-22` - Font loading conditional
+- **Impact**: App now shows properly on first load instead of blank screen
+
+#### ArcadeContainer Layout System
+- **Issue**: MenuScreen and other UI components not rendering due to missing flex layout
+- **Solution**: Added `flex: 1` to ArcadeContainer base styles
+- **Location**: `components/arcade/ArcadeContainer.tsx:73-77`
+- **Impact**: All arcade UI components now render with proper layout constraints
+
+#### Font Compatibility Fix
+- **Issue**: Custom font `Courier-Bold` not available causing text rendering failures
+- **Solution**: Changed to standard `Courier` with proper `fontWeight` for cross-platform compatibility
+- **Locations**: 
+  - `components/arcade/ArcadeText.tsx:79-83`
+  - `components/arcade/ArcadeButton.tsx:113-118`
+- **Impact**: Text now renders consistently across iOS and other platforms
+
 #### Pete Positioning Fix
 - **Issue**: Pete appearing off-screen due to incorrect Y offset calculation
 - **Solution**: Changed Y offset from -80 to -10 pixels for proper bottom positioning
@@ -223,6 +244,9 @@ The game features a complete arcade-style transformation:
 - **Solution**: Continue using refs for position data, React state for UI-only changes
 
 ### Common Debugging Patterns
+- **Blank screen/loading bars**: Check if font loading is blocking app render in `app/_layout.tsx` - should not return `null`
+- **Components not rendering**: Verify ArcadeContainer has `flex: 1` style and proper layout constraints
+- **Text not showing**: Check font family compatibility - use `Courier` instead of `Courier-Bold` for cross-platform support
 - **Game not animating**: Check if `isPlaying` state is true and game loop is running in `useGameLogic.ts`
 - **Starfield static**: Verify Starfield component receives proper `isPlaying` prop and has self-contained animation loop
 - **Object pool warnings**: Look for objects created directly instead of via `acquireEnemy()`/`acquireProjectile()`

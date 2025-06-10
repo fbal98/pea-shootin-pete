@@ -77,8 +77,8 @@ export const ArcadeText: React.FC<ArcadeTextProps> = ({
 
 const styles = StyleSheet.create({
   text: {
-    fontFamily: Platform.OS === 'ios' ? 'Courier-Bold' : 'monospace',
-    fontWeight: '900',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontWeight: Platform.OS === 'ios' ? 'bold' : '900',
     letterSpacing: 1,
   },
 });

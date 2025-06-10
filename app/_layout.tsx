@@ -17,8 +17,8 @@ export default function RootLayout() {
   });
 
   if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
+    // Font loading fallback - show the app without custom fonts
+    // rather than blank screen
   }
 
   return (
