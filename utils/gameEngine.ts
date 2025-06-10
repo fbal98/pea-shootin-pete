@@ -82,7 +82,8 @@ export const updateBouncingEnemy = (
   newEnemy.y += (newEnemy.velocityY || 0) * deltaTime;
 
   // Debug logging (remove in production)
-  if (__DEV__ && Math.random() < 0.02) { // Log 2% of the time
+  if (__DEV__ && Math.random() < 0.02) {
+    // Log 2% of the time
     console.log('Enemy physics:', {
       id: enemy.id.substring(0, 8),
       oldY: enemy.y,
@@ -93,7 +94,7 @@ export const updateBouncingEnemy = (
       gravityApplied: GRAVITY * deltaTime,
       deltaTime,
       gameAreaBottom,
-      willBounce: newEnemy.y + newEnemy.height > gameAreaBottom
+      willBounce: newEnemy.y + newEnemy.height > gameAreaBottom,
     });
   }
 

@@ -40,7 +40,18 @@
       "Bash(CI=1 npx expo start --ios)",
       "Bash(xcrun simctl openurl:*)",
       "Bash(xcrun simctl io:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(xcrun simctl ui:*)",
+      "Bash(xcrun simctl device booted tap:*)",
+      "mcp__ios__get_booted_sim_id",
+      "mcp__ios__screenshot",
+      "mcp__ios__ui_describe_all",
+      "mcp__ios__ui_tap",
+      "Bash(npx expo run:ios:*)",
+      "Bash(timeout 20s npm run web)",
+      "Bash(gtimeout:*)",
+      "Bash(npx expo run:web:*)",
+      "Bash(npx expo export:web:*)"
     ],
     "deny": []
   }

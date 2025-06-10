@@ -11,7 +11,7 @@ interface RipplePosition {
 }
 
 export const useGameInput = (
-  screenWidth: number, 
+  screenWidth: number,
   shootProjectile: () => void,
   updatePetePosition: (x: number) => void
 ) => {

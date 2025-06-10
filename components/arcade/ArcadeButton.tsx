@@ -10,12 +10,12 @@ interface ArcadeButtonProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-export const ArcadeButton: React.FC<ArcadeButtonProps> = ({ 
-  onPress, 
-  text, 
+export const ArcadeButton: React.FC<ArcadeButtonProps> = ({
+  onPress,
+  text,
   variant = 'primary',
   disabled = false,
-  size = 'medium'
+  size = 'medium',
 }) => {
   const getButtonColors = () => {
     if (variant === 'primary') {
@@ -63,27 +63,27 @@ export const ArcadeButton: React.FC<ArcadeButtonProps> = ({
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.8}
-      style={[
-        styles.button,
-        { backgroundColor: colors.background },
-        disabled && styles.disabled,
-      ]}
+      style={[styles.button, { backgroundColor: colors.background }, disabled && styles.disabled]}
     >
-      <View style={[
-        styles.glowContainer,
-        {
-          shadowColor: colors.glow,
-          paddingHorizontal: sizeStyles.paddingHorizontal,
-          paddingVertical: sizeStyles.paddingVertical,
-        }
-      ]}>
-        <Text style={[
-          styles.text,
-          { 
-            color: colors.text,
-            fontSize: sizeStyles.fontSize,
-          }
-        ]}>
+      <View
+        style={[
+          styles.glowContainer,
+          {
+            shadowColor: colors.glow,
+            paddingHorizontal: sizeStyles.paddingHorizontal,
+            paddingVertical: sizeStyles.paddingVertical,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.text,
+            {
+              color: colors.text,
+              fontSize: sizeStyles.fontSize,
+            },
+          ]}
+        >
           {text.toUpperCase()}
         </Text>
       </View>

@@ -58,9 +58,14 @@ export class ObjectPool {
       return newObject;
     }
 
-    // Pool is full, force create a new object (not pooled)
-    console.warn('Object pool exhausted, creating non-pooled object');
-    return this.createObject();
+    // Pool is full - expand pool safely instead of corrupting in-use objects
+    console.warn('Pool expansion: safely creating tracked object beyond maxSize');
+    const newObject = this.createObject();
+    this.pool.push({
+      inUse: true,
+      object: newObject,
+    });
+    return newObject;
   }
 
   /**
@@ -142,7 +147,7 @@ export class GameObjectPools {
       50 // Max size
     );
 
-    // Enemy pool
+    // Enemy pool - increased max size to handle enemy splitting exponentially
     this.enemyPool = new ObjectPool(
       (): GameObject => ({
         id: '',
@@ -166,8 +171,8 @@ export class GameObjectPools {
         obj.type = 'basic' as EnemyType;
         obj.sizeLevel = 1;
       },
-      15, // Initial size
-      40 // Max size
+      25, // Initial size - increased for better performance
+      150 // Max size - significantly increased to handle exponential enemy splitting
     );
   }
 

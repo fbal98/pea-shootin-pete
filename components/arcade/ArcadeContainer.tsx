@@ -8,14 +8,14 @@ interface ArcadeContainerProps {
   variant?: 'game' | 'menu' | 'overlay';
 }
 
-export const ArcadeContainer: React.FC<ArcadeContainerProps> = ({ 
-  children, 
+export const ArcadeContainer: React.FC<ArcadeContainerProps> = ({
+  children,
   showBorder = true,
-  variant = 'menu'
+  variant = 'menu',
 }) => {
   const getBorderStyle = () => {
     if (!showBorder) return {};
-    
+
     switch (variant) {
       case 'game':
         return {
@@ -59,11 +59,7 @@ export const ArcadeContainer: React.FC<ArcadeContainerProps> = ({
   };
 
   return (
-    <View style={[
-      styles.container,
-      variant === 'overlay' && styles.overlay,
-      getBorderStyle(),
-    ]}>
+    <View style={[styles.container, variant === 'overlay' && styles.overlay, getBorderStyle()]}>
       {children}
     </View>
   );
