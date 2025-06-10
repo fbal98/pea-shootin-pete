@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { GAME_CONFIG } from '@/constants/GameConfig';
 
@@ -13,14 +13,19 @@ interface Star {
 
 interface StarfieldProps {
   isPlaying: boolean;
-  deltaTime?: number;
 }
 
-export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime: _deltaTime = 0 }) => {
+export const Starfield: React.FC<StarfieldProps> = ({ isPlaying }) => {
   const dimensions = useWindowDimensions();
-  const [stars, setStars] = useState<Star[]>([]);
+  const starsRef = useRef<Star[]>([]);
   const initializedRef = useRef(false);
   const screenDimensionsRef = useRef({ width: dimensions.width, height: dimensions.height });
+  const accumulatorRef = useRef(0);
+  const TARGET_FRAME_TIME = 33; // ~30fps for starfield updates
+  const animationFrameRef = useRef<number | undefined>(undefined);
+
+  // Force component re-render when stars update
+  const [, forceRender] = React.useReducer(x => x + 1, 0);
 
   // Update dimensions ref without causing re-renders
   useEffect(() => {
@@ -64,7 +69,7 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime: _del
         opacity,
       };
     },
-    [screenDimensionsRef] // Include screenDimensionsRef in dependencies
+    [] // No dependencies needed since we use ref
   );
 
   // Initialize stars once
@@ -74,17 +79,13 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime: _del
       for (let i = 0; i < GAME_CONFIG.STAR_COUNT; i++) {
         initialStars.push(createStar());
       }
-      setStars(initialStars);
+      starsRef.current = initialStars;
       initializedRef.current = true;
-      
+      forceRender(); // Initial render
     }
   }, [createStar]);
 
-  // Animation loop with its own timing
-  const animationFrameRef = useRef<number | undefined>(undefined);
-  const lastUpdateTimeRef = useRef<number>(0);
-  const accumulatorRef = useRef(0);
-
+  // Update stars independently (throttled to ~30fps)
   useEffect(() => {
     if (!isPlaying) {
       if (animationFrameRef.current) {
@@ -94,12 +95,25 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime: _del
       return;
     }
 
-    const targetFrameTime = 33; // ~30fps for starfield
+    let lastTimestamp = 0;
 
-    const updateStars = (currentDeltaTime: number) => {
-      setStars(prevStars =>
-        prevStars.map(star => {
-          const newY = star.y + star.speed * currentDeltaTime;
+    const updateStars = (timestamp: number) => {
+      if (!lastTimestamp) {
+        lastTimestamp = timestamp;
+      }
+
+      const deltaTime = Math.max(0, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+
+      // Accumulate time and only update when we reach target frame time
+      accumulatorRef.current += deltaTime * 1000;
+
+      if (accumulatorRef.current >= TARGET_FRAME_TIME) {
+        const deltaTimeSeconds = accumulatorRef.current / 1000;
+
+        // Update stars in place without triggering React state
+        starsRef.current = starsRef.current.map(star => {
+          const newY = star.y + star.speed * deltaTimeSeconds;
 
           // Reset star if it goes off screen
           if (newY > screenDimensionsRef.current.height + star.size) {
@@ -107,33 +121,20 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime: _del
           }
 
           return { ...star, y: newY };
-        })
-      );
-      
-    };
+        });
 
-    const animationLoop = (timestamp: number) => {
-      if (!isPlaying) return;
-
-      if (lastUpdateTimeRef.current === 0) {
-        lastUpdateTimeRef.current = timestamp;
-      }
-
-      const elapsed = timestamp - lastUpdateTimeRef.current;
-      lastUpdateTimeRef.current = timestamp;
-      accumulatorRef.current += elapsed;
-
-      // Throttle updates to ~30fps for starfield
-      if (accumulatorRef.current >= targetFrameTime) {
-        const deltaTimeSeconds = accumulatorRef.current / 1000;
-        updateStars(deltaTimeSeconds);
         accumulatorRef.current = 0;
+        forceRender(); // Minimal React update only when positions change
       }
 
-      animationFrameRef.current = requestAnimationFrame(animationLoop);
+      if (isPlaying) {
+        animationFrameRef.current = requestAnimationFrame(updateStars);
+      }
     };
 
-    animationFrameRef.current = requestAnimationFrame(animationLoop);
+    if (initializedRef.current) {
+      animationFrameRef.current = requestAnimationFrame(updateStars);
+    }
 
     return () => {
       if (animationFrameRef.current) {
@@ -141,11 +142,11 @@ export const Starfield: React.FC<StarfieldProps> = ({ isPlaying, deltaTime: _del
         animationFrameRef.current = undefined;
       }
     };
-  }, [isPlaying, createStar]);
+  }, [isPlaying, createStar]); // Removed deltaTimeRef and renderTickRef dependencies
 
   return (
     <View style={styles.container}>
-      {stars.map(star => (
+      {starsRef.current.map(star => (
         <View
           key={star.id}
           style={[

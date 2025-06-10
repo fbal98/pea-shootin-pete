@@ -71,14 +71,16 @@ screens/GameScreen.tsx     # Main game logic and state management
 #### State Management Strategy
 - **Zustand Store** (`store/gameStore.ts`): Centralized game state with stable action references
 - **High-frequency data in refs**: Position data stored in `useRef` to avoid React re-render overhead
-- **Memoized selectors**: `useGameState()` uses individual selectors + `useMemo` to prevent infinite loops
-- **Ref synchronization**: Game state copied to refs in `useGameLogic.ts` for game loop access
+- **Memoized selectors**: `useUIState()` uses individual selectors to prevent infinite loops
+- **Ref synchronization**: Game state copied to refs in `useGameLogic.ts` using `useLayoutEffect` for immediate sync
+- **Stable references**: `uiStateRef` and `actionsRef` prevent stale closures in game loop
 
 #### Game Loop Architecture  
-- **Main loop**: `useGameLogic.ts` manages `requestAnimationFrame` game loop
+- **Stable game loop function**: Created once with empty dependency array, uses refs instead of direct state
 - **Frame-rate independence**: All physics calculations use `deltaTime` for consistent speed
-- **Separated concerns**: Game logic separated from input handling and rendering
-- **Performance monitoring**: Real-time FPS tracking in development builds
+- **Auto-start mechanism**: GameScreen automatically starts game loop when mounted
+- **Independent animation systems**: Starfield runs its own loop, not dependent on main game loop
+- **Performance monitoring**: Real-time FPS tracking and comprehensive debug logging
 
 #### Object Pool System
 - **Memory optimization**: Pre-allocated pools for projectiles and enemies in `utils/ObjectPool.ts`
@@ -189,6 +191,17 @@ The game features a complete arcade-style transformation:
 
 ### Recent Bug Fixes & Optimizations
 
+#### Game Loop Freezing Issue (CRITICAL FIX - Latest)
+- **Issue**: Game loop only ran during touch events, everything frozen without user input
+- **Root Cause**: Stale closure in game loop function caused by including `gameLoop` in `useEffect` dependency array
+- **Solution**: 
+  - Removed `gameLoop` from dependency array and used empty `[]` instead
+  - Switched to stable refs (`uiStateRef`, `actionsRef`) instead of direct state access in game loop
+  - Added auto-start mechanism in GameScreen to immediately begin game when mounted
+  - Made Starfield animation independent with its own `requestAnimationFrame` loop
+- **Location**: `hooks/useGameLogic.ts` - Game loop function and effect
+- **Impact**: Game now runs continuously at 60fps without requiring touch input
+
 #### Font Loading and UI Rendering (Critical)
 - **Issue**: App showing blank screen with loading bars due to font loading blocking UI render
 - **Root Cause**: `app/_layout.tsx` returned `null` when fonts weren't loaded, preventing entire app from rendering
@@ -231,26 +244,30 @@ The game features a complete arcade-style transformation:
 - **Issue**: Objects not properly released back to pool during enemy splitting
 - **Impact**: Gradual memory buildup, potential app crashes on long sessions
 - **Location**: `systems/CollisionSystem.ts` - Enemy split logic
-- **Status**: Requires immediate attention
-
-#### Game Loop Race Conditions
-- **Issue**: Multiple `requestAnimationFrame` loops running simultaneously
-- **Impact**: Inconsistent frame rates, potential performance degradation
-- **Status**: Monitoring required
+- **Status**: Requires monitoring (improved with latest fixes)
 
 #### Excessive Re-renders
 - **Issue**: High-frequency state updates triggering unnecessary React renders
 - **Impact**: Reduced frame rate on lower-end devices
-- **Solution**: Continue using refs for position data, React state for UI-only changes
+- **Status**: Significantly improved with ref-based game loop architecture
 
 ### Common Debugging Patterns
+- **Game freezing/not animating**: Check if `isPlaying` state is true and game loop started in `useGameLogic.ts`
+- **Game loop not starting**: Verify auto-start mechanism in GameScreen and check console logs for game loop state
+- **Stale state in game loop**: Ensure using refs (`uiStateRef`, `actionsRef`) instead of direct state access
+- **Starfield not animating**: Verify Starfield receives `isPlaying={true}` prop and has independent animation loop
 - **Blank screen/loading bars**: Check if font loading is blocking app render in `app/_layout.tsx` - should not return `null`
 - **Components not rendering**: Verify ArcadeContainer has `flex: 1` style and proper layout constraints
 - **Text not showing**: Check font family compatibility - use `Courier` instead of `Courier-Bold` for cross-platform support
-- **Game not animating**: Check if `isPlaying` state is true and game loop is running in `useGameLogic.ts`
-- **Starfield static**: Verify Starfield component receives proper `isPlaying` prop and has self-contained animation loop
 - **Object pool warnings**: Look for objects created directly instead of via `acquireEnemy()`/`acquireProjectile()`
 - **Infinite loops**: Check Zustand selectors for new object creation and useEffect dependency arrays
 - **Touch not working**: Verify touch responders are properly set up and Pete position updates
 - **Pete positioning**: Ensure Y offset calculations account for safe area and proper bottom alignment
 - **Arcade styling**: Check ArcadeColors import and component prop passing for consistent theming
+
+### Game Loop Troubleshooting (Critical)
+- **Game loop dependency arrays**: NEVER include the game loop function itself in useEffect dependencies
+- **Ref synchronization**: Always use `useLayoutEffect` for immediate ref updates, `useEffect` for non-critical refs
+- **State vs Refs**: Use refs for high-frequency data, React state only for UI-triggering changes
+- **Animation independence**: Starfield and main game loop should run independently with their own `requestAnimationFrame`
+- **Auto-start verification**: GameScreen should automatically call `resetGame()` on mount if not already playing

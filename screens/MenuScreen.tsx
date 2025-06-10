@@ -17,6 +17,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
   const titleOpacity = useRef(new Animated.Value(0)).current;
   const buttonsOpacity = useRef(new Animated.Value(0)).current;
 
+
   useEffect(() => {
     // Animate title entrance
     Animated.parallel([
@@ -56,7 +57,6 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     <View style={styles.container}>
       {/* Animated starfield background */}
       <Starfield isPlaying={true} />
-      
       <ArcadeContainer showBorder={false}>
         <View style={styles.content}>
           {/* Animated Title */}
@@ -81,18 +81,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
           </Animated.View>
 
           {/* Menu Buttons */}
-          <Animated.View
-            style={[
-              styles.buttonsContainer,
-              { opacity: buttonsOpacity },
-            ]}
-          >
-            <ArcadeButton
-              text="PLAY"
-              onPress={onStartGame}
-              variant="primary"
-              size="large"
-            />
+          <Animated.View style={[styles.buttonsContainer, { opacity: buttonsOpacity }]}>
+            <ArcadeButton text="PLAY" onPress={onStartGame} variant="primary" size="large" />
             <ArcadeButton
               text="HOW TO PLAY"
               onPress={handleHowToPlay}

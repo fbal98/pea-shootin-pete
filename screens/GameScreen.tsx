@@ -17,18 +17,21 @@ import { useGameActions } from '@/store/gameStore';
 
 export const GameScreen: React.FC = () => {
   // Use our custom hooks for clean separation of concerns
-  const { 
-    peteRef, 
-    enemiesRef, 
-    projectilesRef, 
-    uiState, 
-    shootProjectile, 
+  const {
+    peteRef,
+    enemiesRef,
+    projectilesRef,
+    uiState,
+    shootProjectile,
     updatePetePosition,
-    resetGame, 
-    GAME_AREA_TOP, 
+    resetGame,
+    GAME_AREA_TOP,
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
-    GAME_AREA_BOTTOM
+    GAME_AREA_BOTTOM,
+    deltaTimeRef,
+    renderTickRef,
+    renderTrigger,
   } = useGameLogic();
 
   const { handleTouch, handleTouchMove, rippleAnim, rippleOpacity, ripplePosition } = useGameInput(
@@ -41,12 +44,16 @@ export const GameScreen: React.FC = () => {
   const gameOverScale = useRef(new Animated.Value(0)).current;
   const gameOverOpacity = useRef(new Animated.Value(0)).current;
 
-  // Auto-start the game when the component mounts
-  React.useEffect(() => {
+  // Auto-start the game when component mounts
+  useEffect(() => {
     if (!uiState.isPlaying && !uiState.gameOver) {
+      if (__DEV__) {
+        console.log('GameScreen: Auto-starting game');
+      }
       resetGame();
     }
-  }, []);
+  }, []); // Only run once on mount
+
 
   // Animate game over screen
   useEffect(() => {
@@ -82,11 +89,15 @@ export const GameScreen: React.FC = () => {
       ]}
     >
       <View style={styles.scoreContainer}>
-        <ArcadeText size="small" color="yellow" glow>SCORE</ArcadeText>
+        <ArcadeText size="small" color="yellow" glow>
+          SCORE
+        </ArcadeText>
         <Text style={styles.scoreValue}>{uiState.score.toString().padStart(6, '0')}</Text>
       </View>
       <View style={styles.levelContainer}>
-        <ArcadeText size="small" color="blue" glow>LEVEL</ArcadeText>
+        <ArcadeText size="small" color="blue" glow>
+          LEVEL
+        </ArcadeText>
         <Text style={styles.levelValue}>{uiState.level.toString().padStart(2, '0')}</Text>
       </View>
     </View>
@@ -218,14 +229,12 @@ export const GameScreen: React.FC = () => {
           <ArcadeText size="xlarge" color="pink" glow style={styles.gameOverTitle}>
             GAME OVER
           </ArcadeText>
-          
+
           <View style={styles.finalScoreContainer}>
             <ArcadeText size="medium" color="yellow" glow>
               FINAL SCORE
             </ArcadeText>
-            <Text style={styles.finalScoreValue}>
-              {uiState.score.toString().padStart(6, '0')}
-            </Text>
+            <Text style={styles.finalScoreValue}>{uiState.score.toString().padStart(6, '0')}</Text>
           </View>
 
           <View style={styles.finalLevelContainer}>
@@ -269,34 +278,40 @@ export const GameScreen: React.FC = () => {
           accessibilityHint="Touch anywhere to move Pete and shoot peas at enemies"
           accessibilityState={{ disabled: uiState.gameOver }}
         >
-        {/* Background starfield */}
-        <GameErrorBoundary>
-          <Starfield isPlaying={uiState.isPlaying && !uiState.gameOver} />
-        </GameErrorBoundary>
+          {/* Background starfield */}
+          <GameErrorBoundary>
+            <Starfield
+              isPlaying={uiState.isPlaying && !uiState.gameOver}
+            />
+          </GameErrorBoundary>
 
-        {/* Game header */}
-        {renderHeader()}
+          {/* Game header */}
+          {renderHeader()}
 
-        {/* Touch ripple effect */}
-        {renderRippleEffect()}
+          {/* Touch ripple effect */}
+          {renderRippleEffect()}
 
-        {/* Game objects */}
-        {renderPete()}
-        {renderEnemies()}
-        {renderProjectiles()}
+          {/* Game objects */}
+          {renderPete()}
+          {renderEnemies()}
+          {renderProjectiles()}
 
-        {/* Game over overlay */}
-        {renderGameOverOverlay()}
+          {/* Game over overlay */}
+          {renderGameOverOverlay()}
 
           {/* Debug FPS Counter (only in development) */}
           <DebugFPSCounter visible={__DEV__} position="top-right" />
-          
+
           {/* Debug enemy info */}
           {__DEV__ && (
             <View style={styles.debugInfo}>
               <Text style={styles.debugText}>Enemies: {enemiesRef.current.length}</Text>
-              <Text style={styles.debugText}>Pete X: {Math.round(peteRef.current.x)}, Y: {Math.round(peteRef.current.y)}</Text>
-              <Text style={styles.debugText}>Screen: {Math.round(SCREEN_WIDTH)}x{Math.round(SCREEN_HEIGHT)}</Text>
+              <Text style={styles.debugText}>
+                Pete X: {Math.round(peteRef.current.x)}, Y: {Math.round(peteRef.current.y)}
+              </Text>
+              <Text style={styles.debugText}>
+                Screen: {Math.round(SCREEN_WIDTH)}x{Math.round(SCREEN_HEIGHT)}
+              </Text>
               <Text style={styles.debugText}>Game Area Bottom: {Math.round(GAME_AREA_BOTTOM)}</Text>
               {enemiesRef.current.length > 0 && (
                 <Text style={styles.debugText}>
