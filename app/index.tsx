@@ -1,12 +1,12 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { MenuScreen } from '@/screens/MenuScreen';
-import { GameScreen } from '@/screens/GameScreen';
-import { useGameActions, useIsPlaying } from '@/store/gameStore';
-import { ArcadeColors } from '@/constants/ArcadeColors';
+import { HyperCasualMenuScreen } from '@/screens/HyperCasualMenuScreen';
+import { HyperCasualGameScreen } from '@/screens/HyperCasualGameScreen';
+import { useGameActions, useIsPlaying, useHighScore } from '@/store/gameStore';
 
 export default function HomeScreen() {
   const isPlaying = useIsPlaying();
+  const highScore = useHighScore();
   const actions = useGameActions();
   const hasInitialized = useRef(false);
 
@@ -26,7 +26,11 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {isPlaying ? <GameScreen /> : <MenuScreen onStartGame={handleStartGame} />}
+      {isPlaying ? (
+        <HyperCasualGameScreen />
+      ) : (
+        <HyperCasualMenuScreen onStartGame={handleStartGame} highScore={highScore} />
+      )}
     </View>
   );
 }
@@ -34,6 +38,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: ArcadeColors.deepBlack,
+    backgroundColor: '#FFFFFF',
   },
 });

@@ -5,6 +5,7 @@ import { GAME_CONFIG } from '@/constants/GameConfig';
 // UI-only state interface
 interface UIState {
   score: number;
+  highScore: number;
   level: number;
   lives: number;
   gameOver: boolean;
@@ -35,11 +36,15 @@ const createActions = (set: any, get: any) => ({
       const newLevel = Math.floor(newScore / GAME_CONFIG.LEVEL_UP_THRESHOLD) + 1;
       return {
         score: newScore,
+        highScore: Math.max(newScore, state.highScore),
         level: newLevel !== state.level ? newLevel : state.level,
       };
     }),
 
-  setGameOver: (gameOver: boolean) => set({ gameOver }),
+  setGameOver: (gameOver: boolean) => set((state: GameStore) => ({
+    gameOver,
+    highScore: gameOver ? Math.max(state.score, state.highScore) : state.highScore,
+  })),
 
   setLevel: (level: number) => set({ level }),
 
@@ -58,14 +63,15 @@ const createActions = (set: any, get: any) => ({
   setIsPaused: (paused: boolean) => set({ isPaused: paused }),
 
   resetGame: () =>
-    set({
+    set((state: GameStore) => ({
       score: 0,
       lives: 3,
       gameOver: false,
       level: 1,
       isPlaying: true,
       isPaused: false,
-    }),
+      highScore: state.highScore, // Preserve high score
+    })),
 
   enemySpawnInterval: () => {
     const state = get();
@@ -84,6 +90,7 @@ export const useGameStore = create<GameStore>()(
     return {
       // Initial UI state only
       score: 0,
+      highScore: 0,
       lives: 3,
       gameOver: false,
       level: 1,
@@ -97,6 +104,7 @@ export const useGameStore = create<GameStore>()(
 // Define the return type for UI state only
 export type UIStateSnapshot = {
   score: number;
+  highScore: number;
   level: number;
   lives: number;
   gameOver: boolean;
@@ -107,13 +115,14 @@ export type UIStateSnapshot = {
 // Selector for UI state
 export const useUIState = (): UIStateSnapshot => {
   const score = useGameStore(state => state.score);
+  const highScore = useGameStore(state => state.highScore);
   const level = useGameStore(state => state.level);
   const lives = useGameStore(state => state.lives);
   const gameOver = useGameStore(state => state.gameOver);
   const isPlaying = useGameStore(state => state.isPlaying);
   const isPaused = useGameStore(state => state.isPaused);
 
-  return { score, level, lives, gameOver, isPlaying, isPaused };
+  return { score, highScore, level, lives, gameOver, isPlaying, isPaused };
 };
 
 // Actions selector - returns stable reference
@@ -121,6 +130,7 @@ export const useGameActions = () => useGameStore(state => state.actions);
 
 // Individual UI state selectors
 export const useScore = () => useGameStore(state => state.score);
+export const useHighScore = () => useGameStore(state => state.highScore);
 export const useLevel = () => useGameStore(state => state.level);
 export const useLives = () => useGameStore(state => state.lives);
 export const useGameOver = () => useGameStore(state => state.gameOver);
