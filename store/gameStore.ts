@@ -6,6 +6,7 @@ import { GAME_CONFIG } from '@/constants/GameConfig';
 interface UIState {
   score: number;
   level: number;
+  lives: number;
   gameOver: boolean;
   isPlaying: boolean;
   isPaused: boolean;
@@ -17,6 +18,8 @@ interface GameStore extends UIState {
     updateScore: (points: number) => void;
     setGameOver: (gameOver: boolean) => void;
     setLevel: (level: number) => void;
+    setLives: (lives: number) => void;
+    loseLife: () => void;
     setIsPlaying: (playing: boolean) => void;
     setIsPaused: (paused: boolean) => void;
     resetGame: () => void;
@@ -40,6 +43,16 @@ const createActions = (set: any, get: any) => ({
 
   setLevel: (level: number) => set({ level }),
 
+  setLives: (lives: number) => set({ lives }),
+
+  loseLife: () => set((state: GameStore) => {
+    const newLives = state.lives - 1;
+    return {
+      lives: newLives,
+      gameOver: newLives <= 0,
+    };
+  }),
+
   setIsPlaying: (playing: boolean) => set({ isPlaying: playing }),
 
   setIsPaused: (paused: boolean) => set({ isPaused: paused }),
@@ -47,6 +60,7 @@ const createActions = (set: any, get: any) => ({
   resetGame: () =>
     set({
       score: 0,
+      lives: 3,
       gameOver: false,
       level: 1,
       isPlaying: true,
@@ -70,6 +84,7 @@ export const useGameStore = create<GameStore>()(
     return {
       // Initial UI state only
       score: 0,
+      lives: 3,
       gameOver: false,
       level: 1,
       isPlaying: false,
@@ -83,6 +98,7 @@ export const useGameStore = create<GameStore>()(
 export type UIStateSnapshot = {
   score: number;
   level: number;
+  lives: number;
   gameOver: boolean;
   isPlaying: boolean;
   isPaused: boolean;
@@ -92,11 +108,12 @@ export type UIStateSnapshot = {
 export const useUIState = (): UIStateSnapshot => {
   const score = useGameStore(state => state.score);
   const level = useGameStore(state => state.level);
+  const lives = useGameStore(state => state.lives);
   const gameOver = useGameStore(state => state.gameOver);
   const isPlaying = useGameStore(state => state.isPlaying);
   const isPaused = useGameStore(state => state.isPaused);
 
-  return { score, level, gameOver, isPlaying, isPaused };
+  return { score, level, lives, gameOver, isPlaying, isPaused };
 };
 
 // Actions selector - returns stable reference
@@ -105,6 +122,7 @@ export const useGameActions = () => useGameStore(state => state.actions);
 // Individual UI state selectors
 export const useScore = () => useGameStore(state => state.score);
 export const useLevel = () => useGameStore(state => state.level);
+export const useLives = () => useGameStore(state => state.lives);
 export const useGameOver = () => useGameStore(state => state.gameOver);
 export const useIsPlaying = () => useGameStore(state => state.isPlaying);
 export const useIsPaused = () => useGameStore(state => state.isPaused);

@@ -14,6 +14,8 @@ import { ArcadeButton } from '@/components/arcade/ArcadeButton';
 import { ArcadeText } from '@/components/arcade/ArcadeText';
 import { ArcadeColors } from '@/constants/ArcadeColors';
 import { useGameActions } from '@/store/gameStore';
+import { CRTFrame } from '@/components/ui/CRTFrame';
+import { EnhancedGameHUD } from '@/components/ui/EnhancedGameHUD';
 
 export const GameScreen: React.FC = () => {
   // Use our custom hooks for clean separation of concerns
@@ -43,6 +45,15 @@ export const GameScreen: React.FC = () => {
   const actions = useGameActions();
   const gameOverScale = useRef(new Animated.Value(0)).current;
   const gameOverOpacity = useRef(new Animated.Value(0)).current;
+
+  // Calculate enhanced HUD props
+  const isInDanger = enemiesRef.current.some((enemy: any) => 
+    enemy.y > SCREEN_HEIGHT * 0.7
+  );
+  const currentCombo = uiState.score > 0 ? Math.min(Math.floor(uiState.score / 50) + 1, 10) : 1;
+  const specialCharge = Math.min((uiState.score % 200) * 0.5, 100);
+  const scoreInLevel = uiState.score % 100;
+  const nextLevelScore = 100;
 
   // Auto-start the game when component mounts
   useEffect(() => {
@@ -265,7 +276,18 @@ export const GameScreen: React.FC = () => {
   // Main render method
   return (
     <GameErrorBoundary onRetry={resetGame}>
-      <ArcadeContainer variant="game" showBorder>
+      <CRTFrame showScanlines={true} intensity={1}>
+        {/* Enhanced HUD overlay */}
+        <EnhancedGameHUD
+          score={uiState.score}
+          level={uiState.level}
+          lives={uiState.lives}
+          combo={currentCombo}
+          specialCharge={specialCharge}
+          scoreInLevel={scoreInLevel}
+          nextLevelScore={nextLevelScore}
+          isInDanger={isInDanger}
+        />
         <View
           style={styles.gameArea}
           onStartShouldSetResponder={() => true}
@@ -285,8 +307,6 @@ export const GameScreen: React.FC = () => {
             />
           </GameErrorBoundary>
 
-          {/* Game header */}
-          {renderHeader()}
 
           {/* Touch ripple effect */}
           {renderRippleEffect()}
@@ -321,7 +341,7 @@ export const GameScreen: React.FC = () => {
             </View>
           )}
         </View>
-      </ArcadeContainer>
+      </CRTFrame>
     </GameErrorBoundary>
   );
 };
@@ -439,18 +459,22 @@ const styles = StyleSheet.create({
   },
   debugInfo: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 20,
     left: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     padding: 10,
-    borderRadius: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: ArcadeColors.electricBlue,
+    maxWidth: 200,
   },
   debugText: {
     color: ArcadeColors.electricBlue,
-    fontSize: 14,
+    fontSize: 11,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     textShadowColor: ArcadeColors.blueGlow,
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 5,
+    textShadowRadius: 3,
+    lineHeight: 14,
   },
 });

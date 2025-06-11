@@ -9,11 +9,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-interface MenuScreenProps {
+interface EnhancedMenuScreenProps {
   onStartGame: () => void;
 }
 
-export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
+export const EnhancedMenuScreen: React.FC<EnhancedMenuScreenProps> = ({ onStartGame }) => {
   const titleAnimation = useRef(new Animated.Value(0)).current;
   const insertCoinBlink = useRef(new Animated.Value(1)).current;
   const peaFloat1 = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
@@ -137,16 +137,6 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
     />
   );
 
-  const handleHowToPlay = () => {
-    // Placeholder for How to Play screen
-    console.log('How to Play pressed');
-  };
-
-  const handleSettings = () => {
-    // Placeholder for Settings screen
-    console.log('Settings pressed');
-  };
-
   return (
     <CRTFrame showScanlines={true} intensity={0.8}>
       <View style={styles.container}>
@@ -234,14 +224,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ onStartGame }) => {
           <View style={styles.menuOptions}>
             <ArcadeButton
               text="HOW TO PLAY"
-              onPress={handleHowToPlay}
+              onPress={() => console.log('How to Play')}
               variant="secondary"
               size="medium"
               style={styles.menuButton}
             />
             <ArcadeButton
               text="LEADERBOARD"
-              onPress={handleSettings}
+              onPress={() => console.log('Leaderboard')}
               variant="secondary"
               size="medium"
               style={styles.menuButton}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View, Platform } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, View, Platform, ViewStyle } from 'react-native';
 import { ArcadeColors } from '@/constants/ArcadeColors';
 
 interface ArcadeButtonProps {
@@ -8,6 +8,7 @@ interface ArcadeButtonProps {
   variant?: 'primary' | 'secondary';
   disabled?: boolean;
   size?: 'small' | 'medium' | 'large';
+  style?: ViewStyle;
 }
 
 export const ArcadeButton: React.FC<ArcadeButtonProps> = ({
@@ -16,6 +17,7 @@ export const ArcadeButton: React.FC<ArcadeButtonProps> = ({
   variant = 'primary',
   disabled = false,
   size = 'medium',
+  style,
 }) => {
   const getButtonColors = () => {
     if (variant === 'primary') {
@@ -63,7 +65,7 @@ export const ArcadeButton: React.FC<ArcadeButtonProps> = ({
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.8}
-      style={[styles.button, { backgroundColor: colors.background }, disabled && styles.disabled]}
+      style={[styles.button, { backgroundColor: colors.background }, disabled && styles.disabled, style]}
     >
       <View
         style={[
