@@ -79,7 +79,7 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
       type,
       sizeLevel: 3,
       velocityX: (Math.random() - 0.5) * 200,
-      velocityY: 0,
+      velocityY: Math.random() * 50 + 20, // Small initial downward velocity
     };
     
     enemies.current.push(enemy);
@@ -111,28 +111,44 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
         return p.y > -p.size;
       });
       
-      // Update enemies
+      // Update enemies with balloon physics
       enemies.current = enemies.current.filter(enemy => {
-        // Apply gravity
-        enemy.velocityY += GAME_CONFIG.GRAVITY * deltaTime;
+        // Balloon physics: lighter gravity and minimal air resistance
+        const balloonGravity = GAME_CONFIG.GRAVITY * 0.4; // Much lighter than rocks
+        const airResistance = 0.995; // Minimal air resistance for super-bouncy feel
+        const minBounceVelocity = 280; // Higher minimum bounce to stay airborne longer
+        
+        // Apply lighter gravity
+        enemy.velocityY += balloonGravity * deltaTime;
+        
+        // Apply air resistance to both directions
+        enemy.velocityX *= airResistance;
+        enemy.velocityY *= airResistance;
         
         // Update position
         enemy.x += enemy.velocityX * deltaTime;
         enemy.y += enemy.velocityY * deltaTime;
         
-        // Bounce off walls
+        // Bounce off walls with minimal energy loss
         if (enemy.x <= 0 || enemy.x >= screenWidth - enemy.size) {
-          enemy.velocityX *= -GAME_CONFIG.BOUNCE_DAMPING;
+          enemy.velocityX *= -0.9; // Less energy loss for balloon bounce
           enemy.x = Math.max(0, Math.min(screenWidth - enemy.size, enemy.x));
         }
         
-        // Bounce off floor
+        // Bounce off ceiling
+        if (enemy.y <= 0) {
+          enemy.velocityY *= -0.8;
+          enemy.y = 0;
+        }
+        
+        // Bounce off floor with super-bouncy trampoline effect
         if (enemy.y >= gameAreaHeightRef.current - enemy.size) {
-          enemy.velocityY *= -GAME_CONFIG.BOUNCE_DAMPING;
+          // Super energetic trampoline floor - like original Pang physics with high energy return
+          enemy.velocityY = Math.max(-minBounceVelocity, enemy.velocityY * -1.4);
           enemy.y = gameAreaHeightRef.current - enemy.size;
         }
         
-        // Remove if fallen off screen (shouldn't happen with bounce)
+        // Remove if somehow fallen off screen
         return enemy.y < gameAreaHeightRef.current + enemy.size;
       });
       
