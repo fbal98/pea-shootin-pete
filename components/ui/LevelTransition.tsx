@@ -14,9 +14,18 @@ import {
   useLevelProgressionStore, 
   useLevelProgressionActions, 
   useCurrentLevel,
-  useLevelState,
-  useLevelUI,
-  useLevelProgress
+  useLevelCompleted,
+  useLevelFailed,
+  useFailureReason,
+  useShowLevelTransition,
+  useShowVictoryScreen,
+  useShowFailureScreen,
+  useEnemiesRemaining,
+  useTotalEnemies,
+  useCurrentScore,
+  useCurrentCombo,
+  useShotsFired,
+  useShotsHit
 } from '@/store/levelProgressionStore';
 import { useGameActions } from '@/store/gameStore';
 import { UI_CONFIG, ANIMATION_CONFIG } from '@/constants/GameConfig';
@@ -33,9 +42,27 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
   const currentLevel = useCurrentLevel();
   const levelActions = useLevelProgressionActions();
   const gameActions = useGameActions();
-  const levelState = useLevelState();
-  const levelUI = useLevelUI();
-  const levelProgress = useLevelProgress();
+  
+  // Individual level state selectors
+  const levelCompleted = useLevelCompleted();
+  const levelFailed = useLevelFailed();
+  const failureReason = useFailureReason();
+  
+  // Individual level UI selectors
+  const showLevelTransition = useShowLevelTransition();
+  const showVictoryScreen = useShowVictoryScreen();
+  const showFailureScreen = useShowFailureScreen();
+  
+  // Individual level progress selectors
+  const enemiesRemaining = useEnemiesRemaining();
+  const totalEnemies = useTotalEnemies();
+  const currentScore = useCurrentScore();
+  const currentCombo = useCurrentCombo();
+  const shotsFired = useShotsFired();
+  const shotsHit = useShotsHit();
+  
+  // Calculate accuracy
+  const accuracy = shotsFired > 0 ? (shotsHit / shotsFired) * 100 : 0;
   
   // Animation values
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -44,7 +71,7 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
   
   // Start entrance animation when component mounts
   useEffect(() => {
-    if (levelUI.showTransition || levelUI.showVictory || levelUI.showFailure) {
+    if (showLevelTransition || showVictoryScreen || showFailureScreen) {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -64,7 +91,7 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
         }),
       ]).start();
     }
-  }, [levelUI.showTransition, levelUI.showVictory, levelUI.showFailure]);
+  }, [showLevelTransition, showVictoryScreen, showFailureScreen]);
   
   // Exit animation
   const animateExit = (callback: () => void) => {
@@ -121,7 +148,7 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
   if (!currentLevel) return null;
   
   // Don't show anything if no UI state is active
-  if (!levelUI.showTransition && !levelUI.showVictory && !levelUI.showFailure) {
+  if (!showLevelTransition && !showVictoryScreen && !showFailureScreen) {
     return null;
   }
   
@@ -144,7 +171,7 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
         ]}
       >
         {/* Level Start Transition */}
-        {levelUI.showTransition && (
+        {showLevelTransition && (
           <LevelStartScreen
             level={currentLevel}
             primaryColor={primaryColor}
@@ -153,10 +180,10 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
         )}
         
         {/* Victory Screen */}
-        {levelUI.showVictory && (
+        {showVictoryScreen && (
           <VictoryScreen
             level={currentLevel}
-            progress={levelProgress}
+            progress={{ currentScore, accuracy, currentCombo }}
             primaryColor={primaryColor}
             onNextLevel={handleNextLevel}
             onReturnToMenu={handleReturnToMenu}
@@ -164,11 +191,11 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
         )}
         
         {/* Failure Screen */}
-        {levelUI.showFailure && (
+        {showFailureScreen && (
           <FailureScreen
             level={currentLevel}
-            failureReason={levelState.failureReason}
-            progress={levelProgress}
+            failureReason={failureReason}
+            progress={{ currentScore, accuracy, currentCombo }}
             primaryColor={primaryColor}
             onRetry={handleRetryLevel}
             onReturnToMenu={handleReturnToMenu}

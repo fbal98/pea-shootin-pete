@@ -112,7 +112,14 @@ export type UIStateSnapshot = {
   isPaused: boolean;
 };
 
-// Selector for UI state
+// DEPRECATED: This hook is an anti-pattern and causes performance issues.
+// It creates a new object on every render, which breaks React's memoization
+// and can lead to infinite re-render loops.
+//
+// ERROR: "Warning: The result of getSnapshot should be cached to avoid an infinite loop"
+//
+// INSTEAD, use the individual, granular selectors below (e.g., useScore(), useIsPlaying()).
+// This ensures components only re-render when the specific state they need changes.
 export const useUIState = (): UIStateSnapshot => {
   const score = useGameStore(state => state.score);
   const highScore = useGameStore(state => state.highScore);

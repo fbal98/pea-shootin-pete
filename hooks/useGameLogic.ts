@@ -1,5 +1,5 @@
 import { EnemyType, GAME_CONFIG } from '@/constants/GameConfig';
-import { useGameActions, useUIState } from '@/store/gameStore';
+import { useGameActions, useIsPlaying, useGameOver, useLevel, useScore } from '@/store/gameStore';
 import { CollisionSystem } from '@/systems/CollisionSystem';
 import { ErrorLogger, safeHapticFeedback } from '@/utils/errorLogger';
 import {
@@ -20,7 +20,10 @@ export const useGameLogic = () => {
   const insets = useSafeAreaInsets();
 
   // UI state from Zustand
-  const uiState = useUIState();
+  const isPlaying = useIsPlaying();
+  const gameOver = useGameOver();
+  const level = useLevel();
+  const score = useScore();
   const actions = useGameActions();
 
   // Game object refs (the real game state)
@@ -46,7 +49,7 @@ export const useGameLogic = () => {
   const renderTickRef = useRef(0);
 
   // Stable refs for game loop to prevent stale closures
-  const uiStateRef = useRef(uiState);
+  const uiStateRef = useRef({ isPlaying, gameOver, level, score });
   const actionsRef = useRef(actions);
 
   // Force re-render trigger for visual updates
@@ -54,8 +57,8 @@ export const useGameLogic = () => {
 
   // Update refs when values change
   useEffect(() => {
-    uiStateRef.current = uiState;
-  }, [uiState]);
+    uiStateRef.current = { isPlaying, gameOver, level, score };
+  }, [isPlaying, gameOver, level, score]);
 
   useEffect(() => {
     actionsRef.current = actions;
@@ -390,7 +393,7 @@ export const useGameLogic = () => {
       });
     }
 
-    if (uiState.isPlaying && !uiState.gameOver && !gameLoopRef.current) {
+    if (isPlaying && !gameOver && !gameLoopRef.current) {
       if (__DEV__) {
         console.log('Starting game loop', { 
           timestamp: Date.now(),
@@ -407,11 +410,11 @@ export const useGameLogic = () => {
       if (__DEV__) {
         console.log('Game loop started with ID:', gameLoopRef.current);
       }
-    } else if ((!uiState.isPlaying || uiState.gameOver) && gameLoopRef.current) {
+    } else if ((!isPlaying || gameOver) && gameLoopRef.current) {
       if (__DEV__) {
         console.log('Stopping game loop', { 
-          isPlaying: uiState.isPlaying, 
-          gameOver: uiState.gameOver,
+          isPlaying: isPlaying, 
+          gameOver: gameOver,
           loopId: gameLoopRef.current,
           timestamp: Date.now()
         });
@@ -421,11 +424,11 @@ export const useGameLogic = () => {
     } else {
       if (__DEV__) {
         console.log('Game loop effect - no action needed:', {
-          isPlaying: uiState.isPlaying,
-          gameOver: uiState.gameOver,
+          isPlaying: isPlaying,
+          gameOver: gameOver,
           hasLoop: !!gameLoopRef.current,
-          reason: !uiState.isPlaying ? 'not playing' : 
-                  uiState.gameOver ? 'game over' : 
+          reason: !isPlaying ? 'not playing' : 
+                  gameOver ? 'game over' : 
                   gameLoopRef.current ? 'loop already exists' : 'unknown'
         });
       }
@@ -440,7 +443,7 @@ export const useGameLogic = () => {
         gameLoopRef.current = undefined;
       }
     };
-  }, [uiState.isPlaying, uiState.gameOver]);
+  }, [isPlaying, gameOver]);
 
   return {
     // Game object refs for rendering
@@ -449,7 +452,7 @@ export const useGameLogic = () => {
     projectilesRef,
 
     // UI state
-    uiState,
+    uiState: { isPlaying, gameOver, level, score },
 
     // Actions
     shootProjectile,

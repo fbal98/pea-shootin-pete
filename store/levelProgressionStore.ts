@@ -210,8 +210,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         };
       });
 
-      // Check victory conditions after enemy elimination
-      setTimeout(() => actions.checkVictoryConditions(), 100);
+      // Victory conditions will be checked by the game loop
     },
 
     // Track projectile fired
@@ -256,8 +255,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         };
       });
 
-      // Check victory conditions after objective completion
-      setTimeout(() => actions.checkVictoryConditions(), 100);
+      // Victory conditions will be checked by the game loop
     },
 
     // Check if victory conditions are met
@@ -477,33 +475,63 @@ export const useLevelProgressionActions = () =>
 export const useCurrentLevel = () => 
   useLevelProgressionStore(state => state.currentLevel);
 
-export const useLevelProgress = () => 
-  useLevelProgressionStore(state => ({
-    enemiesRemaining: state.enemiesRemaining,
-    totalEnemies: state.totalEnemies,
-    currentScore: state.currentScore,
-    accuracy: calculateAccuracy(state.shotsHit, state.shotsFired),
-    currentCombo: state.currentCombo
-  }));
+// DEPRECATED: These composite selectors cause infinite re-render loops
+// Use individual selectors below instead
 
-export const useLevelState = () =>
-  useLevelProgressionStore(state => ({
-    isLoading: state.isLevelLoading,
-    completed: state.levelCompleted,
-    failed: state.levelFailed,
-    failureReason: state.failureReason
-  }));
+// export const useLevelProgress = () => 
+//   useLevelProgressionStore(state => ({
+//     enemiesRemaining: state.enemiesRemaining,
+//     totalEnemies: state.totalEnemies,
+//     currentScore: state.currentScore,
+//     accuracy: calculateAccuracy(state.shotsHit, state.shotsFired),
+//     currentCombo: state.currentCombo
+//   }));
 
-export const useLevelUI = () =>
-  useLevelProgressionStore(state => ({
-    showTransition: state.showLevelTransition,
-    showVictory: state.showVictoryScreen,
-    showFailure: state.showFailureScreen
-  }));
+// export const useLevelState = () =>
+//   useLevelProgressionStore(state => ({
+//     isLoading: state.isLevelLoading,
+//     completed: state.levelCompleted,
+//     failed: state.levelFailed,
+//     failureReason: state.failureReason
+//   }));
 
-export const usePlayerProgress = () =>
-  useLevelProgressionStore(state => ({
-    unlockedLevels: state.unlockedLevels,
-    completedLevels: state.completedLevels,
-    currentLevelId: state.currentLevelId
-  }));
+// export const useLevelUI = () =>
+//   useLevelProgressionStore(state => ({
+//     showTransition: state.showLevelTransition,
+//     showVictory: state.showVictoryScreen,
+//     showFailure: state.showFailureScreen
+//   }));
+
+// export const usePlayerProgress = () =>
+//   useLevelProgressionStore(state => ({
+//     unlockedLevels: state.unlockedLevels,
+//     completedLevels: state.completedLevels,
+//     currentLevelId: state.currentLevelId
+//   }));
+
+// Individual selectors for level progression (to avoid infinite loop issues)
+export const useEnemiesRemaining = () => useLevelProgressionStore(state => state.enemiesRemaining);
+export const useTotalEnemies = () => useLevelProgressionStore(state => state.totalEnemies);
+export const useCurrentScore = () => useLevelProgressionStore(state => state.currentScore);
+export const useShotsFired = () => useLevelProgressionStore(state => state.shotsFired);
+export const useShotsHit = () => useLevelProgressionStore(state => state.shotsHit);
+export const useCurrentCombo = () => useLevelProgressionStore(state => state.currentCombo);
+export const useLevelCompleted = () => useLevelProgressionStore(state => state.levelCompleted);
+export const useLevelFailed = () => useLevelProgressionStore(state => state.levelFailed);
+export const useLevelStartTime = () => useLevelProgressionStore(state => state.levelStartTime);
+export const useCurrentWave = () => useLevelProgressionStore(state => state.currentWave);
+export const useWaveIndex = () => useLevelProgressionStore(state => state.waveIndex);
+
+// Individual selectors for level state
+export const useIsLevelLoading = () => useLevelProgressionStore(state => state.isLevelLoading);
+export const useFailureReason = () => useLevelProgressionStore(state => state.failureReason);
+
+// Individual selectors for level UI
+export const useShowLevelTransition = () => useLevelProgressionStore(state => state.showLevelTransition);
+export const useShowVictoryScreen = () => useLevelProgressionStore(state => state.showVictoryScreen);
+export const useShowFailureScreen = () => useLevelProgressionStore(state => state.showFailureScreen);
+
+// Individual selectors for player progress
+export const useUnlockedLevels = () => useLevelProgressionStore(state => state.unlockedLevels);
+export const useCompletedLevels = () => useLevelProgressionStore(state => state.completedLevels);
+export const useCurrentLevelId = () => useLevelProgressionStore(state => state.currentLevelId);

@@ -74,12 +74,7 @@ export const HyperCasualGameScreen: React.FC = () => {
     return () => clearInterval(interval);
   }, [updateSmoothing]);
 
-  // Auto-start game when component mounts
-  useEffect(() => {
-    if (!isPlaying && !gameOver) {
-      actions.resetGame();
-    }
-  }, []);
+  // Game starts when isPlaying is set to true by parent component
 
   const handleRestart = useCallback(() => {
     actions.resetGame();

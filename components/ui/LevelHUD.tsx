@@ -14,10 +14,16 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { 
   useCurrentLevel,
-  useLevelProgress,
-  useLevelState 
+  useEnemiesRemaining,
+  useTotalEnemies,
+  useCurrentScore,
+  useCurrentCombo,
+  useShotsFired,
+  useShotsHit,
+  useLevelCompleted,
+  useLevelFailed
 } from '@/store/levelProgressionStore';
-import { useUIState } from '@/store/gameStore';
+import { useIsPlaying } from '@/store/gameStore';
 import { UI_CONFIG, ANIMATION_CONFIG } from '@/constants/GameConfig';
 
 interface LevelHUDProps {
@@ -26,9 +32,18 @@ interface LevelHUDProps {
 
 export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
   const currentLevel = useCurrentLevel();
-  const levelProgress = useLevelProgress();
-  const levelState = useLevelState();
-  const uiState = useUIState();
+  const enemiesRemaining = useEnemiesRemaining();
+  const totalEnemies = useTotalEnemies();
+  const currentScore = useCurrentScore();
+  const currentCombo = useCurrentCombo();
+  const shotsFired = useShotsFired();
+  const shotsHit = useShotsHit();
+  
+  // Calculate accuracy
+  const accuracy = shotsFired > 0 ? (shotsHit / shotsFired) * 100 : 0;
+  const levelCompleted = useLevelCompleted();
+  const levelFailed = useLevelFailed();
+  const isPlaying = useIsPlaying();
   
   // Animation values for combo display
   const [comboAnim] = useState(new Animated.Value(1));
@@ -37,7 +52,7 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
   
   // Animate combo changes
   useEffect(() => {
-    if (levelProgress.currentCombo > previousCombo && levelProgress.currentCombo > 1) {
+    if (currentCombo > previousCombo && currentCombo > 1) {
       // Show combo with scale animation
       Animated.sequence([
         Animated.parallel([
@@ -60,7 +75,7 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
           useNativeDriver: true,
         }),
       ]).start();
-    } else if (levelProgress.currentCombo === 0 && previousCombo > 0) {
+    } else if (currentCombo === 0 && previousCombo > 0) {
       // Hide combo when broken
       Animated.timing(comboOpacity, {
         toValue: 0,
@@ -69,10 +84,10 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
       }).start();
     }
     
-    setPreviousCombo(levelProgress.currentCombo);
-  }, [levelProgress.currentCombo]);
+    setPreviousCombo(currentCombo);
+  }, [currentCombo]);
   
-  if (!currentLevel || !uiState.isPlaying || levelState.completed || levelState.failed) {
+  if (!currentLevel || !isPlaying || levelCompleted || levelFailed) {
     return null;
   }
   
@@ -81,8 +96,8 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
   const textColor = currentLevel.theme.uiStyle.scoreColor || '#FFFFFF';
   
   // Calculate progress percentage
-  const progressPercentage = levelProgress.totalEnemies > 0 
-    ? ((levelProgress.totalEnemies - levelProgress.enemiesRemaining) / levelProgress.totalEnemies) * 100
+  const progressPercentage = totalEnemies > 0 
+    ? ((totalEnemies - enemiesRemaining) / totalEnemies) * 100
     : 0;
   
   // Check if level has time limit
@@ -105,7 +120,7 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
         <View style={styles.scoreContainer}>
           <Text style={[styles.scoreLabel, { color: textColor }]}>SCORE</Text>
           <Text style={[styles.scoreValue, { color: primaryColor }]}>
-            {levelProgress.currentScore.toLocaleString()}
+            {currentScore.toLocaleString()}
           </Text>
         </View>
       </View>
@@ -124,7 +139,7 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
           />
         </View>
         <Text style={[styles.progressText, { color: textColor }]}>
-          {levelProgress.enemiesRemaining} enemies remaining
+          {enemiesRemaining} enemies remaining
         </Text>
       </View>
       
@@ -144,7 +159,7 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
       <View style={styles.statsRow}>
         <StatItem 
           label="Accuracy" 
-          value={`${Math.round(levelProgress.accuracy)}%`}
+          value={`${Math.round(accuracy)}%`}
           textColor={textColor}
         />
         
@@ -158,7 +173,7 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
       </View>
       
       {/* Combo display */}
-      {levelProgress.currentCombo > 1 && (
+      {currentCombo > 1 && (
         <Animated.View 
           style={[
             styles.comboContainer,
@@ -169,7 +184,7 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
           ]}
         >
           <Text style={[styles.comboText, { color: primaryColor }]}>
-            {levelProgress.currentCombo}x COMBO!
+            {currentCombo}x COMBO!
           </Text>
         </Animated.View>
       )}
