@@ -373,11 +373,13 @@ export const applyEnvironmentalModifiers = (environment: any): Partial<LevelConf
   const overrides: Partial<LevelConfigOverrides> = {};
 
   if (environment?.gravity) {
-    overrides.gravityMultiplier = environment.gravity / (BALLOON_PHYSICS.GRAVITY_MULTIPLIER * 500); // 500 is base gravity
+    // Directly use the gravity value instead of complex calculation
+    overrides.gravityMultiplier = environment.gravity / 500; // 500 is base gravity from GAME_CONFIG.GRAVITY
   }
 
   if (environment?.airResistance) {
-    overrides.airResistanceMultiplier = environment.airResistance / BALLOON_PHYSICS.AIR_RESISTANCE;
+    // Convert percentage air resistance to resistance factor (0.5% = 0.995)
+    overrides.airResistanceMultiplier = (1.0 - environment.airResistance / 100) / BALLOON_PHYSICS.AIR_RESISTANCE;
   }
 
   if (environment?.windForce) {

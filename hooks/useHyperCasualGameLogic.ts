@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useGameActions, useUIState } from '@/store/gameStore';
+import { useGameActions, useIsPlaying, useGameOver } from '@/store/gameStore';
 import { 
-  useLevelProgressionStore, 
   useLevelProgressionActions,
   useCurrentLevel,
-  useLevelProgress
+  useEnemiesRemaining,
+  useTotalEnemies,
+  useCurrentScore,
+  useShotsFired,
+  useShotsHit,
+  useCurrentCombo,
+  useLevelCompleted,
+  useLevelFailed,
+  useLevelStartTime,
+  useCurrentWave,
+  useWaveIndex
 } from '@/store/levelProgressionStore';
 import { 
   GAME_CONFIG, 
@@ -43,21 +52,55 @@ interface Projectile extends GameObject {
 }
 
 export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: number) => {
-  const uiState = useUIState();
+  const isPlaying = useIsPlaying();
+  const gameOver = useGameOver();
   const actions = useGameActions();
   
   // Level progression state and actions
   const currentLevel = useCurrentLevel();
   const levelActions = useLevelProgressionActions();
-  const levelProgress = useLevelProgress();
-  const levelState = useLevelProgressionStore(state => ({
-    levelStartTime: state.levelStartTime,
-    currentWave: state.currentWave,
-    waveIndex: state.waveIndex,
-    levelCompleted: state.levelCompleted,
-    levelFailed: state.levelFailed,
-    enemiesRemaining: state.enemiesRemaining
-  }));
+  const enemiesRemaining = useEnemiesRemaining();
+  const totalEnemies = useTotalEnemies();
+  const currentScore = useCurrentScore();
+  const shotsFired = useShotsFired();
+  const shotsHit = useShotsHit();
+  const currentCombo = useCurrentCombo();
+  const levelCompleted = useLevelCompleted();
+  const levelFailed = useLevelFailed();
+  const levelStartTime = useLevelStartTime();
+  const currentWave = useCurrentWave();
+  const waveIndex = useWaveIndex();
+  
+  // Initialize level if not loaded (only once)
+  const hasInitializedLevel = useRef(false);
+  useEffect(() => {
+    if (!hasInitializedLevel.current && !currentLevel && !levelCompleted && !levelFailed) {
+      hasInitializedLevel.current = true;
+      console.log('Initializing level 1');
+      levelActions.loadLevel(1);
+    }
+  }, []);
+
+  // Start level when it's loaded and game is playing
+  useEffect(() => {
+    if (currentLevel && isPlaying && !levelCompleted && !levelFailed && levelStartTime === 0) {
+      console.log('Starting level:', currentLevel.id);
+      levelActions.startLevel();
+    }
+  }, [currentLevel, isPlaying, levelCompleted, levelFailed, levelStartTime]);
+
+  // Stable refs for game loop to prevent stale closures
+  const uiStateRef = useRef({ isPlaying, gameOver });
+  const levelActionsRef = useRef(levelActions);
+  const currentLevelRef = useRef(currentLevel);
+  const levelStateRef = useRef({ 
+    levelCompleted, 
+    levelFailed, 
+    levelStartTime 
+  });
+  
+  // Keep levelActionsRef current without causing re-renders
+  levelActionsRef.current = levelActions;
   
   // Game state refs
   const petePosition = useRef(screenWidth / 2 - GAME_CONFIG.PETE_SIZE / 2);
@@ -69,12 +112,30 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
   const levelConfig = useRef(createLevelConfig());
   
   // Wave management refs
-  const activeWaves = useRef<Map<string, { wave: EnemyWave; startTime: number; spawnedCount: number }>>(new Map());
+  const activeWaves = useRef<Map<string, { wave: EnemyWave; startTime: number; spawnedCount: number; spawnedCountPerEnemy?: Record<number, number> }>>(new Map());
   const waveSpawnTimers = useRef<Map<string, number>>(new Map());
   
-  // Force re-render for visual updates
-  const [, forceUpdate] = useState(0);
+  // Force re-render trigger for visual updates (controlled)
+  const [renderTrigger, setRenderTrigger] = useState(0);
+  const renderTickRef = useRef(0);
   
+  // Update refs when values change
+  useEffect(() => {
+    uiStateRef.current = { isPlaying, gameOver };
+  }, [isPlaying, gameOver]);
+
+  useEffect(() => {
+    currentLevelRef.current = currentLevel;
+  }, [currentLevel]);
+
+  useEffect(() => {
+    levelStateRef.current = { 
+      levelCompleted, 
+      levelFailed, 
+      levelStartTime 
+    };
+  }, [levelCompleted, levelFailed, levelStartTime]);
+
   // Update level configuration when current level changes
   useEffect(() => {
     if (!currentLevel) {
@@ -93,21 +154,21 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
   // Update Pete position
   const updatePetePosition = useCallback((x: number) => {
     petePosition.current = x;
-    forceUpdate(prev => prev + 1);
+    // Don't force update here - let the game loop handle visual updates
   }, []);
   
   // Shoot projectile
   const shootProjectile = useCallback(() => {
-    if (uiState.gameOver || levelState.levelCompleted || levelState.levelFailed) return;
+    if (uiStateRef.current.gameOver || levelStateRef.current.levelCompleted || levelStateRef.current.levelFailed) return;
     
     // Track projectile fired for level progression
-    levelActions.projectileFired();
+    levelActionsRef.current.projectileFired();
     
     const config = levelConfig.current;
     const projectile: Projectile = {
       id: nanoid(),
       x: petePosition.current + ENTITY_CONFIG.PETE.SIZE / 2 - ENTITY_CONFIG.PROJECTILE.SIZE / 2,
-      y: gameAreaHeight - ENTITY_CONFIG.PETE.SIZE - UI_CONFIG.LAYOUT.BOTTOM_PADDING - ENTITY_CONFIG.PROJECTILE.SIZE,
+      y: gameAreaHeightRef.current - ENTITY_CONFIG.PETE.SIZE - UI_CONFIG.LAYOUT.BOTTOM_PADDING - ENTITY_CONFIG.PROJECTILE.SIZE,
       size: ENTITY_CONFIG.PROJECTILE.SIZE,
       width: ENTITY_CONFIG.PROJECTILE.SIZE,
       height: ENTITY_CONFIG.PROJECTILE.SIZE,
@@ -115,10 +176,10 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
     };
     
     projectiles.current.push(projectile);
-    forceUpdate(prev => prev + 1);
-  }, [uiState.gameOver, levelState.levelCompleted, levelState.levelFailed, gameAreaHeight, levelActions]);
+    // Don't force update here - let the game loop handle visual updates
+  }, []);
   
-  // Spawn enemy from wave definition
+  // Spawn enemy from wave definition  
   const spawnEnemyFromWave = useCallback((enemyDef: EnemySpawnDefinition, wave: EnemyWave) => {
     const config = levelConfig.current;
     const size = getBalloonSize(enemyDef.sizeLevel);
@@ -173,17 +234,19 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
     }
     
     enemies.current.push(enemy);
-    forceUpdate(prev => prev + 1);
-  }, [screenWidth]);
+    // Don't force update here - let the game loop handle visual updates
+  }, []);
   
   // Update wave management
   const updateWaves = useCallback((gameTime: number) => {
-    if (!currentLevel || levelState.levelCompleted || levelState.levelFailed) return;
+    if (!currentLevelRef.current || levelStateRef.current.levelCompleted || levelStateRef.current.levelFailed) return;
     
-    const levelDuration = gameTime - levelState.levelStartTime;
+    // Use Date.now() to match levelStartTime which is also Date.now()
+    const currentTime = Date.now();
+    const levelDuration = currentTime - levelStateRef.current.levelStartTime;
     
     // Check for new waves to activate
-    currentLevel.enemyWaves.forEach(wave => {
+    currentLevelRef.current.enemyWaves.forEach(wave => {
       const waveKey = wave.id;
       const waveStartTime = wave.startTime * 1000; // Convert to milliseconds
       const waveEndTime = waveStartTime + wave.duration * 1000;
@@ -192,10 +255,17 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
       if (levelDuration >= waveStartTime && levelDuration <= waveEndTime && !activeWaves.current.has(waveKey)) {
         activeWaves.current.set(waveKey, {
           wave,
-          startTime: gameTime,
-          spawnedCount: 0
+          startTime: currentTime,
+          spawnedCount: 0,
+          spawnedCountPerEnemy: {}
         });
+        console.log(`Activated wave ${waveKey} at levelDuration=${levelDuration}ms (waveStart=${waveStartTime}ms, waveEnd=${waveEndTime}ms)`);
         waveSpawnTimers.current.set(waveKey, 0);
+      }
+      
+      // Debug timing info for first wave
+      if (waveKey === 'tutorial_wave_1' && !activeWaves.current.has(waveKey)) {
+        console.log(`Wave ${waveKey}: levelDuration=${levelDuration}ms, waveStart=${waveStartTime}ms, waveEnd=${waveEndTime}ms, levelStartTime=${levelStateRef.current.levelStartTime}`);
       }
       
       // Deactivate wave if time is up
@@ -204,51 +274,71 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
         waveSpawnTimers.current.delete(waveKey);
       }
     });
-  }, [currentLevel, levelState.levelStartTime, levelState.levelCompleted, levelState.levelFailed]);
+  }, []);
   
   // Spawn enemies from active waves
   const updateEnemySpawning = useCallback((deltaTime: number) => {
     activeWaves.current.forEach((waveData, waveKey) => {
       const { wave } = waveData;
-      let spawnTimer = waveSpawnTimers.current.get(waveKey) || 0;
-      spawnTimer += deltaTime;
       
-      // Check each enemy type in the wave
-      wave.enemies.forEach(enemyDef => {
+      // Each enemy type in a wave has its own spawn timing
+      wave.enemies.forEach((enemyDef, enemyIndex) => {
+        const enemyKey = `${waveKey}_${enemyIndex}`;
+        let spawnTimer = waveSpawnTimers.current.get(enemyKey) || 0;
+        spawnTimer += deltaTime;
+        
         const spawnInterval = enemyDef.spawnInterval * 1000; // Convert to milliseconds
         
-        if (spawnTimer >= spawnInterval && waveData.spawnedCount < enemyDef.count) {
+        // Track spawned count per enemy type, not per wave
+        if (!waveData.spawnedCountPerEnemy) {
+          waveData.spawnedCountPerEnemy = {};
+        }
+        const spawnedForThisType = waveData.spawnedCountPerEnemy[enemyIndex] || 0;
+        
+        if (spawnTimer >= spawnInterval && spawnedForThisType < enemyDef.count) {
           spawnEnemyFromWave(enemyDef, wave);
-          waveData.spawnedCount++;
-          waveSpawnTimers.current.set(waveKey, 0); // Reset timer
+          waveData.spawnedCountPerEnemy[enemyIndex] = spawnedForThisType + 1;
+          waveSpawnTimers.current.set(enemyKey, 0); // Reset timer for this enemy type
+          console.log(`Spawned enemy ${spawnedForThisType + 1}/${enemyDef.count} of type ${enemyIndex} from wave ${waveKey}`);
+        } else {
+          waveSpawnTimers.current.set(enemyKey, spawnTimer);
         }
       });
-      
-      waveSpawnTimers.current.set(waveKey, spawnTimer);
     });
-  }, [spawnEnemyFromWave]);
+  }, []);
   
-  // Game loop
-  useEffect(() => {
-    if (!uiState.isPlaying || uiState.gameOver || !currentLevel || levelState.levelCompleted || levelState.levelFailed) return;
+  // Game loop ref for managing animation frame
+  const gameLoopRef = useRef<number | undefined>(undefined);
+  const lastUpdateTime = useRef<number>(0);
+
+  // Game loop function - defined once with stable refs (exactly like working useGameLogic)
+  const gameLoop = useCallback((timestamp: number) => {
+    try {
+      // Initialize timer on first run
+      if (lastUpdateTime.current === 0) {
+        lastUpdateTime.current = timestamp;
+      }
+
+      const currentDeltaTime = Math.max(0, (timestamp - lastUpdateTime.current) / 1000);
+      lastUpdateTime.current = timestamp;
+
+      // Check if game should continue using refs
+      if (!uiStateRef.current.isPlaying || uiStateRef.current.gameOver || !currentLevelRef.current || levelStateRef.current.levelCompleted || levelStateRef.current.levelFailed) {
+        gameLoopRef.current = undefined;
+        return;
+      }
     
-    let lastTime = performance.now();
-    
-    const gameLoop = (currentTime: number) => {
-      const deltaTime = (currentTime - lastTime) / 1000;
-      lastTime = currentTime;
-      
       const config = levelConfig.current;
       
       // Update wave management
-      updateWaves(currentTime);
+      updateWaves(timestamp);
       
       // Update enemy spawning from active waves
-      updateEnemySpawning(deltaTime * 1000); // Convert back to milliseconds for spawning
+      updateEnemySpawning(currentDeltaTime * 1000); // Convert back to milliseconds for spawning
       
       // Update projectiles
       projectiles.current = projectiles.current.filter(p => {
-        p.y += p.velocityY * deltaTime;
+        p.y += p.velocityY * currentDeltaTime;
         return p.y > -p.size;
       });
       
@@ -259,16 +349,16 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
         const airResistance = config.BALLOON_PHYSICS.AIR_RESISTANCE;
         const minBounceVelocity = config.BALLOON_PHYSICS.MIN_BOUNCE_VELOCITY;
         
-        // Apply lighter gravity
-        enemy.velocityY += balloonGravity * deltaTime;
+        // Apply lighter gravity (convert to pixels per frame)
+        enemy.velocityY += balloonGravity * currentDeltaTime;
         
         // Apply air resistance to both directions
         enemy.velocityX *= airResistance;
         enemy.velocityY *= airResistance;
         
         // Update position
-        enemy.x += enemy.velocityX * deltaTime;
-        enemy.y += enemy.velocityY * deltaTime;
+        enemy.x += enemy.velocityX * currentDeltaTime;
+        enemy.y += enemy.velocityY * currentDeltaTime;
         
         // Bounce off walls with minimal energy loss
         if (enemy.x <= 0 || enemy.x >= screenWidth - enemy.size) {
@@ -328,7 +418,7 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
             hitProjectileIds.add(projectile.id);
             
             // Track projectile hit for level progression
-            levelActions.projectileHit();
+            levelActionsRef.current.projectileHit();
             
             // Update score based on enemy size
             const points = getBalloonPoints(enemy.sizeLevel as 1 | 2 | 3);
@@ -339,8 +429,8 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
             trackBalloonPopped(
               enemy.sizeLevel,
               points,
-              levelProgress.currentCombo,
-              currentLevel?.id
+              currentCombo,
+              currentLevelRef.current?.id
             );
             
             // Split enemy if not smallest size, otherwise it's eliminated
@@ -349,7 +439,7 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
               const size = getBalloonSize(newSize as 1 | 2 | 3);
               
               // Create split enemies based on level configuration
-              const splitBehavior = currentLevel?.enemyWaves
+              const splitBehavior = currentLevelRef.current?.enemyWaves
                 .flatMap(wave => wave.enemies)
                 .find(def => def.type === enemy.type)?.splitBehavior;
               
@@ -385,16 +475,8 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
       // Track eliminated enemies for level progression
       if (enemiesEliminatedThisFrame > 0) {
         for (let i = 0; i < enemiesEliminatedThisFrame; i++) {
-          levelActions.enemyEliminated(nanoid(), getBalloonPoints(1)); // Use smallest balloon points as base
+          levelActionsRef.current.enemyEliminated(nanoid(), getBalloonPoints(1)); // Use smallest balloon points as base
         }
-      }
-      
-      // Update enemy count in level progression store to match actual enemies on screen
-      // This ensures the victory condition checking has accurate enemy count
-      const currentEnemyCount = enemies.current.length;
-      if (currentEnemyCount !== levelState.enemiesRemaining) {
-        // The store will be updated through the enemyEliminated calls above
-        // but we should make sure it's in sync for victory condition checking
       }
       
       // Keep enemies that weren't hit and add new split enemies
@@ -409,58 +491,74 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
       // Check for missed projectiles (projectiles that hit the ground without hitting enemies)
       const missedProjectiles = projectiles.current.filter(p => p.y <= -p.size);
       if (missedProjectiles.length > 0) {
-        missedProjectiles.forEach(() => levelActions.projectileMissed());
+        missedProjectiles.forEach(() => levelActionsRef.current.projectileMissed());
       }
       
       // Check for level completion - no enemies left and all waves finished
       const totalEnemiesOnScreen = enemies.current.length;
-      if (totalEnemiesOnScreen === 0 && currentLevel) {
+      if (totalEnemiesOnScreen === 0 && currentLevelRef.current) {
         // Check if all waves have finished spawning
-        const currentTime = performance.now();
-        const levelDuration = currentTime - levelState.levelStartTime;
+        const levelDuration = timestamp - levelStateRef.current.levelStartTime;
         
-        const allWavesFinished = currentLevel.enemyWaves.every(wave => {
+        const allWavesFinished = currentLevelRef.current.enemyWaves.every(wave => {
           const waveEndTime = (wave.startTime + wave.duration) * 1000;
           return levelDuration > waveEndTime;
         });
         
         if (allWavesFinished) {
           // All enemies eliminated and no more will spawn - trigger victory
-          levelActions.completeObjective('eliminate_all_enemies');
+          levelActionsRef.current.completeObjective('eliminate_all_enemies');
         }
       }
       
       // Check level victory/failure conditions
-      levelActions.checkVictoryConditions();
-      levelActions.checkFailureConditions();
+      levelActionsRef.current.checkVictoryConditions();
+      levelActionsRef.current.checkFailureConditions();
       
-      // Force re-render
-      forceUpdate(prev => prev + 1);
+      // Increment render tick
+      renderTickRef.current += 1;
+
+      // Force React re-render periodically for visual updates (every 3 frames)
+      if (renderTickRef.current % 3 === 0) {
+        setRenderTrigger(prev => prev + 1);
+      }
+
+      // Continue game loop if still playing (exactly like working useGameLogic)
+      if (!levelStateRef.current.levelCompleted && !levelStateRef.current.levelFailed && uiStateRef.current.isPlaying && !uiStateRef.current.gameOver) {
+        gameLoopRef.current = requestAnimationFrame(gameLoop);
+      } else {
+        gameLoopRef.current = undefined;
+      }
       
-      // Continue loop if level is still active
-      if (!levelState.levelCompleted && !levelState.levelFailed) {
-        requestAnimationFrame(gameLoop);
+    } catch (error) {
+      console.error('Game loop error:', error);
+      // Continue loop even after error to keep game responsive
+      if (!levelStateRef.current.levelCompleted && !levelStateRef.current.levelFailed && uiStateRef.current.isPlaying && !uiStateRef.current.gameOver) {
+        gameLoopRef.current = requestAnimationFrame(gameLoop);
+      }
+    }
+  }, []); // Empty dependency array since we use refs
+
+  // Start/stop game loop based on playing state (exactly like working useGameLogic)
+  useEffect(() => {
+    if (isPlaying && !gameOver && currentLevel && !levelCompleted && !levelFailed && !gameLoopRef.current) {
+      // Reset timing
+      lastUpdateTime.current = 0;
+      // Start the game loop
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
+    } else if ((!isPlaying || gameOver || levelCompleted || levelFailed) && gameLoopRef.current) {
+      // Stop the game loop
+      cancelAnimationFrame(gameLoopRef.current);
+      gameLoopRef.current = undefined;
+    }
+
+    return () => {
+      if (gameLoopRef.current) {
+        cancelAnimationFrame(gameLoopRef.current);
+        gameLoopRef.current = undefined;
       }
     };
-    
-    const animationId = requestAnimationFrame(gameLoop);
-    
-    return () => {
-      cancelAnimationFrame(animationId);
-    };
-  }, [
-    uiState.isPlaying, 
-    uiState.gameOver, 
-    currentLevel, 
-    levelState.levelCompleted, 
-    levelState.levelFailed,
-    levelState.levelStartTime,
-    levelActions, 
-    actions, 
-    screenWidth,
-    updateWaves,
-    updateEnemySpawning
-  ]);
+  }, [isPlaying, gameOver, currentLevel, levelCompleted, levelFailed]);
   
   return {
     petePosition,
