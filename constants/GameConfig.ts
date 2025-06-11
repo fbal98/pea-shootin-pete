@@ -256,6 +256,145 @@ export const STARFIELD_CONFIG = {
 } as const;
 
 // =============================================================================
+// LEVEL-BASED CONFIGURATION OVERRIDES
+// =============================================================================
+
+/**
+ * Level-specific configuration that can override base game config
+ * This is applied by the LevelManager based on level JSON data
+ */
+export interface LevelConfigOverrides {
+  // Physics overrides
+  gravityMultiplier?: number;
+  bounceEnergyMultiplier?: number;
+  airResistanceMultiplier?: number;
+  
+  // Enemy behavior overrides
+  enemySpeedMultiplier?: number;
+  spawnRateMultiplier?: number;
+  balloonSizeMultiplier?: number;
+  
+  // Player abilities overrides
+  peteSpeedMultiplier?: number;
+  projectileSpeedMultiplier?: number;
+  
+  // Environmental effects
+  windForce?: { strength: number; direction: number };
+  timeScale?: number;
+  
+  // Visual overrides
+  backgroundType?: string;
+  colorScheme?: {
+    primary: string;
+    balloonColors: string[];
+    peteColor?: string;
+    projectileColor?: string;
+  };
+}
+
+/**
+ * Create a modified game configuration based on level overrides
+ * This allows levels to customize game behavior without changing the base config
+ */
+export const createLevelConfig = (overrides: LevelConfigOverrides = {}) => {
+  const baseConfig = {
+    ENTITY_CONFIG,
+    BALLOON_PHYSICS,
+    INPUT_CONFIG,
+    SCORING_CONFIG,
+    ENEMY_CONFIG,
+    ANIMATION_CONFIG,
+    UI_CONFIG
+  };
+
+  // Apply physics overrides
+  const modifiedBalloonPhysics = {
+    ...BALLOON_PHYSICS,
+    GRAVITY_MULTIPLIER: BALLOON_PHYSICS.GRAVITY_MULTIPLIER * (overrides.gravityMultiplier || 1.0),
+    AIR_RESISTANCE: BALLOON_PHYSICS.AIR_RESISTANCE * (overrides.airResistanceMultiplier || 1.0),
+    BOUNCE_COEFFICIENTS: {
+      ...BALLOON_PHYSICS.BOUNCE_COEFFICIENTS,
+      WALLS: BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.WALLS * (overrides.bounceEnergyMultiplier || 1.0),
+      CEILING: BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.CEILING * (overrides.bounceEnergyMultiplier || 1.0),
+      FLOOR: BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.FLOOR * (overrides.bounceEnergyMultiplier || 1.0),
+    }
+  };
+
+  // Apply entity overrides
+  const modifiedEntityConfig = {
+    ...ENTITY_CONFIG,
+    BALLOON: {
+      ...ENTITY_CONFIG.BALLOON,
+      BASE_SIZE: ENTITY_CONFIG.BALLOON.BASE_SIZE * (overrides.balloonSizeMultiplier || 1.0)
+    },
+    PROJECTILE: {
+      ...ENTITY_CONFIG.PROJECTILE,
+      SPEED: ENTITY_CONFIG.PROJECTILE.SPEED * (overrides.projectileSpeedMultiplier || 1.0)
+    }
+  };
+
+  // Apply enemy behavior overrides
+  const modifiedEnemyConfig = {
+    ...ENEMY_CONFIG,
+    BASE_SPEED: ENEMY_CONFIG.BASE_SPEED * (overrides.enemySpeedMultiplier || 1.0)
+  };
+
+  return {
+    ...baseConfig,
+    ENTITY_CONFIG: modifiedEntityConfig,
+    BALLOON_PHYSICS: modifiedBalloonPhysics,
+    ENEMY_CONFIG: modifiedEnemyConfig,
+    
+    // Additional level-specific properties
+    LEVEL_OVERRIDES: overrides
+  };
+};
+
+/**
+ * Convert level balance data to config overrides
+ * This bridges the level JSON format to the game config system
+ */
+export const levelBalanceToConfigOverrides = (levelBalance: any): LevelConfigOverrides => {
+  return {
+    gravityMultiplier: levelBalance?.gravityMultiplier || 1.0,
+    bounceEnergyMultiplier: levelBalance?.bounceEnergyMultiplier || 1.0,
+    enemySpeedMultiplier: levelBalance?.enemySpeedMultiplier || 1.0,
+    spawnRateMultiplier: levelBalance?.spawnRateMultiplier || 1.0,
+    balloonSizeMultiplier: levelBalance?.balloonSizeMultiplier || 1.0,
+    peteSpeedMultiplier: levelBalance?.peteSpeedMultiplier || 1.0,
+    projectileSpeedMultiplier: levelBalance?.projectileSpeedMultiplier || 1.0
+  };
+};
+
+/**
+ * Apply environmental modifiers from level data
+ */
+export const applyEnvironmentalModifiers = (environment: any): Partial<LevelConfigOverrides> => {
+  const overrides: Partial<LevelConfigOverrides> = {};
+
+  if (environment?.gravity) {
+    overrides.gravityMultiplier = environment.gravity / (BALLOON_PHYSICS.GRAVITY_MULTIPLIER * 500); // 500 is base gravity
+  }
+
+  if (environment?.airResistance) {
+    overrides.airResistanceMultiplier = environment.airResistance / BALLOON_PHYSICS.AIR_RESISTANCE;
+  }
+
+  if (environment?.windForce) {
+    overrides.windForce = {
+      strength: environment.windForce.strength,
+      direction: environment.windForce.direction
+    };
+  }
+
+  if (environment?.timeScale) {
+    overrides.timeScale = environment.timeScale;
+  }
+
+  return overrides;
+};
+
+// =============================================================================
 // COMPUTED VALUES & HELPER FUNCTIONS
 // =============================================================================
 

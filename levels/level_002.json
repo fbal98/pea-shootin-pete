@@ -1,0 +1,188 @@
+{
+  "id": 2,
+  "name": "Balloon Bouncer",
+  "version": "1.0.0",
+  "difficulty": "easy",
+  "estimatedDuration": 60,
+  
+  "objectives": [
+    {
+      "type": "eliminate_all_enemies",
+      "target": 8,
+      "description": "Pop all bouncing balloons!",
+      "isOptional": false,
+      "rewardMultiplier": 1.0
+    },
+    {
+      "type": "achieve_combo",
+      "target": 3,
+      "description": "Get a 3-hit combo",
+      "isOptional": true,
+      "rewardMultiplier": 1.5
+    }
+  ],
+  
+  "failureConditions": [
+    {
+      "type": "time_limit",
+      "threshold": 90
+    },
+    {
+      "type": "missed_shots",
+      "threshold": 20
+    }
+  ],
+  
+  "enemyWaves": [
+    {
+      "id": "wave_1_warmup",
+      "startTime": 1.0,
+      "duration": 25.0,
+      "enemies": [
+        {
+          "type": "basic",
+          "count": 4,
+          "sizeLevel": 3,
+          "spawnInterval": 2.5,
+          "movementType": "physics_normal",
+          "movementSpeed": 1.0,
+          "splitBehavior": {
+            "enabled": true,
+            "minSizeToSplit": 2,
+            "splitInto": 2,
+            "childSizeReduction": 0.7,
+            "childSpeedBonus": 1.2
+          }
+        }
+      ],
+      "spawnPattern": "left_to_right",
+      "speedBonus": 0.0,
+      "sizeVariation": 0.15
+    },
+    {
+      "id": "wave_2_challenge",
+      "startTime": 30.0,
+      "duration": 30.0,
+      "enemies": [
+        {
+          "type": "fast",
+          "count": 2,
+          "sizeLevel": 2,
+          "spawnInterval": 5.0,
+          "movementType": "physics_normal",
+          "movementSpeed": 1.3,
+          "splitBehavior": {
+            "enabled": true,
+            "minSizeToSplit": 1,
+            "splitInto": 2,
+            "childSizeReduction": 0.6,
+            "childSpeedBonus": 1.4
+          }
+        },
+        {
+          "type": "basic",
+          "count": 2,
+          "sizeLevel": 3,
+          "spawnInterval": 8.0,
+          "movementType": "physics_floaty",
+          "movementSpeed": 0.9,
+          "splitBehavior": {
+            "enabled": true,
+            "minSizeToSplit": 2,
+            "splitInto": 2,
+            "childSizeReduction": 0.7,
+            "childSpeedBonus": 1.1
+          }
+        }
+      ],
+      "spawnPattern": "corners_first",
+      "speedBonus": 0.1,
+      "sizeVariation": 0.2
+    }
+  ],
+  
+  "totalEnemyCount": 8,
+  
+  "environment": {
+    "gravity": 40.0,
+    "airResistance": 0.5,
+    "wallBounceMultiplier": 0.95,
+    "floorBounceMultiplier": 1.5,
+    "ceilingBounceMultiplier": 0.85,
+    "screenShake": {
+      "intensity": 2.0,
+      "onBalloonPop": 1.0,
+      "onCombo": 3.0
+    }
+  },
+  
+  "theme": {
+    "colorScheme": {
+      "primary": "#C1666B",
+      "background": {
+        "start": "#FFF5F5",
+        "end": "#FFE0E0"
+      },
+      "balloonColors": ["#C1666B", "#E17D80", "#D4939B"],
+      "peteColor": "#C1666B",
+      "projectileColor": "#8B4A4E"
+    },
+    "backgroundType": "floating_shapes",
+    "particleEffects": {
+      "balloonPopParticles": {
+        "enabled": true,
+        "count": 10,
+        "color": "#C1666B",
+        "lifespan": 1.2,
+        "scale": 1.1
+      },
+      "comboParticles": {
+        "enabled": true,
+        "count": 15,
+        "color": "#FFD700",
+        "lifespan": 2.0,
+        "scale": 1.4
+      }
+    },
+    "uiStyle": {
+      "scoreColor": "#2D3436",
+      "levelProgressColor": "#C1666B",
+      "hudOpacity": 0.9
+    }
+  },
+  
+  "balance": {
+    "enemySpeedMultiplier": 1.0,
+    "spawnRateMultiplier": 0.9,
+    "balloonSizeMultiplier": 1.0,
+    "gravityMultiplier": 1.0,
+    "bounceEnergyMultiplier": 1.1,
+    "peteSpeedMultiplier": 1.0,
+    "projectileSpeedMultiplier": 1.0,
+    "targetFailRate": 0.15
+  },
+  
+  "rewards": {
+    "baseScore": 200,
+    "perfectionBonus": 100,
+    "speedBonus": 50,
+    "unlocksNextLevel": true,
+    "coinsAwarded": 15,
+    "unlocksPowerup": null,
+    "unlocksAchievement": "combo_master"
+  },
+  
+  "metadata": {
+    "testGroup": "difficulty_progression",
+    "variant": "standard",
+    "designIntent": ["introduce_fast_enemies", "teach_combo_system", "increase_challenge"],
+    "expectedPlaytime": 60,
+    "difficultyRating": 3,
+    "targetRetryRate": 0.25,
+    "targetCompletionRate": 0.75,
+    "createdDate": "2025-01-11",
+    "lastModified": "2025-01-11",
+    "createdBy": "system",
+    "balanceNotes": "Introduces faster enemies and combo mechanics while maintaining approachable difficulty"
+  }
+}

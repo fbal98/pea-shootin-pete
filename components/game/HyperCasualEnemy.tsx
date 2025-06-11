@@ -7,7 +7,7 @@ interface HyperCasualEnemyProps {
   x: number;
   y: number;
   size: number;
-  type?: 'basic' | 'fast' | 'strong';
+  type?: 'basic' | 'fast' | 'strong' | 'bouncer' | 'splitter' | 'ghost';
   sizeLevel?: number;
   level: number;
 }
