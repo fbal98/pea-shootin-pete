@@ -79,4 +79,9 @@ export const UI_COLORS = {
   menuText: '#333333',
   menuTextLight: '#666666',
   tapToPlayBg: 'rgba(0, 0, 0, 0.05)',
+  primary: '#4ECDC4',
+  white: '#FFFFFF',
+  settingsSwitchOff: '#E0E0E0',
+  settingsBorder: 'rgba(0, 0, 0, 0.1)',
+  versionBg: 'rgba(0, 0, 0, 0.05)',
 };

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Animated, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getColorScheme } from '@/constants/HyperCasualColors';
+import { ANIMATION_CONFIG } from '@/constants/GameConfig';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -30,8 +31,8 @@ export const HyperCasualBackground: React.FC<HyperCasualBackgroundProps> = ({
 
     // Create floating animations for geometric shapes
     const animations = floatAnims.map((anim, index) => {
-      const duration = 15000 + index * 3000; // Vary duration
-      const delay = index * 2000; // Stagger start times
+      const duration = ANIMATION_CONFIG.BACKGROUND.BASE_DURATION + index * ANIMATION_CONFIG.BACKGROUND.DURATION_INCREMENT;
+      const delay = index * ANIMATION_CONFIG.BACKGROUND.DELAY_INCREMENT;
 
       return Animated.loop(
         Animated.sequence([
@@ -58,8 +59,8 @@ export const HyperCasualBackground: React.FC<HyperCasualBackgroundProps> = ({
   const renderFloatingShape = (index: number) => {
     const anim = floatAnims[index];
     const shapeType = index % 3; // 0: circle, 1: square, 2: triangle
-    const size = 30 + (index * 10);
-    const startX = (index * 80) % (SCREEN_WIDTH - size);
+    const size = ANIMATION_CONFIG.BACKGROUND.BASE_SIZE + (index * ANIMATION_CONFIG.BACKGROUND.SIZE_INCREMENT);
+    const startX = (index * ANIMATION_CONFIG.BACKGROUND.HORIZONTAL_SPACING) % (SCREEN_WIDTH - size);
     
     const translateY = anim.interpolate({
       inputRange: [0, 1],

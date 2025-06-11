@@ -2,16 +2,21 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { UI_COLORS } from '@/constants/HyperCasualColors';
+import { ANIMATION_CONFIG } from '@/constants/GameConfig';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface HyperCasualMenuScreenProps {
   onStartGame: () => void;
+  onSettings: () => void;
+  onAbout: () => void;
   highScore?: number;
 }
 
 export const HyperCasualMenuScreen: React.FC<HyperCasualMenuScreenProps> = ({ 
-  onStartGame, 
+  onStartGame,
+  onSettings,
+  onAbout,
   highScore = 0 
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -24,7 +29,7 @@ export const HyperCasualMenuScreen: React.FC<HyperCasualMenuScreenProps> = ({
     // Fade in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 600,
+      duration: ANIMATION_CONFIG.MENU.FADE_IN_DURATION,
       useNativeDriver: true,
     }).start();
 
@@ -33,12 +38,12 @@ export const HyperCasualMenuScreen: React.FC<HyperCasualMenuScreenProps> = ({
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.1,
-          duration: 1200,
+          duration: ANIMATION_CONFIG.MENU.PULSE_DURATION,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1200,
+          duration: ANIMATION_CONFIG.MENU.PULSE_DURATION,
           useNativeDriver: true,
         }),
       ])
@@ -63,9 +68,9 @@ export const HyperCasualMenuScreen: React.FC<HyperCasualMenuScreenProps> = ({
       ).start();
     };
 
-    createFloatAnimation(floatAnim1, 8000, 0);
-    createFloatAnimation(floatAnim2, 10000, 2000);
-    createFloatAnimation(floatAnim3, 12000, 4000);
+    createFloatAnimation(floatAnim1, ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.DURATIONS[0], ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.DELAYS[0]);
+    createFloatAnimation(floatAnim2, ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.DURATIONS[1], ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.DELAYS[1]);
+    createFloatAnimation(floatAnim3, ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.DURATIONS[2], ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.DELAYS[2]);
   }, []);
 
   const renderFloatingElement = (
@@ -104,12 +109,31 @@ export const HyperCasualMenuScreen: React.FC<HyperCasualMenuScreenProps> = ({
       >
         {/* Floating geometric background elements */}
         <View style={styles.backgroundElements}>
-          {renderFloatingElement(floatAnim1, 80, SCREEN_HEIGHT, 0.08)}
-          {renderFloatingElement(floatAnim2, 120, SCREEN_HEIGHT + 200, 0.06)}
-          {renderFloatingElement(floatAnim3, 60, SCREEN_HEIGHT + 400, 0.1)}
+          {renderFloatingElement(floatAnim1, ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.SIZES[0], SCREEN_HEIGHT, ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.OPACITIES[0])}
+          {renderFloatingElement(floatAnim2, ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.SIZES[1], SCREEN_HEIGHT + 200, ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.OPACITIES[1])}
+          {renderFloatingElement(floatAnim3, ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.SIZES[2], SCREEN_HEIGHT + 400, ANIMATION_CONFIG.MENU.FLOATING_ELEMENTS.OPACITIES[2])}
         </View>
 
         <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+          {/* Top navigation buttons */}
+          <View style={styles.topNavigation}>
+            <TouchableOpacity 
+              style={styles.navButton} 
+              onPress={onSettings}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.navButtonText}>settings</Text>
+            </TouchableOpacity>
+            <View style={styles.navSpacer} />
+            <TouchableOpacity 
+              style={styles.navButton} 
+              onPress={onAbout}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.navButtonText}>about</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Minimal title */}
           <View style={styles.titleContainer}>
             <Text style={styles.title}>pea shootin'</Text>
@@ -166,6 +190,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
+    paddingTop: 60,
+  },
+  topNavigation: {
+    position: 'absolute',
+    top: 60,
+    left: 40,
+    right: 40,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  navButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  navButtonText: {
+    fontSize: 14,
+    fontWeight: '300',
+    color: UI_COLORS.menuTextLight,
+  },
+  navSpacer: {
+    flex: 1,
   },
   titleContainer: {
     marginBottom: 60,

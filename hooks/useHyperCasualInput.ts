@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { GestureResponderEvent } from 'react-native';
 import { useGameOver } from '@/store/gameStore';
-import { GAME_CONFIG } from '@/constants/GameConfig';
+import { GAME_CONFIG, INPUT_CONFIG } from '@/constants/GameConfig';
 import { ErrorLogger } from '@/utils/errorLogger';
 
 export const useHyperCasualInput = (
@@ -19,7 +19,7 @@ export const useHyperCasualInput = (
   // Smoothing for swipe movement
   const targetPeteX = useRef<number>(screenWidth / 2 - GAME_CONFIG.PETE_SIZE / 2);
   const currentPeteX = useRef<number>(screenWidth / 2 - GAME_CONFIG.PETE_SIZE / 2);
-  const smoothingFactor = 0.2; // How quickly Pete follows touch (0-1)
+  const smoothingFactor = INPUT_CONFIG.MOVEMENT_SMOOTHING;
 
   // Handle touch start
   const handleTouchStart = useCallback(
@@ -85,7 +85,7 @@ export const useHyperCasualInput = (
 
   // Smooth animation frame update
   const updateSmoothing = useCallback(() => {
-    if (!isTouching.current && Math.abs(targetPeteX.current - currentPeteX.current) > 0.5) {
+    if (!isTouching.current && Math.abs(targetPeteX.current - currentPeteX.current) > INPUT_CONFIG.SMOOTHING_THRESHOLD) {
       currentPeteX.current += (targetPeteX.current - currentPeteX.current) * smoothingFactor;
       updatePetePosition(currentPeteX.current);
     }

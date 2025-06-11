@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameActions, useUIState } from '@/store/gameStore';
-import { GAME_CONFIG } from '@/constants/GameConfig';
+import { 
+  GAME_CONFIG, 
+  BALLOON_PHYSICS, 
+  getBalloonSize, 
+  getBalloonPoints,
+  ENTITY_CONFIG 
+} from '@/constants/GameConfig';
 import { GameObject } from '@/utils/gameEngine';
 import { nanoid } from 'nanoid/non-secure';
 
@@ -78,8 +84,8 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
       height: size,
       type,
       sizeLevel: 3,
-      velocityX: (Math.random() - 0.5) * 200,
-      velocityY: Math.random() * 50 + 20, // Small initial downward velocity
+      velocityX: (Math.random() - 0.5) * BALLOON_PHYSICS.SPAWN_VELOCITY.HORIZONTAL_RANGE,
+      velocityY: Math.random() * BALLOON_PHYSICS.SPAWN_VELOCITY.VERTICAL_RANDOM + BALLOON_PHYSICS.SPAWN_VELOCITY.VERTICAL_BASE,
     };
     
     enemies.current.push(enemy);
@@ -114,9 +120,9 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
       // Update enemies with balloon physics
       enemies.current = enemies.current.filter(enemy => {
         // Balloon physics: lighter gravity and minimal air resistance
-        const balloonGravity = GAME_CONFIG.GRAVITY * 0.4; // Much lighter than rocks
-        const airResistance = 0.995; // Minimal air resistance for super-bouncy feel
-        const minBounceVelocity = 280; // Higher minimum bounce to stay airborne longer
+        const balloonGravity = GAME_CONFIG.GRAVITY * BALLOON_PHYSICS.GRAVITY_MULTIPLIER;
+        const airResistance = BALLOON_PHYSICS.AIR_RESISTANCE;
+        const minBounceVelocity = BALLOON_PHYSICS.MIN_BOUNCE_VELOCITY;
         
         // Apply lighter gravity
         enemy.velocityY += balloonGravity * deltaTime;
@@ -131,20 +137,20 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
         
         // Bounce off walls with minimal energy loss
         if (enemy.x <= 0 || enemy.x >= screenWidth - enemy.size) {
-          enemy.velocityX *= -0.9; // Less energy loss for balloon bounce
+          enemy.velocityX *= -BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.WALLS;
           enemy.x = Math.max(0, Math.min(screenWidth - enemy.size, enemy.x));
         }
         
         // Bounce off ceiling
         if (enemy.y <= 0) {
-          enemy.velocityY *= -0.8;
+          enemy.velocityY *= -BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.CEILING;
           enemy.y = 0;
         }
         
         // Bounce off floor with super-bouncy trampoline effect
         if (enemy.y >= gameAreaHeightRef.current - enemy.size) {
           // Super energetic trampoline floor - like original Pang physics with high energy return
-          enemy.velocityY = Math.max(-minBounceVelocity, enemy.velocityY * -1.4);
+          enemy.velocityY = Math.max(-minBounceVelocity, enemy.velocityY * -BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.FLOOR);
           enemy.y = gameAreaHeightRef.current - enemy.size;
         }
         
@@ -170,27 +176,27 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
             hitProjectileIds.add(projectile.id);
             
             // Update score based on enemy size
-            const points = enemy.sizeLevel === 1 ? 30 : enemy.sizeLevel === 2 ? 20 : 10;
+            const points = getBalloonPoints(enemy.sizeLevel as 1 | 2 | 3);
             actions.updateScore(points);
             
             // Split enemy if not smallest size
             if (enemy.sizeLevel > 1) {
               const newSize = enemy.sizeLevel - 1;
-              const size = GAME_CONFIG.ENEMY_BASE_SIZE * (newSize === 1 ? 0.7 : 0.85);
+              const size = getBalloonSize(newSize as 1 | 2 | 3);
               
               // Create two smaller enemies
               for (let i = 0; i < 2; i++) {
                 const splitEnemy: Enemy = {
                   id: nanoid(),
-                  x: enemy.x + (i === 0 ? -10 : 10), // Slight offset to prevent overlap
+                  x: enemy.x + (i === 0 ? -BALLOON_PHYSICS.SPLIT.OFFSET_DISTANCE : BALLOON_PHYSICS.SPLIT.OFFSET_DISTANCE),
                   y: enemy.y,
                   size,
                   width: size,
                   height: size,
                   type: enemy.type,
                   sizeLevel: newSize,
-                  velocityX: (i === 0 ? -1 : 1) * 150,
-                  velocityY: -200,
+                  velocityX: (i === 0 ? -1 : 1) * BALLOON_PHYSICS.SPLIT.HORIZONTAL_VELOCITY,
+                  velocityY: -BALLOON_PHYSICS.SPLIT.VERTICAL_VELOCITY,
                 };
                 newEnemies.push(splitEnemy);
               }

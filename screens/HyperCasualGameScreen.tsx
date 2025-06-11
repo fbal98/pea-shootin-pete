@@ -30,7 +30,7 @@ import {
 } from '@/store/gameStore';
 
 // Constants
-import { GAME_CONFIG } from '@/constants/GameConfig';
+import { GAME_CONFIG, INPUT_CONFIG } from '@/constants/GameConfig';
 import { UI_COLORS } from '@/constants/HyperCasualColors';
 
 export const HyperCasualGameScreen: React.FC = () => {
@@ -70,7 +70,7 @@ export const HyperCasualGameScreen: React.FC = () => {
 
   // Smooth movement update loop
   useEffect(() => {
-    const interval = setInterval(updateSmoothing, 16); // 60fps
+    const interval = setInterval(updateSmoothing, INPUT_CONFIG.SMOOTHING_UPDATE_INTERVAL);
     return () => clearInterval(interval);
   }, [updateSmoothing]);
 

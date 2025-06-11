@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { UI_COLORS } from '@/constants/HyperCasualColors';
+import { UI_CONFIG } from '@/constants/GameConfig';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface HyperCasualHUDProps {
@@ -11,7 +12,7 @@ export const HyperCasualHUD: React.FC<HyperCasualHUDProps> = ({ score }) => {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + UI_CONFIG.SCORE.TOP_PADDING }]}>
       <Text style={styles.scoreText}>{score}</Text>
     </View>
   );
@@ -27,11 +28,11 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   scoreText: {
-    fontSize: 36,
+    fontSize: UI_CONFIG.SCORE.FONT_SIZE,
     fontWeight: '600',
     color: UI_COLORS.scoreText,
     textShadowColor: UI_COLORS.scoreTextShadow,
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowOffset: UI_CONFIG.SCORE.SHADOW_OFFSET,
+    textShadowRadius: UI_CONFIG.SCORE.SHADOW_RADIUS,
   },
 });

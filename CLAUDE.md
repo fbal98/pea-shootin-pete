@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Pea Shootin' Pete is a React Native mobile arcade game built with Expo. This is a modern remaster of the 1994 DOS game, where the player controls Pete who shoots peas at bouncing balloon-like enemies that split into smaller pieces when hit.
+Pea Shootin' Pete is a React Native hyper-casual mobile game built with Expo. Originally a modern remaster of the 1994 DOS game, it has been transformed into a hyper-casual experience where the player controls Pete who shoots peas at bouncing balloon-like enemies that split into smaller pieces when hit.
 
 ## Essential Commands
 
@@ -29,245 +29,241 @@ npm run reset-project   # Reset to fresh project state
 ## Architecture
 
 ### Navigation Structure
-- Uses **Expo Router v5** with file-based routing and Slot routing
-- **Removed tab navigation system** for cleaner arcade-style experience
-- Main entry point: `app/index.tsx` (manages MenuScreen ↔ GameScreen navigation)
-- Single-screen navigation with state-based screen switching
-- Arcade-style menu system with navigation buttons
+- Uses **Expo Router v5** with file-based routing
+- **Hyper-casual single-screen approach** - Simple state-based navigation
+- Main entry point: `app/index.tsx` (manages all screen transitions)
+- **Screen Flow**: Menu ↔ Game ↔ Settings ↔ About
+- State-based screen switching with smooth transitions
+- Minimal navigation buttons in corners for settings/about access
 
-### Game Architecture
+### Hyper-Casual Game Architecture
 ```
-screens/GameScreen.tsx     # Main game logic and state management
+screens/HyperCasualGameScreen.tsx  # Main game with minimal UI
 ├── hooks/
-│   ├── useGameLogic.ts   # Core game loop, enemy spawning, collision handling
-│   └── useGameInput.ts   # Touch input, Pete movement, projectile shooting
+│   ├── useHyperCasualGameLogic.ts # Simplified game loop and balloon physics
+│   └── useHyperCasualInput.ts     # Smooth swipe controls for Pete
 ├── components/
-│   ├── game/             # Visual game components
-│   │   ├── Pete.tsx      # Player character (yellow with face & antenna)
-│   │   ├── Enemy.tsx     # Enemy objects (3 types with animations & faces)
-│   │   ├── Projectile.tsx # Animated pea projectiles (glowing green)
-│   │   └── Starfield.tsx # Animated starfield background
-│   └── arcade/           # Arcade UI components
-│       ├── ArcadeButton.tsx    # Neon-styled buttons with glow effects
-│       ├── ArcadeText.tsx      # Multi-color animated text
-│       ├── ArcadeContainer.tsx # Styled containers with borders
-│       └── index.ts            # Component exports
-├── systems/
-│   └── CollisionSystem.ts # Collision detection and enemy splitting logic
+│   ├── game/                      # Minimal visual game components
+│   │   ├── HyperCasualPete.tsx    # Simple circular Pete with subtle eyes
+│   │   ├── HyperCasualEnemy.tsx   # Minimal balloon enemies (circle/square/diamond)
+│   │   ├── HyperCasualProjectile.tsx # Simple dot projectiles
+│   │   └── HyperCasualBackground.tsx # Gradient backgrounds with floating shapes
+│   └── ui/
+│       └── HyperCasualHUD.tsx     # Score-only display
 ├── store/
-│   └── gameStore.ts      # Zustand state management with optimized selectors
+│   └── gameStore.ts               # Zustand state with high score tracking
 ├── constants/
-│   ├── GameConfig.ts     # Game mechanics configuration
-│   └── ArcadeColors.ts   # Neon color palette and glow effects
-└── utils/
-    ├── gameEngine.ts     # Core game mechanics (collision, movement, enemy types)
-    ├── ObjectPool.ts     # Memory optimization for projectiles and enemies
-    ├── PerformanceMonitor.ts # FPS tracking and performance metrics
-    └── errorLogger.ts    # Error tracking with haptic feedback integration
+│   ├── GameConfig.ts              # Centralized game configuration system
+│   └── HyperCasualColors.ts       # Level-based color schemes
+└── screens/
+    ├── HyperCasualMenuScreen.tsx  # Main menu with settings/about navigation
+    ├── HyperCasualGameScreen.tsx  # Core game screen
+    ├── HyperCasualSettingsScreen.tsx # Minimal settings (sound/haptics)
+    └── HyperCasualAboutScreen.tsx # Simple about/version info
 ```
 
 ### Critical Architecture Patterns
 
+#### Hyper-Casual Design Philosophy
+- **3-second comprehension**: Game is instantly understandable without tutorials
+- **One-touch gameplay**: Tap to shoot, swipe to move Pete smoothly
+- **Minimal visual complexity**: Clean gradients, simple shapes, no decorative elements
+- **Level-based color schemes**: 5 rotating palettes (mint/teal, burgundy, purple/pink, pastel, ocean blue)
+- **Persistent high scores**: Track and display best score across sessions
+
+#### Balloon Physics System
+- **Light gravity**: 40% of normal gravity for floaty balloon feel
+- **Air resistance**: 2% resistance for realistic balloon movement
+- **Enhanced bouncing**: Energetic bounces with trampoline floor
+  - Walls: 10% energy loss
+  - Floor: 10% energy GAIN (super-bouncy trampoline effect)
+  - Ceiling: 20% energy loss
+- **No trap zones**: Enemies maintain bounce height to stay above player level
+
 #### State Management Strategy
-- **Zustand Store** (`store/gameStore.ts`): Centralized game state with stable action references
+- **Zustand Store** (`store/gameStore.ts`): Centralized game state with high score persistence
 - **High-frequency data in refs**: Position data stored in `useRef` to avoid React re-render overhead
-- **Memoized selectors**: `useUIState()` uses individual selectors to prevent infinite loops
-- **Ref synchronization**: Game state copied to refs in `useGameLogic.ts` using `useLayoutEffect` for immediate sync
-- **Stable references**: `uiStateRef` and `actionsRef` prevent stale closures in game loop
+- **Collision detection with Sets**: Prevents duplicate key issues when enemies split
+- **Force re-render triggers**: Manual `forceUpdate` for visual updates
 
-#### Game Loop Architecture  
-- **Stable game loop function**: Created once with empty dependency array, uses refs instead of direct state
-- **Frame-rate independence**: All physics calculations use `deltaTime` for consistent speed
-- **Auto-start mechanism**: GameScreen automatically starts game loop when mounted
-- **Independent animation systems**: Starfield runs its own loop, not dependent on main game loop
-- **Performance monitoring**: Real-time FPS tracking and comprehensive debug logging
-
-#### Object Pool System
-- **Memory optimization**: Pre-allocated pools for projectiles and enemies in `utils/ObjectPool.ts`
-- **Pool lifecycle**: Objects acquired from pool → used in game → released back to pool
-- **Critical requirement**: ALL game objects must use `objectPools.current.acquireEnemy()` and `objectPools.current.releaseEnemy()`
-- **Split enemy handling**: When enemies split in `CollisionSystem.ts`, new enemies MUST be acquired from pool, not created directly
+#### Touch Controls System
+- **Smooth swipe movement**: Pete follows finger with interpolation and smoothing
+- **Tap to shoot**: Instant projectile firing on any screen tap
+- **No complex gestures**: Single-touch optimized for mobile
+- **Responsive feedback**: Immediate visual response to touch input
 
 ### Key Game Systems
-1. **Touch Controls**: Direct responder methods on View component handle tap-to-shoot and drag-to-move
-2. **Game Loop**: Uses `requestAnimationFrame` for 60fps synchronization with screen refresh cycle
-3. **Collision Detection**: AABB collision checking between game objects in separated `CollisionSystem.ts`
-4. **State Management**: High-frequency state (positions) stored in `useRef`, low-frequency state (score, level) in `useState`
-5. **Enemy Types**: Three enemy variants with different speeds, appearances, and animations
-6. **Bouncing Physics**: Enemies bounce off walls, floor, and ceiling with gravity and damping
-7. **Splitting Mechanic**: Enemies split into two smaller enemies when hit (3 size levels total)
-8. **Visual Effects**: Animated starfield synchronized with main game loop, glowing projectiles, bouncing enemies, arcade-style neon HUD with LED displays
+1. **Balloon Physics**: Light enemies with enhanced bouncing and air resistance
+2. **Level Color Schemes**: Rotating visual themes that change every level
+3. **High Score Tracking**: Persistent best score display and saving
+4. **Collision Detection**: Set-based system preventing duplicate enemy IDs
+5. **Enemy Splitting**: Balloons split into two smaller enemies when hit (3 size levels)
+6. **Gradient Backgrounds**: Floating geometric shapes for visual depth
+7. **Smooth Controls**: Interpolated Pete movement with swipe gestures
 
 ## Important Technical Details
 
 - **TypeScript**: Strict mode enabled with `@/*` path alias for imports
 - **Platform**: Supports iOS, Android, and Web through Expo
-- **React**: Version 19.0.0 with React Native 0.79.3
-- **Touch Handling**: Uses onResponderGrant/onResponderMove instead of PanResponder to avoid synthetic event issues
-- **Performance**: Frame-rate independent physics using deltaTime, optimized state management with useRef for high-frequency updates
-- **Responsive Design**: Uses `useWindowDimensions` for dynamic screen sizing and device rotation support
+- **Touch Handling**: Uses direct touch responders for immediate response
+- **Performance**: Frame-rate independent physics using deltaTime
+- **Responsive Design**: Uses `useWindowDimensions` for dynamic screen sizing
 
-## Game Constants
-- Pete size: 40px
-- Enemy base size: 30px (scales with size level: 1=70%, 2=85%, 3=100%)
-- Projectile size: 10px
-- Base projectile speed: 300px/s (shoots vertically upward)
-- Gravity: 500px/s²
-- Bounce damping: 0.8 (20% energy lost per bounce)
-- Score: Size-based (10 pts for large, 20 pts for medium, 30 pts for small)
-- Level up: Every 100 points
-- Split velocities: 150px/s horizontal, 200px/s vertical
-- Pete move throttle: 16ms for smooth touch position updates (~60fps)
+## Centralized Game Configuration System
+
+All game behavior is now controlled from a single source: `constants/GameConfig.ts`
+
+### Core Configuration Structure
+```typescript
+ENTITY_CONFIG      # Pete, Balloon, and Projectile dimensions
+BALLOON_PHYSICS    # Gravity, air resistance, bounce coefficients
+INPUT_CONFIG       # Touch smoothing and responsiveness
+SCORING_CONFIG     # Points system and level progression
+ENEMY_CONFIG       # Enemy types, speeds, and behavior  
+ANIMATION_CONFIG   # All animation durations and effects
+UI_CONFIG          # Font sizes, spacing, layout dimensions
+```
+
+### Key Configurable Values
+**Balloon Sizing (Easily Adjustable for Leveling System):**
+- Base size: 30px
+- Level 1 (smallest): 70% of base size = 21px
+- Level 2 (medium): 85% of base size = 25.5px  
+- Level 3 (largest): 100% of base size = 30px
+
+**Balloon Physics:**
+- Gravity multiplier: 40% (lighter than normal physics)
+- Air resistance: 0.5% per frame (99.5% retention)
+- Wall bounce: 90% energy retained
+- Floor bounce: 140% energy GAIN (super-bouncy trampoline)
+- Ceiling bounce: 80% energy retained
+- Minimum bounce velocity: 280px/s
+
+**Touch Input:**
+- Movement smoothing: 20% interpolation factor
+- Smoothing threshold: 0.5px minimum distance
+- Update interval: 16ms (60fps)
+
+**Scoring & Progression:**
+- Small balloons: 30 points
+- Medium balloons: 20 points  
+- Large balloons: 10 points
+- Level up threshold: 100 points
+
+### Helper Functions for Easy Access
+```typescript
+getBalloonSize(sizeLevel: 1 | 2 | 3): number
+getBalloonPoints(sizeLevel: 1 | 2 | 3): number
+getBalloonOpacity(sizeLevel: 1 | 2 | 3): number
+getSpawnInterval(level: number): number
+getEnemySpeed(type: 'basic' | 'fast' | 'strong'): number
+```
 
 ## Visual Design
 
-### Arcade UI Architecture
-The game features a complete arcade-style transformation:
+### Hyper-Casual Color Schemes
+The game uses 5 rotating color schemes that change per level:
 
-#### Color Scheme (`constants/ArcadeColors.ts`)
-- **Primary Colors**: Hot Pink (#FF1493) and Electric Blue (#00FFFF)
-- **Secondary Colors**: Lime Green (#00FF00) and Yellow (#FFFF00) 
-- **Background**: Deep Black (#000000) for maximum contrast
-- **Glow Effects**: Semi-transparent versions of all colors for neon lighting
-- **Typography**: White text with monospace fonts (Courier on iOS)
+1. **Mint/Teal**: `#4ECDC4` primary, `#F7FFF7` to `#E0F2F1` gradient
+2. **Burgundy/Red**: `#C1666B` primary, `#FFF5F5` to `#FFE0E0` gradient  
+3. **Purple/Pink**: `#A374D5` primary, `#F5F0FF` to `#E6D5FF` gradient
+4. **Soft Pastel**: `#FFB6C1` primary, `#FFF0F5` to `#FFE4E1` gradient
+5. **Ocean Blue**: `#4A90E2` primary, `#F0F8FF` to `#E1F5FE` gradient
 
-#### Arcade Components
-- **ArcadeButton**: Rectangular buttons with neon borders, glow effects, and uppercase text
-- **ArcadeText**: Multi-color animated text with letter-spacing and glow shadows
-- **ArcadeContainer**: Styled containers with neon borders and background overlays
-- **LED Numbers**: Zero-padded displays (e.g., "00042") with digital styling
+### Minimal UI Elements
+- **Main Menu**: "TAP TO PLAY" with subtle settings/about navigation in corners
+- **Settings**: Minimal toggles for sound and haptics only
+- **About**: Simple game info, version, and tagline
+- **HUD**: Score only, top center, white text with shadow
+- **Game Over**: Clean overlay with score and restart/menu options
+- **No decorative elements**: All UI serves gameplay purpose
 
-#### Menu System
-- **Animated Title**: Multi-color "PEA SHOOTIN' PETE" with elastic entrance animation
-- **Navigation Buttons**: START GAME, HOW TO PLAY, SETTINGS with neon styling
-- **Background**: Animated starfield with arcade color scheme
+### Entity Appearances
+- **Pete**: Colored circle with subtle white eyes, matches level color scheme
+- **Enemies**: Minimal shapes differentiated by form:
+  - Basic: Circle
+  - Fast: Diamond (rotated square)
+  - Strong: Rounded square
+- **Projectiles**: Simple colored dots matching level particle color
+- **Background**: Gradient with floating geometric shapes
 
-#### Game Over Screen
-- **Simplified Design**: No initials entry, direct restart/menu options
-- **Animated Entrance**: Spring animation with scaling and opacity transitions
-- **Score Display**: LED-style formatting with neon glow effects
+## Performance Optimizations
+- **Simplified rendering**: Minimal draw calls with basic shapes
+- **Collision optimization**: Set-based duplicate prevention
+- **Smooth animations**: 60fps game loop with deltaTime calculations
+- **Memory efficient**: Direct array management instead of object pools for simplicity
+- **Mobile optimized**: Light physics and minimal particle effects
 
-### Character Appearances
-- **Pete**: Yellow cartoon character with black eyes, smile, and red antenna
-- **Basic Enemy**: Red square with angry face and frown
-- **Fast Enemy**: Orange diamond (rotated) with worried expression (1.5x speed)
-- **Strong Enemy**: Purple square with mean eyes and thick border (0.7x speed)
+## Recent Improvements
 
-### Animations & Effects
-- **Projectiles**: Pulsing scale animation with glow effect and white core
-- **Enemies**: Bouncing motion with gravity, wall/floor collisions, and face features that scale with size
-- **Background**: 50 animated stars scrolling downward with self-contained `requestAnimationFrame` loop
-- **HUD**: LED-style score/level display with hot pink/electric blue neon colors and zero padding
-- **Touch Effects**: Ripple animation on tap with eased scaling (quad) and opacity (cubic) transitions
-- **Menu Animations**: Elastic title entrance, staggered button fade-ins, continuous glow effects
+### Configuration Centralization & Navigation (Latest)
+- **Centralized game configuration**: All 47+ scattered constants moved to single `GameConfig.ts`
+- **Balloon sizing system**: Completely configurable for easy leveling system integration
+- **Navigation enhancement**: Added Settings and About screens with hyper-casual design
+- **Helper functions**: Easy access functions for balloon sizes, points, and physics
+- **A/B testing ready**: Single location to modify all game behavior and balance
 
-### Enemy Behavior
-- **Spawning**: Enemies spawn at top with random horizontal velocity, spawn rate increases with level
-- **Movement**: Bounce off walls, ceiling, and floor with realistic physics using configurable game area height
-- **Splitting**: Large enemies (size 3) → 2 medium enemies → 2 small enemies each
-- **Size Levels**: 3 (largest, splits twice), 2 (medium, splits once), 1 (smallest, no split)
-- **Types**: Basic (red), Fast (orange, 1.5x speed, unlocked level 2), Strong (purple, 0.7x speed, unlocked level 3)
+### Hyper-Casual Transformation (Previous)
+- **Complete visual overhaul**: Stripped arcade aesthetic for clean hyper-casual design
+- **Balloon physics**: Implemented light, bouncy enemy movement with air resistance
+- **Color scheme system**: Level-based rotating palettes for visual variety
+- **Smooth controls**: Added interpolated swipe movement for Pete
+- **High score tracking**: Persistent best score across game sessions
+- **Collision fixes**: Resolved duplicate React key issues with Set-based collision detection
 
-## Critical Implementation Notes
+### Previous Fixes
+- **Game loop stability**: Resolved freezing issues with ref-based game loop
+- **UI rendering**: Fixed font loading and layout issues
+- **Touch responsiveness**: Optimized input handling for mobile devices
 
-### Preventing Infinite Loops
-- **Zustand selectors**: NEVER return new objects directly from `useGameStore()` - use individual selectors + `useMemo`
-- **useEffect dependencies**: Be extremely careful with object dependencies that change frequently
-- **Ref assignments**: NEVER assign to `.current` during render - always use `useEffect`
-- **Animation loops**: Use proper `requestAnimationFrame` cleanup in useEffect return functions
+## Common Debugging Patterns
+- **Game not animating**: Check if game loop started and `isPlaying` state is true
+- **Collision issues**: Verify Set-based collision detection working properly
+- **Color scheme problems**: Ensure level number correctly indexes into color schemes array
+- **Physics feeling wrong**: Adjust values in `BALLOON_PHYSICS` section of GameConfig.ts
+- **Touch not working**: Check touch responder setup and Pete position updates
+- **High score not saving**: Verify Zustand store high score persistence logic
+- **Performance issues**: Monitor frame rate and simplify visual effects if needed
+- **Configuration changes not taking effect**: Ensure importing correct config section from GameConfig.ts
+- **Navigation issues**: Check screen state management in app/index.tsx
 
-### Object Pool Requirements
-- **Enemy splitting**: In `CollisionSystem.ts`, split enemies MUST use `objectPools.current.acquireEnemy()`
-- **Memory leaks**: Ensure every `acquireEnemy()` has matching `releaseEnemy()` 
-- **Pool exhaustion**: Monitor console for "Object pool exhausted" warnings indicating memory leaks
-- **Pool sizing**: Current pools (15-40 objects) may need expansion for exponential enemy splitting
+## Legacy Components (To Be Removed)
 
-### Performance Optimizations
-- **requestAnimationFrame**: Replaces setInterval for smooth 60fps animation synchronized with display refresh
-- **State Management**: High-frequency position data stored in useRef to avoid React re-render overhead
-- **Render Triggers**: Only essential UI state (score, level, gameOver) triggers React renders
-- **Starfield Animation**: Self-contained loop throttled to 30fps to reduce CPU usage
-- **Frame-Rate Independence**: All movement calculations use deltaTime for consistent speed across devices
+The following files are **obsolete** after the hyper-casual transformation and can be safely removed in future cleanup:
 
-### Recent Bug Fixes & Optimizations
+### Arcade UI Components (OBSOLETE)
+- `components/arcade/` - All arcade-style UI components
+- `constants/ArcadeColors.ts` - Neon color palette (replaced by HyperCasualColors.ts)
+- `screens/MenuScreen.tsx` - Old arcade menu (replaced by HyperCasualMenuScreen.tsx)
+- `screens/EnhancedMenuScreen.tsx` - Enhanced arcade menu
+- `screens/GameScreen.tsx` - Old arcade game screen (replaced by HyperCasualGameScreen.tsx)
+- `components/ui/EnhancedGameHUD.tsx` - Complex arcade HUD (replaced by HyperCasualHUD.tsx)
+- `components/ui/CRTFrame.tsx` - CRT screen effect component
+- `components/ui/AnimatedLogo.tsx` - Arcade-style animated logo
+- `hooks/useGameLogic.ts` - Complex arcade game logic (replaced by useHyperCasualGameLogic.ts)
+- `hooks/useGameInput.ts` - Arcade input handling (replaced by useHyperCasualInput.ts)
 
-#### Game Loop Freezing Issue (CRITICAL FIX - Latest)
-- **Issue**: Game loop only ran during touch events, everything frozen without user input
-- **Root Cause**: Stale closure in game loop function caused by including `gameLoop` in `useEffect` dependency array
-- **Solution**: 
-  - Removed `gameLoop` from dependency array and used empty `[]` instead
-  - Switched to stable refs (`uiStateRef`, `actionsRef`) instead of direct state access in game loop
-  - Added auto-start mechanism in GameScreen to immediately begin game when mounted
-  - Made Starfield animation independent with its own `requestAnimationFrame` loop
-- **Location**: `hooks/useGameLogic.ts` - Game loop function and effect
-- **Impact**: Game now runs continuously at 60fps without requiring touch input
+### Original Game Components (LEGACY)
+- `components/game/Pete.tsx` - Detailed arcade Pete (replaced by HyperCasualPete.tsx)
+- `components/game/Enemy.tsx` - Complex arcade enemies (replaced by HyperCasualEnemy.tsx)
+- `components/game/Projectile.tsx` - Animated arcade projectiles (replaced by HyperCasualProjectile.tsx)
+- `components/game/Starfield.tsx` - Arcade starfield background (replaced by HyperCasualBackground.tsx)
 
-#### Font Loading and UI Rendering (Critical)
-- **Issue**: App showing blank screen with loading bars due to font loading blocking UI render
-- **Root Cause**: `app/_layout.tsx` returned `null` when fonts weren't loaded, preventing entire app from rendering
-- **Solution**: Removed font loading blocking behavior to allow app to render with fallback fonts
-- **Location**: `app/_layout.tsx:19-22` - Font loading conditional
-- **Impact**: App now shows properly on first load instead of blank screen
+**Note**: These files are kept for reference but are no longer used in the active hyper-casual game.
 
-#### ArcadeContainer Layout System
-- **Issue**: MenuScreen and other UI components not rendering due to missing flex layout
-- **Solution**: Added `flex: 1` to ArcadeContainer base styles
-- **Location**: `components/arcade/ArcadeContainer.tsx:73-77`
-- **Impact**: All arcade UI components now render with proper layout constraints
+## Development Notes
+- **Hyper-casual focus**: Every feature should serve the core gameplay loop
+- **Mobile-first**: Design for touch controls and mobile performance
+- **Configuration-driven**: All game behavior controlled from centralized GameConfig.ts
+- **Leveling system ready**: Balloon sizes and difficulty easily adjustable
+- **Iteration-friendly**: Architecture supports rapid A/B testing of mechanics
+- **Monetization ready**: Clean checkpoint for adding ads and IAP systems
+- **App store ready**: Follows hyper-casual publishing best practices
+- **Clean architecture**: New hyper-casual components are completely separate from legacy arcade code
 
-#### Font Compatibility Fix
-- **Issue**: Custom font `Courier-Bold` not available causing text rendering failures
-- **Solution**: Changed to standard `Courier` with proper `fontWeight` for cross-platform compatibility
-- **Locations**: 
-  - `components/arcade/ArcadeText.tsx:79-83`
-  - `components/arcade/ArcadeButton.tsx:113-118`
-- **Impact**: Text now renders consistently across iOS and other platforms
-
-#### Pete Positioning Fix
-- **Issue**: Pete appearing off-screen due to incorrect Y offset calculation
-- **Solution**: Changed Y offset from -80 to -10 pixels for proper bottom positioning
-- **Location**: `hooks/useGameLogic.ts` - Pete position initialization
-
-#### Component Layering
-- **Issue**: UI elements appearing behind game components
-- **Solution**: Proper z-index and View hierarchy management
-- **Impact**: Game Over screen and HUD now properly overlay game area
-
-#### State Management Race Conditions
-- **Issue**: Game state initialization causing render loops
-- **Solution**: Added `hasInitialized` ref to prevent duplicate initialization
-- **Location**: `app/index.tsx` - Component mount lifecycle
-
-### Known Performance Issues
-
-#### Memory Leaks in Object Pool System
-- **Issue**: Objects not properly released back to pool during enemy splitting
-- **Impact**: Gradual memory buildup, potential app crashes on long sessions
-- **Location**: `systems/CollisionSystem.ts` - Enemy split logic
-- **Status**: Requires monitoring (improved with latest fixes)
-
-#### Excessive Re-renders
-- **Issue**: High-frequency state updates triggering unnecessary React renders
-- **Impact**: Reduced frame rate on lower-end devices
-- **Status**: Significantly improved with ref-based game loop architecture
-
-### Common Debugging Patterns
-- **Game freezing/not animating**: Check if `isPlaying` state is true and game loop started in `useGameLogic.ts`
-- **Game loop not starting**: Verify auto-start mechanism in GameScreen and check console logs for game loop state
-- **Stale state in game loop**: Ensure using refs (`uiStateRef`, `actionsRef`) instead of direct state access
-- **Starfield not animating**: Verify Starfield receives `isPlaying={true}` prop and has independent animation loop
-- **Blank screen/loading bars**: Check if font loading is blocking app render in `app/_layout.tsx` - should not return `null`
-- **Components not rendering**: Verify ArcadeContainer has `flex: 1` style and proper layout constraints
-- **Text not showing**: Check font family compatibility - use `Courier` instead of `Courier-Bold` for cross-platform support
-- **Object pool warnings**: Look for objects created directly instead of via `acquireEnemy()`/`acquireProjectile()`
-- **Infinite loops**: Check Zustand selectors for new object creation and useEffect dependency arrays
-- **Touch not working**: Verify touch responders are properly set up and Pete position updates
-- **Pete positioning**: Ensure Y offset calculations account for safe area and proper bottom alignment
-- **Arcade styling**: Check ArcadeColors import and component prop passing for consistent theming
-
-### Game Loop Troubleshooting (Critical)
-- **Game loop dependency arrays**: NEVER include the game loop function itself in useEffect dependencies
-- **Ref synchronization**: Always use `useLayoutEffect` for immediate ref updates, `useEffect` for non-critical refs
-- **State vs Refs**: Use refs for high-frequency data, React state only for UI-triggering changes
-- **Animation independence**: Starfield and main game loop should run independently with their own `requestAnimationFrame`
-- **Auto-start verification**: GameScreen should automatically call `resetGame()` on mount if not already playing
+## Configuration Best Practices
+- **Modify values in GameConfig.ts**: Single source of truth for all game behavior
+- **Use helper functions**: `getBalloonSize()`, `getBalloonPoints()` etc. for type safety
+- **Test configuration changes**: Run `npm run type-check` after modifying GameConfig.ts
+- **Document significant changes**: Update this CLAUDE.md when adding new config sections
+- **Balloon sizing**: Adjust `ENTITY_CONFIG.BALLOON.SIZE_MULTIPLIERS` for leveling system tweaks
