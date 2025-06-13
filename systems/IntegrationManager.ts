@@ -71,13 +71,13 @@ class IntegrationManager {
       await this.initializeDeepLinking();
       await this.initializeAchievements();
       await this.initializeEvents();
-      
+
       // Set up system integrations
       this.setupSystemIntegrations();
-      
+
       // Start health monitoring
       this.startHealthMonitoring();
-      
+
       console.log('✅ Integration Manager initialized successfully');
     } catch (error) {
       console.error('❌ Integration Manager initialization failed:', error);
@@ -92,7 +92,7 @@ class IntegrationManager {
         batchSize: 10,
         flushInterval: 30000,
       });
-      
+
       this.updateSystemHealth('analytics', 'healthy', 'Analytics system initialized');
     } catch (error) {
       this.updateSystemHealth('analytics', 'error', `Analytics initialization failed: ${error}`);
@@ -104,7 +104,11 @@ class IntegrationManager {
       // Deep link manager initializes automatically
       this.updateSystemHealth('deepLinking', 'healthy', 'Deep linking system initialized');
     } catch (error) {
-      this.updateSystemHealth('deepLinking', 'error', `Deep linking initialization failed: ${error}`);
+      this.updateSystemHealth(
+        'deepLinking',
+        'error',
+        `Deep linking initialization failed: ${error}`
+      );
     }
   }
 
@@ -112,12 +116,12 @@ class IntegrationManager {
     try {
       // Set up achievement callbacks
       microAchievementSystem.setCallbacks({
-        onAchievementUnlocked: (achievement) => {
+        onAchievementUnlocked: achievement => {
           console.log('🏆 Achievement unlocked:', achievement.name);
-          
+
           // Trigger achievement celebration
           this.onAchievementUnlocked(achievement.id);
-          
+
           // Award economy rewards
           const economyStore = useEconomyStore.getState();
           achievement.rewards.forEach(reward => {
@@ -129,7 +133,7 @@ class IntegrationManager {
               );
             }
           });
-          
+
           // Track analytics
           analytics.track('achievement_unlocked', {
             custom_properties: {
@@ -141,9 +145,13 @@ class IntegrationManager {
           });
         },
         onProgressUpdate: (achievement, progress) => {
-          console.log('📈 Achievement progress:', achievement.name, `${progress.progress}/${achievement.target}`);
+          console.log(
+            '📈 Achievement progress:',
+            achievement.name,
+            `${progress.progress}/${achievement.target}`
+          );
         },
-        onToastRequest: (toast) => {
+        onToastRequest: toast => {
           // This would trigger UI toast notifications
           console.log('🍞 Achievement toast:', toast.type, toast.achievement.name);
         },
@@ -151,7 +159,11 @@ class IntegrationManager {
 
       this.updateSystemHealth('achievements', 'healthy', 'Achievement system initialized');
     } catch (error) {
-      this.updateSystemHealth('achievements', 'error', `Achievement system initialization failed: ${error}`);
+      this.updateSystemHealth(
+        'achievements',
+        'error',
+        `Achievement system initialization failed: ${error}`
+      );
     }
   }
 
@@ -160,20 +172,24 @@ class IntegrationManager {
       // Special events manager initializes automatically
       this.updateSystemHealth('specialEvents', 'healthy', 'Special events system initialized');
     } catch (error) {
-      this.updateSystemHealth('specialEvents', 'error', `Special events initialization failed: ${error}`);
+      this.updateSystemHealth(
+        'specialEvents',
+        'error',
+        `Special events initialization failed: ${error}`
+      );
     }
   }
 
   private setupSystemIntegrations() {
     // Set up combo system callbacks
     this.comboSystem.setCallbacks({
-      onComboChange: (combo) => {
+      onComboChange: combo => {
         // Update achievement progress
         microAchievementSystem.trackComboAchieved(combo.count);
-        
+
         // Trigger combo celebration for significant combos
         this.onComboAchieved(combo.count, combo.multiplier);
-        
+
         // Track analytics
         analytics.track('combo_achieved', {
           combo_count: combo.count,
@@ -187,10 +203,10 @@ class IntegrationManager {
       onComboBreak: (finalCombo, reason) => {
         console.log(`💥 Combo broken: ${finalCombo}x (${reason})`);
       },
-      onComboAchievement: (achievement) => {
+      onComboAchievement: achievement => {
         console.log('🎯 Combo achievement unlocked:', achievement.name);
       },
-      onVisualEffect: (effect) => {
+      onVisualEffect: effect => {
         console.log('✨ Visual effect triggered:', effect.type);
       },
     });
@@ -221,7 +237,11 @@ class IntegrationManager {
     try {
       const analyticsStats = analytics.getSessionStats();
       if (analyticsStats.sessionId) {
-        this.updateSystemHealth('analytics', 'healthy', `Session: ${analyticsStats.sessionId.slice(-8)}`);
+        this.updateSystemHealth(
+          'analytics',
+          'healthy',
+          `Session: ${analyticsStats.sessionId.slice(-8)}`
+        );
       } else {
         this.updateSystemHealth('analytics', 'warning', 'No active session');
       }
@@ -235,7 +255,11 @@ class IntegrationManager {
       const socialStore = useSocialStore.getState();
       const levelStore = useLevelProgressionStore.getState();
 
-      this.updateSystemHealth('economyStore', 'healthy', `Balance: ${economyStore.balances.coins} coins`);
+      this.updateSystemHealth(
+        'economyStore',
+        'healthy',
+        `Balance: ${economyStore.balances.coins} coins`
+      );
       this.updateSystemHealth('socialStore', 'healthy', `Friends: ${socialStore.friends.length}`);
       this.updateSystemHealth('levelStore', 'healthy', `Current level: ${levelStore.currentLevel}`);
     } catch (error) {
@@ -246,16 +270,32 @@ class IntegrationManager {
     try {
       const viralMetrics = viralTrackingManager.getViralMetrics();
       const coefficient = viralMetrics.viralCoefficient;
-      
+
       if (coefficient > 0.1) {
-        this.updateSystemHealth('viralTracking', 'healthy', `Viral coefficient: ${coefficient.toFixed(3)}`);
+        this.updateSystemHealth(
+          'viralTracking',
+          'healthy',
+          `Viral coefficient: ${coefficient.toFixed(3)}`
+        );
       } else if (coefficient > 0.05) {
-        this.updateSystemHealth('viralTracking', 'warning', `Low viral coefficient: ${coefficient.toFixed(3)}`);
+        this.updateSystemHealth(
+          'viralTracking',
+          'warning',
+          `Low viral coefficient: ${coefficient.toFixed(3)}`
+        );
       } else {
-        this.updateSystemHealth('viralTracking', 'warning', `Very low viral coefficient: ${coefficient.toFixed(3)}`);
+        this.updateSystemHealth(
+          'viralTracking',
+          'warning',
+          `Very low viral coefficient: ${coefficient.toFixed(3)}`
+        );
       }
     } catch (error) {
-      this.updateSystemHealth('viralTracking', 'error', `Viral tracking health check failed: ${error}`);
+      this.updateSystemHealth(
+        'viralTracking',
+        'error',
+        `Viral tracking health check failed: ${error}`
+      );
     }
 
     // Check special events
@@ -263,19 +303,31 @@ class IntegrationManager {
       const activeEvents = specialEventsManager.getActiveEvents();
       this.updateSystemHealth('specialEvents', 'healthy', `Active events: ${activeEvents.length}`);
     } catch (error) {
-      this.updateSystemHealth('specialEvents', 'error', `Special events health check failed: ${error}`);
+      this.updateSystemHealth(
+        'specialEvents',
+        'error',
+        `Special events health check failed: ${error}`
+      );
     }
 
     // Check achievements
     try {
       const completedAchievements = microAchievementSystem.getCompletedAchievements();
-      this.updateSystemHealth('achievements', 'healthy', `Completed: ${completedAchievements.length}`);
+      this.updateSystemHealth(
+        'achievements',
+        'healthy',
+        `Completed: ${completedAchievements.length}`
+      );
     } catch (error) {
       this.updateSystemHealth('achievements', 'error', `Achievement health check failed: ${error}`);
     }
   }
 
-  private updateSystemHealth(system: string, status: 'healthy' | 'warning' | 'error', message: string) {
+  private updateSystemHealth(
+    system: string,
+    status: 'healthy' | 'warning' | 'error',
+    message: string
+  ) {
     this.systemHealthChecks.set(system, {
       system,
       status,
@@ -322,15 +374,15 @@ class IntegrationManager {
 
   private async testAnalyticsIntegration(): Promise<IntegrationTestResult> {
     const startTime = Date.now();
-    
+
     try {
       // Test analytics tracking
       analytics.track('game_start', { level: 1 });
       analytics.trackLevelStart(1, 'Test Level', 1);
       analytics.trackLevelComplete(1, 'Test Level', 1000, 30000, 0.85, 1);
-      
+
       const stats = analytics.getSessionStats();
-      
+
       if (!stats.sessionId) {
         throw new Error('No session ID found');
       }
@@ -354,13 +406,13 @@ class IntegrationManager {
 
   private async testAchievementIntegration(): Promise<IntegrationTestResult> {
     const startTime = Date.now();
-    
+
     try {
       // Test achievement tracking
       microAchievementSystem.trackShotFired();
       microAchievementSystem.trackBalloonPopped();
       microAchievementSystem.trackAccurateHit(0.98);
-      
+
       const achievements = microAchievementSystem.getAllAchievements();
       if (achievements.length === 0) {
         throw new Error('No achievements found');
@@ -385,18 +437,18 @@ class IntegrationManager {
 
   private async testEconomyIntegration(): Promise<IntegrationTestResult> {
     const startTime = Date.now();
-    
+
     try {
       const economyStore = useEconomyStore.getState();
-      
+
       // Test currency operations
       const initialCoins = economyStore.balances.coins;
       economyStore.addCurrency('coins', 100, 'Integration test');
-      
+
       if (economyStore.balances.coins !== initialCoins + 100) {
         throw new Error('Currency addition failed');
       }
-      
+
       const canAfford = economyStore.canAfford({ currency: 'coins', amount: 50 });
       if (!canAfford) {
         throw new Error('Can afford check failed');
@@ -421,10 +473,10 @@ class IntegrationManager {
 
   private async testSocialIntegration(): Promise<IntegrationTestResult> {
     const startTime = Date.now();
-    
+
     try {
       const socialStore = useSocialStore.getState();
-      
+
       // Test social features
       socialStore.incrementShareCount();
       socialStore.addRecentShare({
@@ -432,7 +484,7 @@ class IntegrationManager {
         contentType: 'integration_test',
         timestamp: Date.now(),
       });
-      
+
       if (socialStore.shareCount === 0) {
         throw new Error('Share count not incremented');
       }
@@ -456,11 +508,11 @@ class IntegrationManager {
 
   private async testSpecialEventsIntegration(): Promise<IntegrationTestResult> {
     const startTime = Date.now();
-    
+
     try {
       const activeEvents = specialEventsManager.getActiveEvents();
       const upcomingEvents = specialEventsManager.getUpcomingEvents();
-      
+
       // Events should be initialized
       if (activeEvents.length === 0 && upcomingEvents.length === 0) {
         throw new Error('No events found');
@@ -485,7 +537,7 @@ class IntegrationManager {
 
   private async testComboIntegration(): Promise<IntegrationTestResult> {
     const startTime = Date.now();
-    
+
     try {
       // Test combo system
       const hitResult = this.comboSystem.registerHit({
@@ -495,11 +547,11 @@ class IntegrationManager {
         timingWindow: 'perfect',
         consecutiveHit: true,
       });
-      
+
       if (hitResult.scoreMultiplier <= 1) {
         throw new Error('Combo multiplier not working');
       }
-      
+
       const comboData = this.comboSystem.getCurrentCombo();
       if (comboData.count !== 1) {
         throw new Error('Combo count not incremented');
@@ -524,7 +576,7 @@ class IntegrationManager {
 
   private async testViralTrackingIntegration(): Promise<IntegrationTestResult> {
     const startTime = Date.now();
-    
+
     try {
       // Test viral tracking
       const shareId = viralTrackingManager.trackShareEvent({
@@ -533,11 +585,11 @@ class IntegrationManager {
         userId: 'test_user',
         timestamp: Date.now(),
       });
-      
+
       if (!shareId) {
         throw new Error('Share tracking failed');
       }
-      
+
       const metrics = viralTrackingManager.getViralMetrics();
       if (typeof metrics.viralCoefficient !== 'number') {
         throw new Error('Viral coefficient calculation failed');
@@ -563,34 +615,34 @@ class IntegrationManager {
   public async generateQAReport(): Promise<QAReport> {
     const integrationTests = await this.runIntegrationTests();
     const systemsHealth = Array.from(this.systemHealthChecks.values());
-    
+
     const criticalIssues: string[] = [];
     const recommendations: string[] = [];
-    
+
     // Analyze health checks
     systemsHealth.forEach(health => {
       if (health.status === 'error') {
         criticalIssues.push(`${health.system}: ${health.message}`);
       }
     });
-    
+
     // Analyze test results
     integrationTests.forEach(test => {
       if (!test.passed) {
         criticalIssues.push(`${test.testName}: ${test.error}`);
       }
     });
-    
+
     // Generate recommendations
     if (criticalIssues.length > 0) {
       recommendations.push('Address critical issues before release');
     }
-    
+
     const viralMetrics = viralTrackingManager.getViralMetrics();
     if (viralMetrics.viralCoefficient < 0.1) {
       recommendations.push('Improve viral coefficient through better share incentives');
     }
-    
+
     if (integrationTests.some(test => test.duration > 5000)) {
       recommendations.push('Optimize slow integration tests');
     }
@@ -600,7 +652,7 @@ class IntegrationManager {
       integrationTests,
       performanceMetrics: {
         memoryUsage: 0, // Would use react-native-performance monitor
-        frameRate: 60,  // Would measure actual FPS
+        frameRate: 60, // Would measure actual FPS
         loadTimes: {
           analytics: 100,
           achievements: 150,
@@ -611,9 +663,11 @@ class IntegrationManager {
         socialSharing: systemsHealth.find(h => h.system === 'socialStore')?.status === 'healthy',
         viralTracking: systemsHealth.find(h => h.system === 'viralTracking')?.status === 'healthy',
         economySystem: systemsHealth.find(h => h.system === 'economyStore')?.status === 'healthy',
-        achievementSystem: systemsHealth.find(h => h.system === 'achievements')?.status === 'healthy',
+        achievementSystem:
+          systemsHealth.find(h => h.system === 'achievements')?.status === 'healthy',
         specialEvents: systemsHealth.find(h => h.system === 'specialEvents')?.status === 'healthy',
-        comboSystem: integrationTests.find(t => t.testName === 'Combo Integration')?.passed || false,
+        comboSystem:
+          integrationTests.find(t => t.testName === 'Combo Integration')?.passed || false,
         worldMap: true, // Static component, assume working
         analytics: systemsHealth.find(h => h.system === 'analytics')?.status === 'healthy',
       },
@@ -656,10 +710,14 @@ class IntegrationManager {
         timestamp: Date.now(),
         targetType: enemyType,
         accuracy,
-        timingWindow: (accuracy > 0.95 ? 'perfect' : accuracy > 0.8 ? 'great' : 'good') as 'perfect' | 'great' | 'good' | 'normal',
+        timingWindow: (accuracy > 0.95 ? 'perfect' : accuracy > 0.8 ? 'great' : 'good') as
+          | 'perfect'
+          | 'great'
+          | 'good'
+          | 'normal',
         consecutiveHit: true,
       };
-      
+
       const comboResult = this.comboSystem.registerHit(comboHit);
       return comboResult;
     } catch (error) {
@@ -671,37 +729,44 @@ class IntegrationManager {
   /**
    * Called when a level is completed
    */
-  public onLevelCompleted(levelId: number, stats: { score: number; duration: number; accuracy: number }) {
+  public onLevelCompleted(
+    levelId: number,
+    stats: { score: number; duration: number; accuracy: number }
+  ) {
     try {
       // Track with micro achievement system
       microAchievementSystem.trackLevelCompleted({
         completionTime: stats.duration,
         accuracy: stats.accuracy,
-        missCount: 0 // TODO: pass actual miss count from level progression
+        missCount: 0, // TODO: pass actual miss count from level progression
       });
-      
+
       // Trigger victory celebration through celebration store
       setTimeout(async () => {
         try {
           const { useCelebrationStore } = await import('../store/celebrationStore');
           const celebrationActions = useCelebrationStore.getState();
-          
+
           // Calculate stars based on performance (simple algorithm)
-          const starsEarned = this.calculateStarsEarned(stats.score, stats.duration, stats.accuracy);
-          
+          const starsEarned = this.calculateStarsEarned(
+            stats.score,
+            stats.duration,
+            stats.accuracy
+          );
+
           celebrationActions.addVictoryCelebration({
             level: levelId,
             score: stats.score,
             starsEarned,
             onComplete: () => {
               console.log('Victory celebration completed');
-            }
+            },
           });
         } catch (error) {
           console.error('Failed to trigger victory celebration:', error);
         }
       }, 0);
-      
+
       // Could trigger special events or viral tracking here when methods are implemented
       // TODO: Add specialEventsManager.onLevelCompleted when implemented
       // TODO: Add viralTrackingManager.trackLevelCompletion when implemented
@@ -711,7 +776,7 @@ class IntegrationManager {
   }
 
   /**
-   * Called when mystery balloon is spawned  
+   * Called when mystery balloon is spawned
    */
   public onMysteryBalloonSpawned() {
     try {
@@ -732,32 +797,32 @@ class IntegrationManager {
         try {
           const { useCelebrationStore } = await import('../store/celebrationStore');
           const celebrationActions = useCelebrationStore.getState();
-          
+
           // Create mystery reward for celebration
           const mysteryReward = {
             id: `mystery_${Date.now()}`,
             type: rewardType as any,
             rarity: this.getMysteryRewardRarity(rewardValue) as any,
-            value: rewardValue.toString()
+            value: rewardValue.toString(),
           };
-          
+
           celebrationActions.addMysteryRewardCelebration({
             reward: mysteryReward,
             x: 200, // Center screen
             y: 300,
             onComplete: () => {
               console.log('Mystery reward celebration completed');
-            }
+            },
           });
         } catch (error) {
           console.error('Failed to trigger mystery reward celebration:', error);
         }
       }, 0);
-      
+
       // Update achievement progress (using general balloon tracking)
       microAchievementSystem.trackBalloonPopped();
-      
-      // Could track mystery rewards when method is implemented  
+
+      // Could track mystery rewards when method is implemented
       // TODO: Add viralTrackingManager.trackMysteryReward when implemented
     } catch (error) {
       console.error('Error in onMysteryBalloonPopped integration:', error);
@@ -785,25 +850,25 @@ class IntegrationManager {
         try {
           const { useCelebrationStore } = await import('../store/celebrationStore');
           const { microAchievementSystem } = await import('./MicroAchievementSystem');
-          
+
           const celebrationActions = useCelebrationStore.getState();
           const achievement = microAchievementSystem.getAchievementById(achievementId);
-          
+
           if (achievement) {
             celebrationActions.addAchievementCelebration({
               achievement,
               onComplete: () => {
                 console.log(`Achievement celebration completed: ${achievement.name}`);
-              }
+              },
             });
           }
         } catch (error) {
           console.error('Failed to trigger achievement celebration:', error);
         }
       }, 0);
-      
+
       // Could trigger tutorial congratulations
-      // Could trigger social sharing prompts  
+      // Could trigger social sharing prompts
       // TODO: Add viralTrackingManager.trackAchievementUnlock when implemented
     } catch (error) {
       console.error('Error in onAchievementUnlocked integration:', error);
@@ -815,17 +880,18 @@ class IntegrationManager {
    */
   private calculateStarsEarned(score: number, duration: number, accuracy: number): number {
     let stars = 1; // Always get at least 1 star for completion
-    
+
     // Add star for good accuracy (80%+)
     if (accuracy >= 80) {
       stars++;
     }
-    
+
     // Add star for high score or fast completion
-    if (accuracy >= 95 || duration < 30000) { // Perfect accuracy or under 30 seconds
+    if (accuracy >= 95 || duration < 30000) {
+      // Perfect accuracy or under 30 seconds
       stars++;
     }
-    
+
     return Math.min(3, stars);
   }
 
@@ -840,13 +906,13 @@ class IntegrationManager {
           try {
             const { useCelebrationStore } = await import('../store/celebrationStore');
             const celebrationActions = useCelebrationStore.getState();
-            
+
             celebrationActions.addComboCelebration({
               combo,
               multiplier,
               onComplete: () => {
                 console.log(`Combo celebration completed: ${combo}x`);
-              }
+              },
             });
           } catch (error) {
             console.error('Failed to trigger combo celebration:', error);

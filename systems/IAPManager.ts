@@ -124,11 +124,11 @@ class IAPManager {
       // 1. Initialize the IAP library (react-native-iap)
       // 2. Get available products from app stores
       // 3. Set up purchase listeners
-      
+
       // For now, use mock products
       this.products = MOCK_PRODUCTS;
       this.isInitialized = true;
-      
+
       console.log('✅ IAP Manager initialized with mock products');
       return true;
     } catch (error) {
@@ -166,9 +166,9 @@ class IAPManager {
       // 1. Initiate the platform purchase flow
       // 2. Handle purchase validation
       // 3. Process the purchase result
-      
+
       // For development, simulate purchase with confirmation dialog
-      return new Promise<PurchaseResult>((resolve) => {
+      return new Promise<PurchaseResult>(resolve => {
         Alert.alert(
           'Confirm Purchase',
           `Purchase ${product.title} for ${product.localizedPrice}?`,
@@ -176,10 +176,11 @@ class IAPManager {
             {
               text: 'Cancel',
               style: 'cancel',
-              onPress: () => resolve({
-                success: false,
-                error: 'User cancelled',
-              }),
+              onPress: () =>
+                resolve({
+                  success: false,
+                  error: 'User cancelled',
+                }),
             },
             {
               text: 'Buy',
@@ -213,10 +214,10 @@ class IAPManager {
     }
 
     const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Award the purchase rewards
     this.awardPurchaseRewards(productId);
-    
+
     // Track analytics
     trackPurchase({
       itemId: productId,
@@ -255,12 +256,12 @@ class IAPManager {
         rewards.amount,
         `IAP Purchase: ${productId}`
       );
-      
+
       console.log(`💰 Awarded ${rewards.amount} ${rewards.currency} for purchase: ${productId}`);
     }
 
     if (rewards.premium) {
-      economyStore.setPremiumPass(true, Date.now() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+      economyStore.setPremiumPass(true, Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
       console.log(`👑 Premium features unlocked for purchase: ${productId}`);
     }
   }
@@ -275,15 +276,15 @@ class IAPManager {
       // 1. Query the platform for previous purchases
       // 2. Restore non-consumable items and subscriptions
       // 3. Update the user's entitlements
-      
+
       // For development, simulate restoration
       console.log('🔄 Restoring purchases...');
-      
+
       const restoredProducts: string[] = [];
-      
+
       // Simulate restoring premium pass if previously purchased
       // This would be based on actual purchase history from the platform
-      
+
       return restoredProducts;
     } catch (error) {
       console.error('❌ Purchase restoration failed:', error);
@@ -297,9 +298,9 @@ class IAPManager {
       // 1. Send the receipt to your backend server
       // 2. Validate with Apple/Google servers
       // 3. Return validation result
-      
+
       console.log('🔐 Validating receipt...');
-      
+
       // For development, always return true
       return true;
     } catch (error) {
@@ -317,13 +318,13 @@ class IAPManager {
     // 1. Local storage for non-consumable purchases
     // 2. Subscription status for subscriptions
     // 3. Server-side validation
-    
+
     const economyStore = useEconomyStore.getState();
-    
+
     if (productId === 'premium_pass') {
       return economyStore.hasPremiumPass;
     }
-    
+
     // For consumable products, always return false
     return false;
   }
@@ -332,7 +333,7 @@ class IAPManager {
     // In a real implementation, this would:
     // 1. Remove purchase listeners
     // 2. Clean up the IAP library
-    
+
     this.isInitialized = false;
     console.log('🧹 IAP Manager cleaned up');
   }

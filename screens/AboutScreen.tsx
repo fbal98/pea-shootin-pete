@@ -1,17 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UI_COLORS } from '@/constants/HyperCasualColors';
+import { UI_COLORS } from '@/constants/GameColors';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-interface HyperCasualAboutScreenProps {
+interface AboutScreenProps {
   onBack: () => void;
 }
 
-export const HyperCasualAboutScreen: React.FC<HyperCasualAboutScreenProps> = ({ 
-  onBack 
-}) => {
+export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const floatAnim1 = useRef(new Animated.Value(0)).current;
   const floatAnim2 = useRef(new Animated.Value(0)).current;
@@ -65,9 +63,9 @@ export const HyperCasualAboutScreen: React.FC<HyperCasualAboutScreenProps> = ({
   }, []);
 
   const renderFloatingElement = (
-    anim: Animated.Value, 
-    size: number, 
-    startY: number, 
+    anim: Animated.Value,
+    size: number,
+    startY: number,
     opacity: number = 0.04
   ) => {
     const translateY = anim.interpolate({
@@ -107,11 +105,7 @@ export const HyperCasualAboutScreen: React.FC<HyperCasualAboutScreenProps> = ({
         <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
           {/* Header with back button */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={onBack}
-              activeOpacity={0.7}
-            >
+            <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
               <Text style={styles.backText}>←</Text>
             </TouchableOpacity>
             <Text style={styles.title}>about</Text>

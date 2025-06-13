@@ -1,15 +1,15 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { getColorScheme } from '@/constants/HyperCasualColors';
+import { getColorScheme } from '@/constants/GameColors';
 
-interface HyperCasualPeteProps {
+interface PeteProps {
   x: number;
   y: number;
   size: number;
   level: number;
 }
 
-export const HyperCasualPete: React.FC<HyperCasualPeteProps> = ({ x, y, size, level }) => {
+export const Pete: React.FC<PeteProps> = ({ x, y, size, level }) => {
   const colorScheme = getColorScheme(level);
 
   return (

@@ -1,20 +1,15 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { getColorScheme } from '@/constants/HyperCasualColors';
+import { getColorScheme } from '@/constants/GameColors';
 
-interface HyperCasualProjectileProps {
+interface ProjectileProps {
   x: number;
   y: number;
   size: number;
   level: number;
 }
 
-export const HyperCasualProjectile: React.FC<HyperCasualProjectileProps> = ({ 
-  x, 
-  y, 
-  size,
-  level 
-}) => {
+export const Projectile: React.FC<ProjectileProps> = ({ x, y, size, level }) => {
   const colorScheme = getColorScheme(level);
 
   return (

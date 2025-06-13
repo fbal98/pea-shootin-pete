@@ -1,55 +1,50 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  useWindowDimensions,
-  Text,
-  TouchableOpacity,
-} from 'react-native';
+import { View, StyleSheet, useWindowDimensions, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Components
-import { HyperCasualBackground } from '@/components/game/HyperCasualBackground';
-import { HyperCasualPete } from '@/components/game/HyperCasualPete';
-import { HyperCasualEnemy } from '@/components/game/HyperCasualEnemy';
-import { HyperCasualProjectile } from '@/components/game/HyperCasualProjectile';
-import { HyperCasualHUD } from '@/components/ui/HyperCasualHUD';
+import { GameBackground } from '@/components/game/GameBackground';
+import { Pete } from '@/components/game/Pete';
+import { Enemy } from '@/components/game/Enemy';
+import { Projectile } from '@/components/game/Projectile';
+import { GameHUD } from '@/components/ui/GameHUD';
 import { MysteryBalloon } from '@/components/game/MysteryBalloon';
 import { ProgressionHUD } from '@/components/ui/ProgressionHUD';
 import { MysteryRewardDisplay } from '@/components/ui/MysteryRewardDisplay';
-import { CelebrationManager, AchievementCelebration, LevelVictoryCelebration, ComboStreakCelebration } from '@/components/ui/CelebrationSystem';
+import {
+  CelebrationManager,
+  AchievementCelebration,
+  LevelVictoryCelebration,
+  ComboStreakCelebration,
+} from '@/components/ui/CelebrationSystem';
 import { VictoryModal } from '@/components/ui/VictoryModal';
 
 // Hooks
-import { useHyperCasualGameLogic } from '@/hooks/useHyperCasualGameLogic';
-import { useHyperCasualInput } from '@/hooks/useHyperCasualInput';
+import { useGameLogic } from '@/hooks/useGameLogic';
+import { useGameInput } from '@/hooks/useGameInput';
 
 // Store
-import {
-  useGameOver,
-  useScore,
-  useLevel,
-  useGameActions,
-  useIsPlaying,
-} from '@/store/gameStore';
+import { useGameOver, useScore, useLevel, useGameActions, useIsPlaying } from '@/store/gameStore';
 import {
   useShowVictoryScreen,
   useCurrentScore,
   useLevelProgressionActions,
   useCurrentLevel,
+  useShotsFired,
+  useShotsHit,
 } from '@/store/levelProgressionStore';
 
 // Constants
 import { GAME_CONFIG, INPUT_CONFIG } from '@/constants/GameConfig';
-import { UI_COLORS } from '@/constants/HyperCasualColors';
+import { UI_COLORS } from '@/constants/GameColors';
 
-interface HyperCasualGameScreenProps {
+interface GameScreenProps {
   onBackToMenu?: () => void;
   onWorldMap?: () => void;
 }
 
-export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ onBackToMenu, onWorldMap }) => {
+export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const gameAreaHeight = screenHeight - insets.top - insets.bottom;
@@ -60,20 +55,27 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
   const gameOver = useGameOver();
   const isPlaying = useIsPlaying();
   const actions = useGameActions();
-  
+
   // Level progression state
   const showVictoryScreen = useShowVictoryScreen();
   const currentLevelScore = useCurrentScore();
   const currentLevel = useCurrentLevel();
   const levelActions = useLevelProgressionActions();
-  
+  const shotsFired = useShotsFired();
+  const shotsHit = useShotsHit();
+
+  // Calculate accuracy
+  const accuracy = shotsFired > 0 ? (shotsHit / shotsFired) * 100 : 0;
+
   // Mystery reward display state
-  const [mysteryRewards, setMysteryRewards] = useState<Array<{
-    id: string;
-    reward: any;
-    x: number;
-    y: number;
-  }>>([]);
+  const [mysteryRewards, setMysteryRewards] = useState<
+    Array<{
+      id: string;
+      reward: any;
+      x: number;
+      y: number;
+    }>
+  >([]);
 
   // Game logic hook
   const {
@@ -84,20 +86,19 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
     gameAreaHeightRef,
     updatePetePosition,
     shootProjectile,
-  } = useHyperCasualGameLogic(screenWidth, gameAreaHeight);
+  } = useGameLogic(screenWidth, gameAreaHeight);
 
   // Update game area height ref
   useEffect(() => {
     gameAreaHeightRef.current = gameAreaHeight;
   }, [gameAreaHeight, gameAreaHeightRef]);
 
-  // Hyper-casual input handling
-  const {
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-    updateSmoothing,
-  } = useHyperCasualInput(screenWidth, shootProjectile, updatePetePosition);
+  // Game input handling
+  const { handleTouchStart, handleTouchMove, handleTouchEnd, updateSmoothing } = useGameInput(
+    screenWidth,
+    shootProjectile,
+    updatePetePosition
+  );
 
   // Smooth movement update loop
   useEffect(() => {
@@ -107,13 +108,17 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
 
   // Game starts when isPlaying is set to true by parent component
 
-  const handleRestart = useCallback(() => {
-    // Reset game store state
+  const handleRestart = useCallback(async () => {
+    // First, reset game store state (this will hide game over screen)
     actions.resetGame();
+    
     // Reset level progression state completely
     levelActions.resetForNewGame();
-    // Load level 1 after resetting
-    levelActions.loadLevel(1);
+    
+    // Wait a tiny bit for state to settle, then load level 1
+    setTimeout(async () => {
+      await levelActions.loadLevel(1);
+    }, 100);
   }, [actions, levelActions]);
 
   const handleBackToMenu = useCallback(() => {
@@ -139,7 +144,7 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
     <CelebrationManager>
       <View style={styles.container}>
         {/* Gradient background with floating shapes */}
-        <HyperCasualBackground level={level} isPlaying={isPlaying} />
+        <GameBackground level={level} isPlaying={isPlaying} />
 
         {/* Game area */}
         <View
@@ -150,22 +155,17 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
           onResponderRelease={handleTouchEnd}
         >
           {/* Score display */}
-          <HyperCasualHUD score={score} />
+          <GameHUD score={score} />
 
           {/* Game entities */}
           {isPlaying && !gameOver && (
             <>
               {/* Pete */}
-              <HyperCasualPete
-                x={petePosition.current}
-                y={peteY}
-                size={GAME_CONFIG.PETE_SIZE}
-                level={level}
-              />
+              <Pete x={petePosition.current} y={peteY} size={GAME_CONFIG.PETE_SIZE} level={level} />
 
               {/* Enemies */}
               {enemies.map(enemy => (
-                <HyperCasualEnemy
+                <Enemy
                   key={enemy.id}
                   x={enemy.x}
                   y={enemy.y}
@@ -178,7 +178,7 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
 
               {/* Projectiles */}
               {projectiles.map(projectile => (
-                <HyperCasualProjectile
+                <Projectile
                   key={projectile.id}
                   x={projectile.x}
                   y={projectile.y}
@@ -198,12 +198,15 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
                   mysteryBalloon={mysteryBalloon.mysteryBalloon}
                   onPopped={(balloonId, reward) => {
                     // Show reward celebration
-                    setMysteryRewards(prev => [...prev, {
-                      id: `reward_${Date.now()}`,
-                      reward,
-                      x: mysteryBalloon.x + mysteryBalloon.width / 2,
-                      y: mysteryBalloon.y + mysteryBalloon.width / 2
-                    }]);
+                    setMysteryRewards(prev => [
+                      ...prev,
+                      {
+                        id: `reward_${Date.now()}`,
+                        reward,
+                        x: mysteryBalloon.x + mysteryBalloon.width / 2,
+                        y: mysteryBalloon.y + mysteryBalloon.width / 2,
+                      },
+                    ]);
                   }}
                 />
               ))}
@@ -219,7 +222,7 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
               >
                 <Text style={styles.gameOverTitle}>game over</Text>
                 <Text style={styles.finalScore}>{score}</Text>
-                
+
                 <TouchableOpacity
                   style={styles.restartButton}
                   onPress={handleRestart}
@@ -227,7 +230,7 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
                 >
                   <Text style={styles.restartText}>PLAY AGAIN</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={styles.menuButton}
                   onPress={handleBackToMenu}
@@ -238,10 +241,10 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
               </LinearGradient>
             </View>
           )}
-          
+
           {/* Real-time Progression HUD */}
           <ProgressionHUD level={level} isPlaying={isPlaying && !gameOver} />
-          
+
           {/* Mystery Reward Celebrations */}
           {mysteryRewards.map(mysteryReward => (
             <MysteryRewardDisplay
@@ -254,7 +257,7 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
               }}
             />
           ))}
-          
+
           {/* Victory Modal */}
           <VictoryModal
             level={currentLevel?.id || 1}
@@ -264,6 +267,8 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
             onContinue={handleContinue}
             onBackToMenu={handleVictoryBackToMenu}
             onWorldMap={onWorldMap}
+            time={4.25} // TODO: Add actual level time tracking
+            accuracy={accuracy}
           />
         </View>
       </View>

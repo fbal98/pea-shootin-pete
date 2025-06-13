@@ -10,7 +10,7 @@ export interface SpecialEvent {
   status: 'upcoming' | 'active' | 'expired';
   startTime: number;
   endTime: number;
-  
+
   // Visual design
   theme: {
     primaryColor: string;
@@ -18,25 +18,25 @@ export interface SpecialEvent {
     backgroundImage?: string;
     icon: string;
   };
-  
+
   // Event mechanics
   objectives: EventObjective[];
   rewards: EventReward[];
   leaderboard?: EventLeaderboard;
-  
+
   // FOMO elements
   exclusiveItems?: string[]; // Store item IDs available only during event
   limitedQuantity?: Record<string, number>; // Item ID -> quantity available
   participantCount?: number;
   maxParticipants?: number;
-  
+
   // Requirements
   requirements?: {
     minLevel?: number;
     prerequisiteEvent?: string;
     premium?: boolean;
   };
-  
+
   // Metadata
   createdAt: number;
   priority: number; // Higher priority events show first
@@ -157,9 +157,18 @@ class SpecialEventsManager {
 
   private async saveEvents() {
     try {
-      await AsyncStorage.setItem('special-events', JSON.stringify(Array.from(this.events.entries())));
-      await AsyncStorage.setItem('event-participations', JSON.stringify(Array.from(this.participations.entries())));
-      await AsyncStorage.setItem('flash-sales', JSON.stringify(Array.from(this.flashSales.entries())));
+      await AsyncStorage.setItem(
+        'special-events',
+        JSON.stringify(Array.from(this.events.entries()))
+      );
+      await AsyncStorage.setItem(
+        'event-participations',
+        JSON.stringify(Array.from(this.participations.entries()))
+      );
+      await AsyncStorage.setItem(
+        'flash-sales',
+        JSON.stringify(Array.from(this.flashSales.entries()))
+      );
     } catch (error) {
       console.error('Error saving events:', error);
     }
@@ -167,7 +176,7 @@ class SpecialEventsManager {
 
   private initializeDefaultEvents() {
     const now = Date.now();
-    
+
     // Daily Login Event
     this.createEvent({
       id: 'daily_login',
@@ -564,7 +573,7 @@ class SpecialEventsManager {
   } {
     const now = Date.now();
     const total = Math.max(0, endTime - now);
-    
+
     const days = Math.floor(total / (24 * 60 * 60 * 1000));
     const hours = Math.floor((total % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
     const minutes = Math.floor((total % (60 * 60 * 1000)) / (60 * 1000));

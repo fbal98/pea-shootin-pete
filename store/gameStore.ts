@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { GAME_CONFIG } from '@/constants/GameConfig';
+import { stateOptimizer } from '@/utils/StateOptimizer';
 
 // UI-only state interface
 interface UIState {
@@ -28,59 +29,83 @@ interface GameStore extends UIState {
   };
 }
 
-// Create UI-only action references
-const createActions = (set: any, get: any) => ({
-  updateScore: (points: number) =>
-    set((state: GameStore) => {
+// Create optimized action references with state batching
+const createActions = (set: any, get: any) => {
+  // Register update handler with state optimizer
+  stateOptimizer.registerUpdateHandler('gameStore', (updates) => {
+    set(updates);
+  });
+
+  return {
+    updateScore: (points: number) => {
+      const state = get();
       const newScore = state.score + points;
       const newLevel = Math.floor(newScore / GAME_CONFIG.LEVEL_UP_THRESHOLD) + 1;
-      return {
+      
+      // Use optimized batched updates
+      stateOptimizer.batchUpdates('gameStore', {
         score: newScore,
         highScore: Math.max(newScore, state.highScore),
         level: newLevel !== state.level ? newLevel : state.level,
-      };
-    }),
+      }, 'normal');
+    },
 
-  setGameOver: (gameOver: boolean) => set((state: GameStore) => ({
-    gameOver,
-    highScore: gameOver ? Math.max(state.score, state.highScore) : state.highScore,
-  })),
+    setGameOver: (gameOver: boolean) => {
+      const state = get();
+      stateOptimizer.batchUpdates('gameStore', {
+        gameOver,
+        highScore: gameOver ? Math.max(state.score, state.highScore) : state.highScore,
+      }, 'high'); // High priority for game over
+    },
 
-  setLevel: (level: number) => set({ level }),
+    setLevel: (level: number) => {
+      stateOptimizer.batchUpdates('gameStore', { level }, 'normal');
+    },
 
-  setLives: (lives: number) => set({ lives }),
+    setLives: (lives: number) => {
+      stateOptimizer.batchUpdates('gameStore', { lives }, 'normal');
+    },
 
-  loseLife: () => set((state: GameStore) => {
-    const newLives = state.lives - 1;
-    return {
-      lives: newLives,
-      gameOver: newLives <= 0,
-    };
-  }),
+    loseLife: () => {
+      const state = get();
+      const newLives = state.lives - 1;
+      stateOptimizer.batchUpdates('gameStore', {
+        lives: newLives,
+        gameOver: newLives <= 0,
+      }, 'high'); // High priority for life changes
+    },
 
-  setIsPlaying: (playing: boolean) => set({ isPlaying: playing }),
+    setIsPlaying: (playing: boolean) => {
+      stateOptimizer.batchUpdates('gameStore', { isPlaying: playing }, 'high');
+    },
 
-  setIsPaused: (paused: boolean) => set({ isPaused: paused }),
+    setIsPaused: (paused: boolean) => {
+      stateOptimizer.batchUpdates('gameStore', { isPaused: paused }, 'high');
+    },
 
-  resetGame: () =>
-    set((state: GameStore) => ({
-      score: 0,
-      lives: 3,
-      gameOver: false,
-      level: 1,
-      isPlaying: true,
-      isPaused: false,
-      highScore: state.highScore, // Preserve high score
-    })),
+    resetGame: () => {
+      const state = get();
+      stateOptimizer.batchUpdates('gameStore', {
+        score: 0,
+        lives: 3,
+        gameOver: false,
+        level: 1,
+        isPlaying: true,
+        isPaused: false,
+        // Preserve high score
+        highScore: state.highScore,
+      }, 'high'); // High priority for game reset
+    },
 
-  enemySpawnInterval: () => {
-    const state = get();
-    return Math.max(
-      GAME_CONFIG.ENEMY_SPAWN_MIN_INTERVAL,
-      GAME_CONFIG.ENEMY_SPAWN_BASE_INTERVAL - state.level * GAME_CONFIG.ENEMY_SPAWN_LEVEL_REDUCTION
-    );
-  },
-});
+    enemySpawnInterval: () => {
+      const state = get();
+      return Math.max(
+        GAME_CONFIG.ENEMY_SPAWN_MIN_INTERVAL,
+        GAME_CONFIG.ENEMY_SPAWN_BASE_INTERVAL - state.level * GAME_CONFIG.ENEMY_SPAWN_LEVEL_REDUCTION
+      );
+    },
+  };
+};
 
 export const useGameStore = create<GameStore>()(
   subscribeWithSelector((set, get) => {

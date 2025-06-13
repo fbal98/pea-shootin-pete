@@ -1,10 +1,10 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { View, StyleSheet, BackHandler } from 'react-native';
-import { HyperCasualMenuScreen } from '@/screens/HyperCasualMenuScreen';
-import { HyperCasualGameScreen } from '@/screens/HyperCasualGameScreen';
-import { HyperCasualSettingsScreen } from '@/screens/HyperCasualSettingsScreen';
-import { HyperCasualAboutScreen } from '@/screens/HyperCasualAboutScreen';
-import { WorldMapScreen } from '@/screens/WorldMapScreen';
+import { MenuScreen } from '@/screens/MenuScreen';
+import { GameScreen } from '@/screens/GameScreen';
+import { SettingsScreen } from '@/screens/SettingsScreen';
+import { AboutScreen } from '@/screens/AboutScreen';
+import { EnhancedWorldMapScreen } from '@/screens/EnhancedWorldMapScreen';
 import { useGameActions, useHighScore } from '@/store/gameStore';
 
 type Screen = 'menu' | 'game' | 'settings' | 'about' | 'worldmap';
@@ -63,41 +63,40 @@ export default function HomeScreen() {
     setCurrentScreen('worldmap');
   }, []);
 
-  const handleLevelSelect = useCallback((_levelId: number) => {
-    // Start the selected level
-    actions.resetGame();
-    actions.setIsPlaying(true);
-    setCurrentScreen('game');
-  }, [actions]);
+  const handleLevelSelect = useCallback(
+    (_levelId: number) => {
+      // Start the selected level
+      actions.resetGame();
+      actions.setIsPlaying(true);
+      setCurrentScreen('game');
+    },
+    [actions]
+  );
 
   const renderScreen = () => {
     switch (currentScreen) {
       case 'game':
-        return <HyperCasualGameScreen onBackToMenu={handleBackToMenu} onWorldMap={handleWorldMap} />;
+        return <GameScreen onBackToMenu={handleBackToMenu} onWorldMap={handleWorldMap} />;
       case 'settings':
-        return <HyperCasualSettingsScreen onBack={handleBackToMenu} />;
+        return <SettingsScreen onBack={handleBackToMenu} />;
       case 'about':
-        return <HyperCasualAboutScreen onBack={handleBackToMenu} />;
+        return <AboutScreen onBack={handleBackToMenu} />;
       case 'worldmap':
-        return <WorldMapScreen onBack={handleBackToMenu} onLevelSelect={handleLevelSelect} />;
+        return <EnhancedWorldMapScreen onBack={handleBackToMenu} onLevelSelect={handleLevelSelect} />;
       default:
         return (
-          <HyperCasualMenuScreen 
-            onStartGame={handleStartGame} 
+          <MenuScreen
+            onStartGame={handleStartGame}
             onSettings={handleSettings}
             onAbout={handleAbout}
             onWorldMap={handleWorldMap}
-            highScore={highScore} 
+            highScore={highScore}
           />
         );
     }
   };
 
-  return (
-    <View style={styles.container}>
-      {renderScreen()}
-    </View>
-  );
+  return <View style={styles.container}>{renderScreen()}</View>;
 }
 
 const styles = StyleSheet.create({

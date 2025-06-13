@@ -1,21 +1,27 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View, Text, TouchableOpacity, Dimensions, Switch } from 'react-native';
+import {
+  Animated,
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Dimensions,
+  Switch,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UI_COLORS } from '@/constants/HyperCasualColors';
+import { UI_COLORS } from '@/constants/GameColors';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-interface HyperCasualSettingsScreenProps {
+interface SettingsScreenProps {
   onBack: () => void;
 }
 
-export const HyperCasualSettingsScreen: React.FC<HyperCasualSettingsScreenProps> = ({ 
-  onBack 
-}) => {
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const floatAnim1 = useRef(new Animated.Value(0)).current;
   const floatAnim2 = useRef(new Animated.Value(0)).current;
-  
+
   // Simple settings state - minimal options following hyper-casual philosophy
   const [soundEnabled, setSoundEnabled] = React.useState(true);
   const [hapticEnabled, setHapticEnabled] = React.useState(true);
@@ -52,9 +58,9 @@ export const HyperCasualSettingsScreen: React.FC<HyperCasualSettingsScreenProps>
   }, []);
 
   const renderFloatingElement = (
-    anim: Animated.Value, 
-    size: number, 
-    startY: number, 
+    anim: Animated.Value,
+    size: number,
+    startY: number,
     opacity: number = 0.06
   ) => {
     const translateY = anim.interpolate({
@@ -94,11 +100,7 @@ export const HyperCasualSettingsScreen: React.FC<HyperCasualSettingsScreenProps>
         <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
           {/* Header with back button */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton} 
-              onPress={onBack}
-              activeOpacity={0.7}
-            >
+            <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
               <Text style={styles.backText}>←</Text>
             </TouchableOpacity>
             <Text style={styles.title}>settings</Text>

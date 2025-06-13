@@ -1,27 +1,20 @@
 /**
  * Celebration System - Enhanced reward celebration animations
- * 
+ *
  * Provides spectacular celebration effects for:
  * - Achievement unlocks with confetti and screen effects
  * - Level completion with victory animations
  * - Mystery reward collections with particle systems
  * - Combo achievements with streak effects
  * - Battle pass tier ups with progression celebrations
- * 
+ *
  * Designed for maximum dopamine response and engagement.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-  Easing
-} from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, Easing } from 'react-native';
 import { Achievement, MysteryReward, RewardRarity } from '@/types/MetaProgressionTypes';
-import { getColorScheme } from '@/constants/HyperCasualColors';
+import { getColorScheme } from '@/constants/GameColors';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -39,7 +32,15 @@ interface ConfettiParticleProps {
 }
 
 const ConfettiParticle: React.FC<ConfettiParticleProps> = ({
-  x, y, color, shape, size, velocity, rotation, gravity, life
+  x,
+  y,
+  color,
+  shape,
+  size,
+  velocity,
+  rotation,
+  gravity,
+  life,
 }) => {
   const positionAnim = useRef(new Animated.ValueXY({ x, y })).current;
   const rotationAnim = useRef(new Animated.Value(rotation)).current;
@@ -51,7 +52,7 @@ const ConfettiParticle: React.FC<ConfettiParticleProps> = ({
     const animateParticle = () => {
       const endX = x + velocity.x * (life / 1000);
       const endY = y + velocity.y * (life / 1000) + (gravity * Math.pow(life / 1000, 2)) / 2;
-      
+
       Animated.parallel([
         Animated.timing(positionAnim, {
           toValue: { x: endX, y: endY },
@@ -71,7 +72,7 @@ const ConfettiParticle: React.FC<ConfettiParticleProps> = ({
             toValue: 0,
             duration: life * 0.3,
             useNativeDriver: true,
-          })
+          }),
         ]),
         Animated.sequence([
           Animated.timing(scaleAnim, {
@@ -83,8 +84,8 @@ const ConfettiParticle: React.FC<ConfettiParticleProps> = ({
             toValue: 0.8,
             duration: life * 0.9,
             useNativeDriver: true,
-          })
-        ])
+          }),
+        ]),
       ]).start();
     };
 
@@ -129,13 +130,15 @@ const ConfettiParticle: React.FC<ConfettiParticleProps> = ({
           transform: [
             { translateX: positionAnim.x },
             { translateY: positionAnim.y },
-            { rotate: rotationAnim.interpolate({
-              inputRange: [0, 360],
-              outputRange: ['0deg', '360deg']
-            })},
-            { scale: scaleAnim }
-          ]
-        }
+            {
+              rotate: rotationAnim.interpolate({
+                inputRange: [0, 360],
+                outputRange: ['0deg', '360deg'],
+              }),
+            },
+            { scale: scaleAnim },
+          ],
+        },
       ]}
     />
   );
@@ -151,7 +154,11 @@ interface ConfettiSystemProps {
 }
 
 const ConfettiSystem: React.FC<ConfettiSystemProps> = ({
-  isActive, intensity, colors, duration, onComplete
+  isActive,
+  intensity,
+  colors,
+  duration,
+  onComplete,
 }) => {
   const [particles, setParticles] = useState<ConfettiParticleProps[]>([]);
 
@@ -171,11 +178,11 @@ const ConfettiSystem: React.FC<ConfettiSystemProps> = ({
         size: 4 + Math.random() * 8,
         velocity: {
           x: (Math.random() - 0.5) * 200,
-          y: Math.random() * 100 + 50
+          y: Math.random() * 100 + 50,
         },
         rotation: Math.random() * 360,
         gravity: 300 + Math.random() * 200,
-        life
+        life,
       });
     }
 
@@ -190,11 +197,16 @@ const ConfettiSystem: React.FC<ConfettiSystemProps> = ({
 
   const getParticleCount = (intensity: string): number => {
     switch (intensity) {
-      case 'spectacular': return 100;
-      case 'high': return 60;
-      case 'medium': return 30;
-      case 'low': return 15;
-      default: return 30;
+      case 'spectacular':
+        return 100;
+      case 'high':
+        return 60;
+      case 'medium':
+        return 30;
+      case 'low':
+        return 15;
+      default:
+        return 30;
     }
   };
 
@@ -216,7 +228,8 @@ interface AchievementCelebrationProps {
 }
 
 export const AchievementCelebration: React.FC<AchievementCelebrationProps> = ({
-  achievement, onComplete
+  achievement,
+  onComplete,
 }) => {
   const [showConfetti, setShowConfetti] = useState(true);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -238,7 +251,7 @@ export const AchievementCelebration: React.FC<AchievementCelebrationProps> = ({
           toValue: 1,
           duration: 500,
           useNativeDriver: true,
-        })
+        }),
       ]),
       // Settle animation
       Animated.spring(scaleAnim, {
@@ -258,7 +271,7 @@ export const AchievementCelebration: React.FC<AchievementCelebrationProps> = ({
           toValue: 0,
           duration: 300,
           useNativeDriver: true,
-        })
+        }),
       ]),
       // Hold for reading
       Animated.delay(2000),
@@ -273,8 +286,8 @@ export const AchievementCelebration: React.FC<AchievementCelebrationProps> = ({
           toValue: 0,
           duration: 400,
           useNativeDriver: true,
-        })
-      ])
+        }),
+      ]),
     ]).start(onComplete);
 
     // Shimmer effect for rare achievements
@@ -290,7 +303,7 @@ export const AchievementCelebration: React.FC<AchievementCelebrationProps> = ({
             toValue: 0,
             duration: 1500,
             useNativeDriver: false,
-          })
+          }),
         ])
       ).start();
     }
@@ -314,7 +327,7 @@ export const AchievementCelebration: React.FC<AchievementCelebrationProps> = ({
     return {
       backgroundColor: colors[0] + '20',
       borderColor: colors[0],
-      glowColor: colors[0]
+      glowColor: colors[0],
     };
   };
 
@@ -330,7 +343,7 @@ export const AchievementCelebration: React.FC<AchievementCelebrationProps> = ({
         duration={4000}
         onComplete={() => setShowConfetti(false)}
       />
-      
+
       {/* Main Achievement Display */}
       <Animated.View
         style={[
@@ -340,11 +353,8 @@ export const AchievementCelebration: React.FC<AchievementCelebrationProps> = ({
             borderColor: rarityStyle.borderColor,
             shadowColor: rarityStyle.glowColor,
             opacity: fadeAnim,
-            transform: [
-              { scale: scaleAnim },
-              { translateY: bounceAnim }
-            ]
-          }
+            transform: [{ scale: scaleAnim }, { translateY: bounceAnim }],
+          },
         ]}
       >
         {/* Shimmer overlay for epic+ achievements */}
@@ -355,30 +365,30 @@ export const AchievementCelebration: React.FC<AchievementCelebrationProps> = ({
               {
                 opacity: shimmerAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0, 0.3]
-                })
-              }
+                  outputRange: [0, 0.3],
+                }),
+              },
             ]}
           />
         )}
-        
+
         {/* Achievement Icon */}
         <View style={styles.achievementIcon}>
           <Text style={styles.achievementEmoji}>{achievement.icon || '🏆'}</Text>
         </View>
-        
+
         {/* Achievement Text */}
         <Text style={styles.achievementTitle}>Achievement Unlocked!</Text>
         <Text style={styles.achievementName}>{achievement.name}</Text>
         <Text style={styles.achievementDescription}>{achievement.description}</Text>
-        
+
         {/* Reward Display */}
         <View style={styles.rewardContainer}>
           <Text style={styles.rewardText}>
             +{achievement.coinReward} Coins • +{achievement.scoreReward} Score
           </Text>
         </View>
-        
+
         {/* Rarity Badge */}
         <View style={[styles.rarityBadge, { backgroundColor: rarityStyle.borderColor }]}>
           <Text style={styles.rarityText}>{achievement.rarity.toUpperCase()}</Text>
@@ -397,13 +407,16 @@ interface LevelVictoryCelebrationProps {
 }
 
 export const LevelVictoryCelebration: React.FC<LevelVictoryCelebrationProps> = ({
-  level, score, starsEarned, onComplete
+  level,
+  score,
+  starsEarned,
+  onComplete,
 }) => {
   const [showConfetti, setShowConfetti] = useState(true);
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const starsAnimation = useRef(new Animated.Value(0)).current;
-  
+
   const colorScheme = getColorScheme(level);
 
   useEffect(() => {
@@ -421,7 +434,7 @@ export const LevelVictoryCelebration: React.FC<LevelVictoryCelebrationProps> = (
           toValue: 1,
           duration: 500,
           useNativeDriver: true,
-        })
+        }),
       ]),
       // Stars animation
       Animated.timing(starsAnimation, {
@@ -443,8 +456,8 @@ export const LevelVictoryCelebration: React.FC<LevelVictoryCelebrationProps> = (
           toValue: 0,
           duration: 300,
           useNativeDriver: true,
-        })
-      ])
+        }),
+      ]),
     ]).start(onComplete);
   }, []);
 
@@ -461,16 +474,18 @@ export const LevelVictoryCelebration: React.FC<LevelVictoryCelebrationProps> = (
               opacity: starsAnimation.interpolate({
                 inputRange: [i, i + 0.5, i + 1],
                 outputRange: [0.3, 0.6, isEarned ? 1 : 0.3],
-                extrapolate: 'clamp'
+                extrapolate: 'clamp',
               }),
-              transform: [{
-                scale: starsAnimation.interpolate({
-                  inputRange: [i, i + 0.5, i + 1],
-                  outputRange: [0.5, 1.2, 1],
-                  extrapolate: 'clamp'
-                })
-              }]
-            }
+              transform: [
+                {
+                  scale: starsAnimation.interpolate({
+                    inputRange: [i, i + 0.5, i + 1],
+                    outputRange: [0.5, 1.2, 1],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ],
+            },
           ]}
         >
           <Text style={[styles.starText, { color: isEarned ? '#FFD700' : '#DDD' }]}>⭐</Text>
@@ -490,7 +505,7 @@ export const LevelVictoryCelebration: React.FC<LevelVictoryCelebrationProps> = (
         duration={3000}
         onComplete={() => setShowConfetti(false)}
       />
-      
+
       {/* Victory Display */}
       <Animated.View
         style={[
@@ -499,21 +514,17 @@ export const LevelVictoryCelebration: React.FC<LevelVictoryCelebrationProps> = (
             backgroundColor: colorScheme.background,
             borderColor: colorScheme.primary,
             opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }]
-          }
+            transform: [{ scale: scaleAnim }],
+          },
         ]}
       >
         <Text style={styles.victoryTitle}>Level Complete!</Text>
         <Text style={styles.victoryScore}>{score.toLocaleString()}</Text>
-        
+
         {/* Stars Display */}
-        <View style={styles.starsContainer}>
-          {renderStars()}
-        </View>
-        
-        <Text style={styles.starsLabel}>
-          {starsEarned} of 3 Stars Earned
-        </Text>
+        <View style={styles.starsContainer}>{renderStars()}</View>
+
+        <Text style={styles.starsLabel}>{starsEarned} of 3 Stars Earned</Text>
       </Animated.View>
     </View>
   );
@@ -530,11 +541,11 @@ const styles = StyleSheet.create({
     pointerEvents: 'none',
     zIndex: 1000,
   },
-  
+
   confettiParticle: {
     position: 'absolute',
   },
-  
+
   // Achievement Celebration
   achievementContainer: {
     position: 'absolute',
@@ -547,7 +558,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     zIndex: 999,
   },
-  
+
   achievementCard: {
     backgroundColor: 'white',
     borderRadius: 24,
@@ -561,7 +572,7 @@ const styles = StyleSheet.create({
     elevation: 20,
     maxWidth: 320,
   },
-  
+
   shimmerOverlay: {
     position: 'absolute',
     top: 0,
@@ -571,7 +582,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 24,
   },
-  
+
   achievementIcon: {
     width: 80,
     height: 80,
@@ -581,11 +592,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  
+
   achievementEmoji: {
     fontSize: 40,
   },
-  
+
   achievementTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -593,7 +604,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  
+
   achievementName: {
     fontSize: 22,
     fontWeight: '700',
@@ -601,7 +612,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  
+
   achievementDescription: {
     fontSize: 14,
     color: '#666',
@@ -609,7 +620,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  
+
   rewardContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 12,
@@ -617,13 +628,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginBottom: 16,
   },
-  
+
   rewardText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#333',
   },
-  
+
   rarityBadge: {
     position: 'absolute',
     top: -12,
@@ -634,14 +645,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'white',
   },
-  
+
   rarityText: {
     fontSize: 10,
     fontWeight: '700',
     color: 'white',
     letterSpacing: 1,
   },
-  
+
   // Level Victory
   victoryContainer: {
     position: 'absolute',
@@ -654,7 +665,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     zIndex: 999,
   },
-  
+
   victoryCard: {
     backgroundColor: 'white',
     borderRadius: 20,
@@ -667,40 +678,40 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 16,
   },
-  
+
   victoryTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: '#333',
     marginBottom: 16,
   },
-  
+
   victoryScore: {
     fontSize: 48,
     fontWeight: '700',
     color: '#4ECDC4',
     marginBottom: 24,
   },
-  
+
   starsContainer: {
     flexDirection: 'row',
     marginBottom: 16,
   },
-  
+
   star: {
     marginHorizontal: 8,
   },
-  
+
   starText: {
     fontSize: 32,
   },
-  
+
   starsLabel: {
     fontSize: 14,
     color: '#666',
     fontWeight: '500',
   },
-  
+
   // Combo celebration styles
   comboContainer: {
     position: 'absolute',
@@ -710,7 +721,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 998,
   },
-  
+
   comboCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 16,
@@ -724,27 +735,27 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFD700',
   },
-  
+
   comboText: {
     fontSize: 36,
     fontWeight: '700',
     color: '#FF6B6B',
     marginBottom: 4,
   },
-  
+
   comboLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
     marginBottom: 8,
   },
-  
+
   multiplierText: {
     fontSize: 12,
     color: '#666',
     fontWeight: '500',
   },
-  
+
   // Battle pass celebration styles
   battlePassContainer: {
     position: 'absolute',
@@ -757,7 +768,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     zIndex: 999,
   },
-  
+
   battlePassCard: {
     backgroundColor: 'white',
     borderRadius: 24,
@@ -772,45 +783,45 @@ const styles = StyleSheet.create({
     elevation: 20,
     maxWidth: 320,
   },
-  
+
   battlePassTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#333',
     marginBottom: 8,
   },
-  
+
   battlePassTier: {
     fontSize: 32,
     fontWeight: '700',
     color: '#FFD700',
     marginBottom: 8,
   },
-  
+
   battlePassSubtitle: {
     fontSize: 14,
     color: '#666',
     marginBottom: 24,
   },
-  
+
   rewardsPreview: {
     width: '100%',
     alignItems: 'center',
   },
-  
+
   rewardsTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
     marginBottom: 12,
   },
-  
+
   rewardItem: {
     fontSize: 12,
     color: '#666',
     marginBottom: 4,
   },
-  
+
   moreRewards: {
     fontSize: 12,
     color: '#999',
@@ -827,7 +838,9 @@ interface ComboStreakCelebrationProps {
 }
 
 export const ComboStreakCelebration: React.FC<ComboStreakCelebrationProps> = ({
-  combo, multiplier, onComplete
+  combo,
+  multiplier,
+  onComplete,
 }) => {
   const [showParticles, setShowParticles] = useState(true);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -854,7 +867,7 @@ export const ComboStreakCelebration: React.FC<ComboStreakCelebrationProps> = ({
           toValue: 360,
           duration: 400,
           useNativeDriver: true,
-        })
+        }),
       ]),
       // Settle
       Animated.spring(scaleAnim, {
@@ -876,8 +889,8 @@ export const ComboStreakCelebration: React.FC<ComboStreakCelebrationProps> = ({
           toValue: 0,
           duration: 200,
           useNativeDriver: true,
-        })
-      ])
+        }),
+      ]),
     ]).start(onComplete);
   }, []);
 
@@ -905,7 +918,7 @@ export const ComboStreakCelebration: React.FC<ComboStreakCelebrationProps> = ({
         duration={1500}
         onComplete={() => setShowParticles(false)}
       />
-      
+
       {/* Combo display */}
       <Animated.View
         style={[
@@ -914,12 +927,14 @@ export const ComboStreakCelebration: React.FC<ComboStreakCelebrationProps> = ({
             opacity: fadeAnim,
             transform: [
               { scale: scaleAnim },
-              { rotate: rotateAnim.interpolate({
-                inputRange: [0, 360],
-                outputRange: ['0deg', '360deg']
-              })}
-            ]
-          }
+              {
+                rotate: rotateAnim.interpolate({
+                  inputRange: [0, 360],
+                  outputRange: ['0deg', '360deg'],
+                }),
+              },
+            ],
+          },
         ]}
       >
         <Text style={styles.comboText}>{combo}x</Text>
@@ -938,7 +953,9 @@ interface BattlePassCelebrationProps {
 }
 
 export const BattlePassCelebration: React.FC<BattlePassCelebrationProps> = ({
-  newTier, rewards, onComplete
+  newTier,
+  rewards,
+  onComplete,
 }) => {
   const [showConfetti, setShowConfetti] = useState(true);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -964,7 +981,7 @@ export const BattlePassCelebration: React.FC<BattlePassCelebrationProps> = ({
           toValue: 0,
           duration: 400,
           useNativeDriver: true,
-        })
+        }),
       ]),
       // Hold
       Animated.delay(3000),
@@ -979,8 +996,8 @@ export const BattlePassCelebration: React.FC<BattlePassCelebrationProps> = ({
           toValue: 0,
           duration: 300,
           useNativeDriver: true,
-        })
-      ])
+        }),
+      ]),
     ]).start(onComplete);
   }, []);
 
@@ -994,24 +1011,21 @@ export const BattlePassCelebration: React.FC<BattlePassCelebrationProps> = ({
         duration={3500}
         onComplete={() => setShowConfetti(false)}
       />
-      
+
       {/* Tier upgrade display */}
       <Animated.View
         style={[
           styles.battlePassCard,
           {
             opacity: fadeAnim,
-            transform: [
-              { scale: scaleAnim },
-              { translateY: slideAnim }
-            ]
-          }
+            transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
+          },
         ]}
       >
         <Text style={styles.battlePassTitle}>Tier Up!</Text>
         <Text style={styles.battlePassTier}>TIER {newTier}</Text>
         <Text style={styles.battlePassSubtitle}>Battle Pass Progress</Text>
-        
+
         {/* Rewards preview */}
         <View style={styles.rewardsPreview}>
           <Text style={styles.rewardsTitle}>New Rewards Unlocked:</Text>
@@ -1042,9 +1056,9 @@ export const CelebrationManager: React.FC<CelebrationManagerProps> = ({ children
     useComboCelebrations,
     useMysteryRewardCelebrations,
     useBattlePassCelebrations,
-    useRemoveCelebration
+    useRemoveCelebration,
   } = require('@/store/celebrationStore');
-  
+
   // Get active celebrations from store
   const victoryCelebrations = useVictoryCelebrations();
   const achievementCelebrations = useAchievementCelebrations();
@@ -1056,7 +1070,7 @@ export const CelebrationManager: React.FC<CelebrationManagerProps> = ({ children
   return (
     <>
       {children}
-      
+
       {/* Render all active celebrations from store */}
       {/* Victory celebrations */}
       {victoryCelebrations.map((celebration: any) => (
@@ -1071,7 +1085,7 @@ export const CelebrationManager: React.FC<CelebrationManagerProps> = ({ children
           }}
         />
       ))}
-      
+
       {/* Achievement celebrations */}
       {achievementCelebrations.map((celebration: any) => (
         <AchievementCelebration
@@ -1083,7 +1097,7 @@ export const CelebrationManager: React.FC<CelebrationManagerProps> = ({ children
           }}
         />
       ))}
-      
+
       {/* Combo celebrations */}
       {comboCelebrations.map((celebration: any) => (
         <ComboStreakCelebration
@@ -1096,7 +1110,7 @@ export const CelebrationManager: React.FC<CelebrationManagerProps> = ({ children
           }}
         />
       ))}
-      
+
       {/* Mystery reward celebrations */}
       {mysteryRewardCelebrations.map((celebration: any) => (
         <View key={celebration.id}>
@@ -1117,7 +1131,7 @@ export const CelebrationManager: React.FC<CelebrationManagerProps> = ({ children
           })()}
         </View>
       ))}
-      
+
       {/* Battle pass celebrations */}
       {battlePassCelebrations.map((celebration: any) => (
         <BattlePassCelebration

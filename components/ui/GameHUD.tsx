@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { UI_COLORS } from '@/constants/HyperCasualColors';
+import { UI_COLORS } from '@/constants/GameColors';
 import { UI_CONFIG } from '@/constants/GameConfig';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-interface HyperCasualHUDProps {
+interface GameHUDProps {
   score: number;
 }
 
-export const HyperCasualHUD: React.FC<HyperCasualHUDProps> = ({ score }) => {
+export const GameHUD: React.FC<GameHUDProps> = ({ score }) => {
   const insets = useSafeAreaInsets();
 
   return (

@@ -1,6 +1,6 @@
 /**
  * Level Mastery Display Component - Shows 3-star rating system
- * 
+ *
  * Displays time, accuracy, and style stars for level mastery.
  * Provides visual feedback for player progression and achievements.
  * Designed for hyper-casual aesthetics with clear visual hierarchy.
@@ -26,16 +26,18 @@ interface StarDisplayProps {
 }
 
 const StarDisplay: React.FC<StarDisplayProps> = ({ earned, color, size }) => (
-  <Text style={[
-    styles.star,
-    { 
-      fontSize: size,
-      color: earned ? color : '#E0E0E0',
-      textShadowColor: earned ? color : 'transparent',
-      textShadowOffset: { width: 0, height: 0 },
-      textShadowRadius: earned ? 4 : 0
-    }
-  ]}>
+  <Text
+    style={[
+      styles.star,
+      {
+        fontSize: size,
+        color: earned ? color : '#E0E0E0',
+        textShadowColor: earned ? color : 'transparent',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: earned ? 4 : 0,
+      },
+    ]}
+  >
     ★
   </Text>
 );
@@ -45,10 +47,10 @@ export const LevelMasteryDisplay: React.FC<LevelMasteryDisplayProps> = ({
   size = 'medium',
   showLabels = false,
   showProgress = false,
-  style
+  style,
 }) => {
   const masteryRecord = useMasteryRecord(levelId);
-  
+
   const getSizeConfig = () => {
     switch (size) {
       case 'small':
@@ -61,7 +63,7 @@ export const LevelMasteryDisplay: React.FC<LevelMasteryDisplayProps> = ({
   };
 
   const config = getSizeConfig();
-  
+
   // Default empty record if no mastery data exists
   const record: LevelMasteryRecord = masteryRecord || {
     levelId,
@@ -76,7 +78,7 @@ export const LevelMasteryDisplay: React.FC<LevelMasteryDisplayProps> = ({
     badges: [],
     firstCompletionDate: 0,
     lastAttemptDate: 0,
-    totalAttempts: 0
+    totalAttempts: 0,
   };
 
   const totalStars = record.timeStars + record.accuracyStars + record.styleStars;
@@ -87,41 +89,21 @@ export const LevelMasteryDisplay: React.FC<LevelMasteryDisplayProps> = ({
       <View style={[styles.starsRow, { gap: config.spacing }]}>
         <View style={styles.starCategory}>
           {showLabels && (
-            <Text style={[styles.label, { fontSize: config.fontSize - 2 }]}>
-              TIME
-            </Text>
+            <Text style={[styles.label, { fontSize: config.fontSize - 2 }]}>TIME</Text>
           )}
-          <StarDisplay 
-            earned={record.timeStars > 0} 
-            color="#4ECDC4" 
-            size={config.starSize}
-          />
+          <StarDisplay earned={record.timeStars > 0} color="#4ECDC4" size={config.starSize} />
         </View>
-        
+
+        <View style={styles.starCategory}>
+          {showLabels && <Text style={[styles.label, { fontSize: config.fontSize - 2 }]}>AIM</Text>}
+          <StarDisplay earned={record.accuracyStars > 0} color="#FFD700" size={config.starSize} />
+        </View>
+
         <View style={styles.starCategory}>
           {showLabels && (
-            <Text style={[styles.label, { fontSize: config.fontSize - 2 }]}>
-              AIM
-            </Text>
+            <Text style={[styles.label, { fontSize: config.fontSize - 2 }]}>STYLE</Text>
           )}
-          <StarDisplay 
-            earned={record.accuracyStars > 0} 
-            color="#FFD700" 
-            size={config.starSize}
-          />
-        </View>
-        
-        <View style={styles.starCategory}>
-          {showLabels && (
-            <Text style={[styles.label, { fontSize: config.fontSize - 2 }]}>
-              STYLE
-            </Text>
-          )}
-          <StarDisplay 
-            earned={record.styleStars > 0} 
-            color="#E17055" 
-            size={config.starSize}
-          />
+          <StarDisplay earned={record.styleStars > 0} color="#E17055" size={config.starSize} />
         </View>
       </View>
 
@@ -132,9 +114,7 @@ export const LevelMasteryDisplay: React.FC<LevelMasteryDisplayProps> = ({
             {totalStars}/3 Stars
           </Text>
           {totalStars === 3 && (
-            <Text style={[styles.perfectText, { fontSize: config.fontSize - 2 }]}>
-              PERFECT! 🏆
-            </Text>
+            <Text style={[styles.perfectText, { fontSize: config.fontSize - 2 }]}>PERFECT! 🏆</Text>
           )}
         </View>
       )}
@@ -144,21 +124,15 @@ export const LevelMasteryDisplay: React.FC<LevelMasteryDisplayProps> = ({
         <View style={styles.progressDetails}>
           <View style={styles.progressRow}>
             <Text style={styles.progressLabel}>Best Time:</Text>
-            <Text style={styles.progressValue}>
-              {formatTime(record.bestTime)}
-            </Text>
+            <Text style={styles.progressValue}>{formatTime(record.bestTime)}</Text>
           </View>
           <View style={styles.progressRow}>
             <Text style={styles.progressLabel}>Best Accuracy:</Text>
-            <Text style={styles.progressValue}>
-              {record.bestAccuracy.toFixed(1)}%
-            </Text>
+            <Text style={styles.progressValue}>{record.bestAccuracy.toFixed(1)}%</Text>
           </View>
           <View style={styles.progressRow}>
             <Text style={styles.progressLabel}>Style Score:</Text>
-            <Text style={styles.progressValue}>
-              {record.styleScore.toLocaleString()}
-            </Text>
+            <Text style={styles.progressValue}>{record.styleScore.toLocaleString()}</Text>
           </View>
         </View>
       )}
@@ -169,11 +143,11 @@ export const LevelMasteryDisplay: React.FC<LevelMasteryDisplayProps> = ({
 // Helper function to format time in MM:SS format
 const formatTime = (milliseconds: number): string => {
   if (milliseconds === 0) return '--:--';
-  
+
   const totalSeconds = Math.floor(milliseconds / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  
+
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
 
@@ -189,30 +163,24 @@ export const MasteryThresholdDisplay: React.FC<MasteryThresholdDisplayProps> = (
   timeThreshold,
   accuracyThreshold,
   styleThreshold,
-  style
+  style,
 }) => (
   <View style={[styles.thresholdContainer, style]}>
     <Text style={styles.thresholdTitle}>Star Requirements:</Text>
-    
+
     <View style={styles.thresholdRow}>
       <StarDisplay earned={true} color="#4ECDC4" size={16} />
-      <Text style={styles.thresholdText}>
-        Complete in under {formatTime(timeThreshold)}
-      </Text>
+      <Text style={styles.thresholdText}>Complete in under {formatTime(timeThreshold)}</Text>
     </View>
-    
+
     <View style={styles.thresholdRow}>
       <StarDisplay earned={true} color="#FFD700" size={16} />
-      <Text style={styles.thresholdText}>
-        Achieve {accuracyThreshold}% accuracy
-      </Text>
+      <Text style={styles.thresholdText}>Achieve {accuracyThreshold}% accuracy</Text>
     </View>
-    
+
     <View style={styles.thresholdRow}>
       <StarDisplay earned={true} color="#E17055" size={16} />
-      <Text style={styles.thresholdText}>
-        Score {styleThreshold.toLocaleString()} style points
-      </Text>
+      <Text style={styles.thresholdText}>Score {styleThreshold.toLocaleString()} style points</Text>
     </View>
   </View>
 );
@@ -231,7 +199,7 @@ export const CompactStars: React.FC<CompactStarsProps> = ({
   accuracyStars,
   styleStars,
   size = 16,
-  style
+  style,
 }) => (
   <View style={[styles.compactStars, style]}>
     <StarDisplay earned={timeStars > 0} color="#4ECDC4" size={size} />
@@ -245,45 +213,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
   },
-  
+
   starsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   starCategory: {
     alignItems: 'center',
   },
-  
+
   label: {
     color: '#666',
     fontWeight: '600',
     marginBottom: 2,
     letterSpacing: 0.5,
   },
-  
+
   star: {
     fontWeight: 'bold',
   },
-  
+
   summary: {
     alignItems: 'center',
     marginTop: 8,
   },
-  
+
   totalStars: {
     fontWeight: '700',
     color: '#2D3436',
     marginBottom: 2,
   },
-  
+
   perfectText: {
     color: '#00B894',
     fontWeight: '600',
     letterSpacing: 0.5,
   },
-  
+
   progressDetails: {
     marginTop: 12,
     backgroundColor: '#F8F9FA',
@@ -291,31 +259,31 @@ const styles = StyleSheet.create({
     padding: 12,
     width: '100%',
   },
-  
+
   progressRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 4,
   },
-  
+
   progressLabel: {
     fontSize: 12,
     color: '#666',
     fontWeight: '500',
   },
-  
+
   progressValue: {
     fontSize: 12,
     color: '#2D3436',
     fontWeight: '600',
   },
-  
+
   thresholdContainer: {
     backgroundColor: '#F8F9FA',
     borderRadius: 8,
     padding: 12,
   },
-  
+
   thresholdTitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -323,20 +291,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  
+
   thresholdRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
   },
-  
+
   thresholdText: {
     fontSize: 12,
     color: '#666',
     marginLeft: 8,
     flex: 1,
   },
-  
+
   compactStars: {
     flexDirection: 'row',
     alignItems: 'center',

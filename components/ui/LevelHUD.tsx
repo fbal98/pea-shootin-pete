@@ -1,6 +1,6 @@
 /**
  * Level HUD - Heads-up display for level progression
- * 
+ *
  * Shows:
  * - Current level name and number
  * - Progress indicator (enemies remaining)
@@ -12,7 +12,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { 
+import {
   useCurrentLevel,
   useEnemiesRemaining,
   useTotalEnemies,
@@ -21,7 +21,7 @@ import {
   useShotsFired,
   useShotsHit,
   useLevelCompleted,
-  useLevelFailed
+  useLevelFailed,
 } from '@/store/levelProgressionStore';
 import { useIsPlaying } from '@/store/gameStore';
 import { UI_CONFIG, ANIMATION_CONFIG } from '@/constants/GameConfig';
@@ -38,18 +38,18 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
   const currentCombo = useCurrentCombo();
   const shotsFired = useShotsFired();
   const shotsHit = useShotsHit();
-  
+
   // Calculate accuracy
   const accuracy = shotsFired > 0 ? (shotsHit / shotsFired) * 100 : 0;
   const levelCompleted = useLevelCompleted();
   const levelFailed = useLevelFailed();
   const isPlaying = useIsPlaying();
-  
+
   // Animation values for combo display
   const [comboAnim] = useState(new Animated.Value(1));
   const [comboOpacity] = useState(new Animated.Value(0));
   const [previousCombo, setPreviousCombo] = useState(0);
-  
+
   // Animate combo changes
   useEffect(() => {
     if (currentCombo > previousCombo && currentCombo > 1) {
@@ -83,40 +83,35 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
         useNativeDriver: true,
       }).start();
     }
-    
+
     setPreviousCombo(currentCombo);
   }, [currentCombo]);
-  
+
   if (!currentLevel || !isPlaying || levelCompleted || levelFailed) {
     return null;
   }
-  
+
   // Get theme colors from level
   const primaryColor = currentLevel.theme.colorScheme.primary;
   const textColor = currentLevel.theme.uiStyle.scoreColor || '#FFFFFF';
-  
+
   // Calculate progress percentage
-  const progressPercentage = totalEnemies > 0 
-    ? ((totalEnemies - enemiesRemaining) / totalEnemies) * 100
-    : 0;
-  
+  const progressPercentage =
+    totalEnemies > 0 ? ((totalEnemies - enemiesRemaining) / totalEnemies) * 100 : 0;
+
   // Check if level has time limit
   const timeLimit = currentLevel.failureConditions.find((fc: any) => fc.type === 'time_limit');
   const hasTimeLimit = Boolean(timeLimit);
-  
+
   return (
     <View style={styles.container}>
       {/* Top HUD - Level info and score */}
       <View style={styles.topHUD}>
         <View style={styles.levelInfo}>
-          <Text style={[styles.levelNumber, { color: primaryColor }]}>
-            LEVEL {currentLevel.id}
-          </Text>
-          <Text style={[styles.levelName, { color: textColor }]}>
-            {currentLevel.name}
-          </Text>
+          <Text style={[styles.levelNumber, { color: primaryColor }]}>LEVEL {currentLevel.id}</Text>
+          <Text style={[styles.levelName, { color: textColor }]}>{currentLevel.name}</Text>
         </View>
-        
+
         <View style={styles.scoreContainer}>
           <Text style={[styles.scoreLabel, { color: textColor }]}>SCORE</Text>
           <Text style={[styles.scoreValue, { color: primaryColor }]}>
@@ -124,29 +119,29 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
           </Text>
         </View>
       </View>
-      
+
       {/* Progress bar */}
       <View style={styles.progressContainer}>
         <View style={styles.progressBar}>
-          <View 
+          <View
             style={[
-              styles.progressFill, 
-              { 
+              styles.progressFill,
+              {
                 width: `${progressPercentage}%`,
-                backgroundColor: primaryColor 
-              }
-            ]} 
+                backgroundColor: primaryColor,
+              },
+            ]}
           />
         </View>
         <Text style={[styles.progressText, { color: textColor }]}>
           {enemiesRemaining} enemies remaining
         </Text>
       </View>
-      
+
       {/* Current objectives */}
       <View style={styles.objectiveContainer}>
         {currentLevel.objectives.map((objective: any, index: number) => (
-          <ObjectiveItem 
+          <ObjectiveItem
             key={index}
             objective={objective}
             textColor={textColor}
@@ -154,38 +149,32 @@ export const LevelHUD: React.FC<LevelHUDProps> = ({ screenWidth }) => {
           />
         ))}
       </View>
-      
+
       {/* Stats row */}
       <View style={styles.statsRow}>
-        <StatItem 
-          label="Accuracy" 
-          value={`${Math.round(accuracy)}%`}
-          textColor={textColor}
-        />
-        
+        <StatItem label="Accuracy" value={`${Math.round(accuracy)}%`} textColor={textColor} />
+
         {hasTimeLimit && timeLimit && (
-          <TimeDisplay 
+          <TimeDisplay
             timeLimit={timeLimit.threshold}
             textColor={textColor}
             warningColor="#E74C3C"
           />
         )}
       </View>
-      
+
       {/* Combo display */}
       {currentCombo > 1 && (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.comboContainer,
             {
               opacity: comboOpacity,
-              transform: [{ scale: comboAnim }]
-            }
+              transform: [{ scale: comboAnim }],
+            },
           ]}
         >
-          <Text style={[styles.comboText, { color: primaryColor }]}>
-            {currentCombo}x COMBO!
-          </Text>
+          <Text style={[styles.comboText, { color: primaryColor }]}>{currentCombo}x COMBO!</Text>
         </Animated.View>
       )}
     </View>
@@ -199,19 +188,13 @@ interface ObjectiveItemProps {
   primaryColor: string;
 }
 
-const ObjectiveItem: React.FC<ObjectiveItemProps> = ({ 
-  objective, 
-  textColor, 
-  primaryColor 
-}) => {
+const ObjectiveItem: React.FC<ObjectiveItemProps> = ({ objective, textColor, primaryColor }) => {
   return (
     <View style={styles.objectiveItem}>
       <View style={[styles.objectiveIcon, { borderColor: primaryColor }]}>
         <Text style={[styles.objectiveIconText, { color: primaryColor }]}>•</Text>
       </View>
-      <Text style={[styles.objectiveText, { color: textColor }]}>
-        {objective.description}
-      </Text>
+      <Text style={[styles.objectiveText, { color: textColor }]}>{objective.description}</Text>
     </View>
   );
 };
@@ -230,40 +213,33 @@ const StatItem: React.FC<StatItemProps> = ({ label, value, textColor }) => (
   </View>
 );
 
-// Time Display Component  
+// Time Display Component
 interface TimeDisplayProps {
   timeLimit: number | undefined;
   textColor: string;
   warningColor: string;
 }
 
-const TimeDisplay: React.FC<TimeDisplayProps> = ({ 
-  timeLimit, 
-  textColor, 
-  warningColor 
-}) => {
+const TimeDisplay: React.FC<TimeDisplayProps> = ({ timeLimit, textColor, warningColor }) => {
   const [timeRemaining, setTimeRemaining] = useState(timeLimit || 0);
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       setTimeRemaining(prev => Math.max(0, prev - 1));
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, []);
-  
+
   const minutes = Math.floor(timeRemaining / 60);
   const seconds = timeRemaining % 60;
   const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
   const isWarning = timeRemaining <= 30;
-  
+
   return (
     <View style={styles.statItem}>
       <Text style={[styles.statLabel, { color: textColor }]}>Time</Text>
-      <Text style={[
-        styles.statValue, 
-        { color: isWarning ? warningColor : textColor }
-      ]}>
+      <Text style={[styles.statValue, { color: isWarning ? warningColor : textColor }]}>
         {timeString}
       </Text>
     </View>

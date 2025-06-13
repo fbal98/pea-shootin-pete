@@ -64,9 +64,7 @@ const COMBO_TYPES: ComboType[] = [
     name: 'Rapid Fire',
     description: 'Hit 5 targets within 3 seconds',
     multiplier: 1.5,
-    requirements: [
-      { type: 'speed', threshold: 5, consecutive: 5 },
-    ],
+    requirements: [{ type: 'speed', threshold: 5, consecutive: 5 }],
     visualEffect: 'rapid_fire_effect',
     soundEffect: 'rapid_fire_sound',
   },
@@ -75,9 +73,7 @@ const COMBO_TYPES: ComboType[] = [
     name: 'Sharpshooter',
     description: 'Hit 3 targets with perfect accuracy',
     multiplier: 2.0,
-    requirements: [
-      { type: 'accuracy', threshold: 0.95, consecutive: 3 },
-    ],
+    requirements: [{ type: 'accuracy', threshold: 0.95, consecutive: 3 }],
     visualEffect: 'precision_effect',
     soundEffect: 'precision_sound',
   },
@@ -119,9 +115,7 @@ const COMBO_TYPES: ComboType[] = [
     name: 'Distance Master',
     description: 'Hit targets from varying distances',
     multiplier: 1.7,
-    requirements: [
-      { type: 'distance', threshold: 200, consecutive: 5 },
-    ],
+    requirements: [{ type: 'distance', threshold: 200, consecutive: 5 }],
     visualEffect: 'distance_effect',
     soundEffect: 'distance_sound',
   },
@@ -221,7 +215,7 @@ class ComboSystem {
 
   public registerHit(hit: ComboHit): { scoreMultiplier: number; comboType?: ComboType } {
     const now = Date.now();
-    
+
     // Check if combo should break due to time gap
     const maxTimeBetweenHits = 3000; // 3 seconds
     if (this.comboData.count > 0 && now - this.comboData.lastHitTime > maxTimeBetweenHits) {
@@ -238,14 +232,14 @@ class ComboSystem {
     this.comboData.count++;
     this.comboData.currentStreak++;
     this.comboData.lastHitTime = now;
-    
+
     if (this.comboData.count === 1) {
       this.comboData.comboStartTime = now;
     }
 
     // Calculate multiplier components
     this.updateMultiplierComponents(hit);
-    
+
     // Check for combo type triggers
     const triggeredComboType = this.checkComboTypes();
     if (triggeredComboType) {
@@ -308,10 +302,10 @@ class ComboSystem {
     this.comboData.typeBonus = typeBonuses[hit.targetType];
 
     // Calculate total multiplier
-    this.comboData.multiplier = 
-      this.comboData.baseMultiplier + 
-      this.comboData.accuracyBonus + 
-      this.comboData.timingBonus + 
+    this.comboData.multiplier =
+      this.comboData.baseMultiplier +
+      this.comboData.accuracyBonus +
+      this.comboData.timingBonus +
       this.comboData.typeBonus;
 
     // Apply combo type multiplier if active
@@ -343,29 +337,29 @@ class ComboSystem {
 
   private checkRequirement(requirement: ComboRequirement): boolean {
     const recentHits = this.hitHistory.slice(-(requirement.consecutive || 1));
-    
+
     switch (requirement.type) {
       case 'accuracy':
         return recentHits.every(hit => hit.accuracy >= requirement.threshold);
-      
+
       case 'timing':
         const timingValues = { perfect: 1, great: 0.8, good: 0.6, normal: 0.4 };
         return recentHits.every(hit => timingValues[hit.timingWindow] >= requirement.threshold);
-      
+
       case 'target_type':
         const typeValues = { small: 0, medium: 1, large: 2, special: 3 };
         const targetRequirement = requirement.threshold;
         return recentHits.every(hit => typeValues[hit.targetType] === targetRequirement);
-      
+
       case 'speed':
         if (recentHits.length < 2) return false;
         const timeSpan = recentHits[recentHits.length - 1].timestamp - recentHits[0].timestamp;
         const hitsPerSecond = recentHits.length / (timeSpan / 1000);
         return hitsPerSecond >= requirement.threshold;
-      
+
       case 'distance':
         return recentHits.every(hit => (hit.distanceFromPrevious || 0) >= requirement.threshold);
-      
+
       default:
         return false;
     }
@@ -396,7 +390,7 @@ class ComboSystem {
       if (shouldUnlock) {
         achievement.unlocked = true;
         achievement.unlockedAt = Date.now();
-        
+
         if (this.callbacks.onComboAchievement) {
           this.callbacks.onComboAchievement(achievement);
         }
@@ -449,16 +443,18 @@ class ComboSystem {
       },
     };
 
-    return effectMappings[comboType.visualEffect] || {
-      type: 'particle',
-      intensity: 0.5,
-      duration: 1000,
-    };
+    return (
+      effectMappings[comboType.visualEffect] || {
+        type: 'particle',
+        intensity: 0.5,
+        duration: 1000,
+      }
+    );
   }
 
   private triggerVisualEffect(effect: ComboVisualEffect) {
     this.activeEffects.push(effect);
-    
+
     if (this.callbacks.onVisualEffect) {
       this.callbacks.onVisualEffect(effect);
     }
@@ -474,7 +470,7 @@ class ComboSystem {
 
   public breakCombo(reason: string = 'miss') {
     const finalCombo = this.comboData.count;
-    
+
     if (finalCombo > 0) {
       // Track combo break
       trackComboEvent({
@@ -494,11 +490,11 @@ class ComboSystem {
     // Reset combo data but preserve achievements and max combo
     const maxCombo = this.comboData.maxCombo;
     const achievements = this.comboData.achievements;
-    
+
     this.comboData = this.initializeComboData();
     this.comboData.maxCombo = maxCombo;
     this.comboData.achievements = achievements;
-    
+
     this.hitHistory = [];
     this.activeEffects = [];
   }
@@ -522,13 +518,16 @@ class ComboSystem {
     return 'normal';
   }
 
-  public calculateAccuracy(targetCenter: { x: number; y: number }, hitPoint: { x: number; y: number }, targetRadius: number): number {
+  public calculateAccuracy(
+    targetCenter: { x: number; y: number },
+    hitPoint: { x: number; y: number },
+    targetRadius: number
+  ): number {
     const distance = Math.sqrt(
-      Math.pow(hitPoint.x - targetCenter.x, 2) + 
-      Math.pow(hitPoint.y - targetCenter.y, 2)
+      Math.pow(hitPoint.x - targetCenter.x, 2) + Math.pow(hitPoint.y - targetCenter.y, 2)
     );
-    
-    const accuracy = Math.max(0, 1 - (distance / targetRadius));
+
+    const accuracy = Math.max(0, 1 - distance / targetRadius);
     return Math.round(accuracy * 100) / 100; // Round to 2 decimal places
   }
 

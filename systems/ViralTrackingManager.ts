@@ -39,9 +39,12 @@ class ViralTrackingManager {
 
   private startMetricsTracking() {
     // Update viral metrics every 5 minutes
-    this.metricsUpdateInterval = setInterval(() => {
-      this.updateViralMetrics();
-    }, 5 * 60 * 1000);
+    this.metricsUpdateInterval = setInterval(
+      () => {
+        this.updateViralMetrics();
+      },
+      5 * 60 * 1000
+    );
   }
 
   public trackShareEvent(shareData: {
@@ -51,7 +54,7 @@ class ViralTrackingManager {
     timestamp: number;
   }): string {
     const shareId = `share_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const conversionData: ShareConversionData = {
       shareId,
       platform: shareData.platform,
@@ -90,7 +93,7 @@ class ViralTrackingManager {
       const recentShares = Array.from(this.shareConversions.values())
         .filter(share => share.platform === referralData.platform && !share.converted)
         .sort((a, b) => b.shareTimestamp - a.shareTimestamp);
-      
+
       shareConversion = recentShares[0];
     }
 
@@ -98,7 +101,7 @@ class ViralTrackingManager {
       shareConversion.converted = true;
       shareConversion.conversionTimestamp = referralData.timestamp;
       shareConversion.referredUserId = referralData.referredUserId;
-      
+
       this.shareConversions.set(shareConversion.shareId, shareConversion);
 
       // Track conversion in analytics
@@ -115,7 +118,7 @@ class ViralTrackingManager {
       // Update store
       const socialStore = useSocialStore.getState();
       socialStore.addSuccessfulReferral(referralData.referredUserId);
-      
+
       // Trigger metrics update
       this.updateViralMetrics();
     }
@@ -134,7 +137,7 @@ class ViralTrackingManager {
     // Enhanced coefficient considering time decay and platform effectiveness
     const platformWeights = this.calculatePlatformWeights();
     const timeDecayFactor = this.calculateTimeDecayFactor();
-    
+
     const enhancedCoefficient = basicCoefficient * platformWeights * timeDecayFactor;
 
     return Math.round(enhancedCoefficient * 1000) / 1000; // Round to 3 decimal places
@@ -142,11 +145,11 @@ class ViralTrackingManager {
 
   private calculatePlatformWeights(): number {
     const conversions = Array.from(this.shareConversions.values()).filter(c => c.converted);
-    
+
     if (conversions.length === 0) return 1;
 
     const platformStats = new Map<string, { shares: number; conversions: number }>();
-    
+
     // Count shares and conversions by platform
     this.shareConversions.forEach(share => {
       const stats = platformStats.get(share.platform) || { shares: 0, conversions: 0 };
@@ -158,7 +161,7 @@ class ViralTrackingManager {
     // Calculate weighted average based on platform conversion rates
     let totalWeight = 0;
     let weightedSum = 0;
-    
+
     platformStats.forEach(stats => {
       const conversionRate = stats.conversions / stats.shares;
       const weight = stats.shares; // Weight by number of shares
@@ -172,7 +175,7 @@ class ViralTrackingManager {
   private calculateTimeDecayFactor(): number {
     const now = Date.now();
     const conversions = Array.from(this.shareConversions.values()).filter(c => c.converted);
-    
+
     if (conversions.length === 0) return 1;
 
     // Give more weight to recent conversions
@@ -202,7 +205,8 @@ class ViralTrackingManager {
     conversions.forEach(conversion => {
       platformBreakdown[conversion.platform] = (platformBreakdown[conversion.platform] || 0) + 1;
       if (conversion.converted) {
-        conversionByPlatform[conversion.platform] = (conversionByPlatform[conversion.platform] || 0) + 1;
+        conversionByPlatform[conversion.platform] =
+          (conversionByPlatform[conversion.platform] || 0) + 1;
       }
     });
 
@@ -210,16 +214,18 @@ class ViralTrackingManager {
     const conversionTimes = successfulConversions
       .filter(c => c.conversionTimestamp)
       .map(c => c.conversionTimestamp! - c.shareTimestamp);
-    
-    const averageTimeToConversion = conversionTimes.length > 0
-      ? conversionTimes.reduce((sum, time) => sum + time, 0) / conversionTimes.length
-      : 0;
+
+    const averageTimeToConversion =
+      conversionTimes.length > 0
+        ? conversionTimes.reduce((sum, time) => sum + time, 0) / conversionTimes.length
+        : 0;
 
     return {
       totalShares: socialStore.shareCount,
       successfulReferrals: socialStore.successfulReferrals.length,
       viralCoefficient: this.calculateViralCoefficient(),
-      shareConversionRate: conversions.length > 0 ? successfulConversions.length / conversions.length : 0,
+      shareConversionRate:
+        conversions.length > 0 ? successfulConversions.length / conversions.length : 0,
       platformBreakdown,
       conversionByPlatform,
       averageTimeToConversion,
@@ -240,10 +246,10 @@ class ViralTrackingManager {
   private updateViralMetrics() {
     const metrics = this.getViralMetrics();
     const socialStore = useSocialStore.getState();
-    
+
     // Update viral coefficient in store
     socialStore.updateViralCoefficient(metrics.viralCoefficient);
-    
+
     // Track metrics in analytics
     trackViralMetrics(metrics);
   }
@@ -259,36 +265,56 @@ class ViralTrackingManager {
     const suggestedActions: string[] = [];
 
     // Analyze platform performance
-    const platformPerformance = Object.entries(metrics.conversionByPlatform).map(([platform, conversions]) => ({
-      platform,
-      conversions,
-      shares: metrics.platformBreakdown[platform] || 0,
-      conversionRate: conversions / (metrics.platformBreakdown[platform] || 1),
-    })).sort((a, b) => b.conversionRate - a.conversionRate);
+    const platformPerformance = Object.entries(metrics.conversionByPlatform)
+      .map(([platform, conversions]) => ({
+        platform,
+        conversions,
+        shares: metrics.platformBreakdown[platform] || 0,
+        conversionRate: conversions / (metrics.platformBreakdown[platform] || 1),
+      }))
+      .sort((a, b) => b.conversionRate - a.conversionRate);
 
     // Best performing platforms
     priorityPlatforms.push(...platformPerformance.slice(0, 3).map(p => p.platform));
 
     // Generate recommendations
     if (metrics.viralCoefficient < 0.1) {
-      recommendations.push('Viral coefficient is low. Focus on improving share incentives and content quality.');
-      suggestedActions.push('Increase share rewards', 'Improve share content templates', 'Add share tutorials');
+      recommendations.push(
+        'Viral coefficient is low. Focus on improving share incentives and content quality.'
+      );
+      suggestedActions.push(
+        'Increase share rewards',
+        'Improve share content templates',
+        'Add share tutorials'
+      );
     }
 
     if (metrics.shareConversionRate < 0.05) {
-      recommendations.push('Share conversion rate is low. Improve targeting and share content relevance.');
-      suggestedActions.push('A/B test share messages', 'Improve onboarding flow', 'Add social proof');
+      recommendations.push(
+        'Share conversion rate is low. Improve targeting and share content relevance.'
+      );
+      suggestedActions.push(
+        'A/B test share messages',
+        'Improve onboarding flow',
+        'Add social proof'
+      );
     }
 
     if (metrics.averageTimeToConversion > 24 * 60 * 60 * 1000) {
       recommendations.push('Time to conversion is high. Streamline the referral process.');
-      suggestedActions.push('Simplify app installation', 'Add immediate rewards', 'Improve deep linking');
+      suggestedActions.push(
+        'Simplify app installation',
+        'Add immediate rewards',
+        'Improve deep linking'
+      );
     }
 
     // Platform-specific recommendations
     if (platformPerformance.length > 0) {
       const bestPlatform = platformPerformance[0];
-      recommendations.push(`${bestPlatform.platform} has the highest conversion rate (${(bestPlatform.conversionRate * 100).toFixed(1)}%). Focus marketing efforts here.`);
+      recommendations.push(
+        `${bestPlatform.platform} has the highest conversion rate (${(bestPlatform.conversionRate * 100).toFixed(1)}%). Focus marketing efforts here.`
+      );
     }
 
     return {
@@ -323,7 +349,7 @@ class ViralTrackingManager {
     }
 
     const tier = tiers[currentTier];
-    
+
     return {
       tier: currentTier + 1,
       reward: {

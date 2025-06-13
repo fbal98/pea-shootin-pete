@@ -171,7 +171,7 @@ export const updateBouncingEnemyInPlace = (
     const direction = (enemy.velocityX || 0) >= 0 ? 1 : -1;
     enemy.velocityX = direction * physics.MIN_HORIZONTAL_VELOCITY;
   }
-  
+
   // Cap maximum velocity to prevent runaway speeds
   if (physics.MAX_VELOCITY) {
     const maxVel = physics.MAX_VELOCITY;

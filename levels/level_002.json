@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "difficulty": "easy",
   "estimatedDuration": 60,
-  
+
   "objectives": [
     {
       "type": "eliminate_all_enemies",
@@ -21,7 +21,7 @@
       "rewardMultiplier": 1.5
     }
   ],
-  
+
   "failureConditions": [
     {
       "type": "time_limit",
@@ -32,7 +32,7 @@
       "threshold": 20
     }
   ],
-  
+
   "enemyWaves": [
     {
       "id": "wave_1_three_wide",
@@ -85,9 +85,9 @@
       "sizeVariation": 0.0
     }
   ],
-  
+
   "totalEnemyCount": 8,
-  
+
   "environment": {
     "gravity": 500.0,
     "airResistance": 0.0,
@@ -100,7 +100,7 @@
       "onCombo": 3.0
     }
   },
-  
+
   "theme": {
     "colorScheme": {
       "primary": "#C1666B",
@@ -135,7 +135,7 @@
       "hudOpacity": 0.9
     }
   },
-  
+
   "balance": {
     "enemySpeedMultiplier": 1.0,
     "spawnRateMultiplier": 1.0,
@@ -146,7 +146,7 @@
     "projectileSpeedMultiplier": 1.0,
     "targetFailRate": 0.15
   },
-  
+
   "rewards": {
     "baseScore": 200,
     "perfectionBonus": 100,
@@ -162,7 +162,7 @@
       "perfectCompletionMultiplier": 2.0
     }
   },
-  
+
   "metadata": {
     "testGroup": "difficulty_progression",
     "variant": "standard",

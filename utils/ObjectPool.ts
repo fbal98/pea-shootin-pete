@@ -1,5 +1,6 @@
 /**
  * Object pooling system for game objects to reduce garbage collection
+ * Enhanced with ID generation to eliminate nanoid() usage
  */
 
 import { GameObject } from '@/utils/gameEngine';
@@ -8,6 +9,34 @@ import { EnemyType } from '@/constants/GameConfig';
 interface PooledObject {
   inUse: boolean;
   object: GameObject;
+}
+
+/**
+ * High-performance ID generator for pooled objects
+ * Eliminates nanoid() usage for better performance
+ */
+class PooledIdGenerator {
+  private static projectileCounter = 0;
+  private static enemyCounter = 0;
+  private static gameSessionId = Date.now().toString(36);
+
+  static generateProjectileId(): string {
+    return `proj_${this.gameSessionId}_${++this.projectileCounter}`;
+  }
+
+  static generateEnemyId(): string {
+    return `enemy_${this.gameSessionId}_${++this.enemyCounter}`;
+  }
+
+  static generateSplitEnemyId(parentId: string, splitIndex: number): string {
+    return `${parentId}_split${splitIndex}_${++this.enemyCounter}`;
+  }
+
+  static reset(): void {
+    this.projectileCounter = 0;
+    this.enemyCounter = 0;
+    this.gameSessionId = Date.now().toString(36);
+  }
 }
 
 export class ObjectPool {
@@ -184,10 +213,12 @@ export class GameObjectPools {
   }
 
   /**
-   * Get a projectile from the pool
+   * Get a projectile from the pool with optimized ID generation
    */
   acquireProjectile(): GameObject {
-    return this.projectilePool.acquire();
+    const projectile = this.projectilePool.acquire();
+    projectile.id = PooledIdGenerator.generateProjectileId();
+    return projectile;
   }
 
   /**
@@ -205,10 +236,21 @@ export class GameObjectPools {
   }
 
   /**
-   * Get an enemy from the pool
+   * Get an enemy from the pool with optimized ID generation
    */
   acquireEnemy(): GameObject {
-    return this.enemyPool.acquire();
+    const enemy = this.enemyPool.acquire();
+    enemy.id = PooledIdGenerator.generateEnemyId();
+    return enemy;
+  }
+
+  /**
+   * Get an enemy from the pool for splitting with optimized ID generation
+   */
+  acquireSplitEnemy(parentId: string, splitIndex: number): GameObject {
+    const enemy = this.enemyPool.acquire();
+    enemy.id = PooledIdGenerator.generateSplitEnemyId(parentId, splitIndex);
+    return enemy;
   }
 
   /**
@@ -236,11 +278,12 @@ export class GameObjectPools {
   }
 
   /**
-   * Clear all pools
+   * Clear all pools and reset ID generators
    */
   clearAll(): void {
     this.projectilePool.clear();
     this.enemyPool.clear();
+    PooledIdGenerator.reset();
   }
 
   /**
@@ -252,4 +295,14 @@ export class GameObjectPools {
       console.log('🎯 Object Pool Stats:', stats);
     }
   }
+
+  /**
+   * Export ID generator for external use
+   */
+  getIdGenerator() {
+    return PooledIdGenerator;
+  }
 }
+
+// Export the ID generator for use in collision system
+export { PooledIdGenerator };

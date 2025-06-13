@@ -1,12 +1,12 @@
 /**
  * Tutorial Manager - Interactive guidance system for progression features
- * 
+ *
  * Manages the complete tutorial experience including:
  * - Progressive disclosure of features
  * - Contextual hints and guided interactions
  * - Completion tracking and analytics
  * - Adaptive tutorials based on player behavior
- * 
+ *
  * Designed for maximum engagement and minimal friction.
  */
 
@@ -20,13 +20,13 @@ import {
   TutorialAnalyticsAction,
   TutorialAnalyticsEvent,
   TutorialSeriesId,
-  TUTORIAL_SERIES
+  TUTORIAL_SERIES,
 } from '../types/TutorialTypes';
 
 // Storage keys
 const STORAGE_KEYS = {
   TUTORIAL_STATE: 'psp_tutorial_state',
-  TUTORIAL_ANALYTICS: 'psp_tutorial_analytics'
+  TUTORIAL_ANALYTICS: 'psp_tutorial_analytics',
 } as const;
 
 export class TutorialManager implements ITutorialManager {
@@ -117,7 +117,7 @@ export class TutorialManager implements ITutorialManager {
 
   public skipTutorial(seriesId: string): void {
     this.state.skippedSeries.add(seriesId);
-    
+
     if (this.state.activeTutorial === seriesId) {
       this.state.activeTutorial = undefined;
       this.state.currentStep = undefined;
@@ -142,7 +142,7 @@ export class TutorialManager implements ITutorialManager {
 
   public getCurrentStep(): TutorialStep | null {
     if (!this.state.currentStep) return null;
-    
+
     const currentTutorial = this.getCurrentTutorial();
     if (!currentTutorial) return null;
 
@@ -193,8 +193,8 @@ export class TutorialManager implements ITutorialManager {
       timestamp: Date.now(),
       metadata: {
         tutorialsEnabled: this.state.tutorialsEnabled,
-        playerPreferredSpeed: this.state.preferredTutorialSpeed
-      }
+        playerPreferredSpeed: this.state.preferredTutorialSpeed,
+      },
     };
 
     // Calculate duration for completed steps
@@ -242,7 +242,7 @@ export class TutorialManager implements ITutorialManager {
       tutorialStartTimes: {},
       stepCompletionTimes: {},
       preferredTutorialSpeed: 'normal',
-      skipNonCritical: false
+      skipNonCritical: false,
     };
   }
 
@@ -256,7 +256,7 @@ export class TutorialManager implements ITutorialManager {
           ...parsed,
           completedSteps: new Set(parsed.completedSteps || []),
           completedSeries: new Set(parsed.completedSeries || []),
-          skippedSeries: new Set(parsed.skippedSeries || [])
+          skippedSeries: new Set(parsed.skippedSeries || []),
         };
       }
     } catch (error) {
@@ -270,7 +270,7 @@ export class TutorialManager implements ITutorialManager {
         ...this.state,
         completedSteps: Array.from(this.state.completedSteps),
         completedSeries: Array.from(this.state.completedSeries),
-        skippedSeries: Array.from(this.state.skippedSeries)
+        skippedSeries: Array.from(this.state.skippedSeries),
       };
       await AsyncStorage.setItem(STORAGE_KEYS.TUTORIAL_STATE, JSON.stringify(stateToSave));
     } catch (error) {
@@ -306,7 +306,11 @@ export class TutorialManager implements ITutorialManager {
     return true;
   }
 
-  private shouldTriggerTutorial(series: TutorialSeries, event: TutorialTriggerEvent, parameters?: any): boolean {
+  private shouldTriggerTutorial(
+    series: TutorialSeries,
+    event: TutorialTriggerEvent,
+    parameters?: any
+  ): boolean {
     // Already completed or skipped
     if (this.state.completedSeries.has(series.id) || this.state.skippedSeries.has(series.id)) {
       return false;
@@ -319,7 +323,9 @@ export class TutorialManager implements ITutorialManager {
 
     // Check if this event should trigger this tutorial
     return series.triggerConditions.some(condition => {
-      return condition.event === event && this.checkTriggerFrequency(series.id, condition.frequency);
+      return (
+        condition.event === event && this.checkTriggerFrequency(series.id, condition.frequency)
+      );
     });
   }
 
@@ -345,9 +351,11 @@ export class TutorialManager implements ITutorialManager {
     }
 
     // Already completed, skipped, or active
-    if (this.state.completedSeries.has(series.id) || 
-        this.state.skippedSeries.has(series.id) ||
-        this.state.activeTutorial === series.id) {
+    if (
+      this.state.completedSeries.has(series.id) ||
+      this.state.skippedSeries.has(series.id) ||
+      this.state.activeTutorial === series.id
+    ) {
       return false;
     }
 
@@ -373,7 +381,7 @@ export class TutorialManager implements ITutorialManager {
     // Track analytics
     const startTime = this.state.tutorialStartTimes[seriesId];
     const duration = startTime ? Date.now() - startTime : undefined;
-    
+
     this.trackTutorialMetrics(seriesId, 'completed');
 
     this.notifyListeners('tutorial_completed', null);
@@ -387,10 +395,10 @@ export class TutorialManager implements ITutorialManager {
   private showTutorialStep(step: TutorialStep): void {
     // Apply delay if specified
     const delay = step.delay || 0;
-    
+
     setTimeout(() => {
       this.notifyListeners('step_shown', step);
-      
+
       // Auto-advance if specified
       if (step.autoAdvance && step.autoAdvance > 0) {
         setTimeout(() => {
@@ -413,9 +421,9 @@ export class TutorialManager implements ITutorialManager {
     try {
       const existingData = await AsyncStorage.getItem(STORAGE_KEYS.TUTORIAL_ANALYTICS);
       const allEvents = existingData ? JSON.parse(existingData) : [];
-      
+
       allEvents.push(...this.analyticsQueue);
-      
+
       await AsyncStorage.setItem(STORAGE_KEYS.TUTORIAL_ANALYTICS, JSON.stringify(allEvents));
       this.analyticsQueue = [];
     } catch (error) {
@@ -435,7 +443,7 @@ export class TutorialManager implements ITutorialManager {
   private createFirstGameTutorial(): TutorialSeries {
     return {
       id: TUTORIAL_SERIES.FIRST_GAME,
-      name: 'Welcome to Pea Shootin\' Pete!',
+      name: "Welcome to Pea Shootin' Pete!",
       description: 'Learn the basics of gameplay',
       category: 'core_gameplay',
       steps: [
@@ -447,7 +455,7 @@ export class TutorialManager implements ITutorialManager {
           trigger: 'immediate',
           skipAllowed: false,
           category: 'core_gameplay',
-          importance: 'critical'
+          importance: 'critical',
         },
         {
           id: 'first_tap',
@@ -457,11 +465,11 @@ export class TutorialManager implements ITutorialManager {
           trigger: 'user_action',
           actionRequired: {
             type: 'tap',
-            timeout: 30000
+            timeout: 30000,
           },
           skipAllowed: false,
           category: 'core_gameplay',
-          importance: 'critical'
+          importance: 'critical',
         },
         {
           id: 'first_swipe',
@@ -471,20 +479,20 @@ export class TutorialManager implements ITutorialManager {
           trigger: 'user_action',
           actionRequired: {
             type: 'swipe',
-            timeout: 30000
+            timeout: 30000,
           },
           skipAllowed: false,
           category: 'core_gameplay',
-          importance: 'critical'
-        }
+          importance: 'critical',
+        },
       ],
       skippable: false,
       triggerConditions: [
         {
           event: 'app_launch',
-          frequency: 'once'
-        }
-      ]
+          frequency: 'once',
+        },
+      ],
     };
   }
 
@@ -499,7 +507,8 @@ export class TutorialManager implements ITutorialManager {
           id: 'mystery_intro',
           type: 'tooltip',
           title: 'Mystery Balloon!',
-          description: 'This shimmering balloon contains a special reward! Shoot it to collect coins, XP, or cosmetics.',
+          description:
+            'This shimmering balloon contains a special reward! Shoot it to collect coins, XP, or cosmetics.',
           trigger: 'first_mystery_balloon',
           skipAllowed: true,
           category: 'progression',
@@ -508,36 +517,37 @@ export class TutorialManager implements ITutorialManager {
             shape: 'circle',
             padding: 20,
             glow: true,
-            animation: 'pulse'
+            animation: 'pulse',
           },
-          arrow: 'down'
+          arrow: 'down',
         },
         {
           id: 'mystery_collect',
           type: 'celebration',
           title: 'Reward Collected!',
-          description: 'Mystery balloons appear randomly and contain valuable rewards. Keep playing to find more!',
+          description:
+            'Mystery balloons appear randomly and contain valuable rewards. Keep playing to find more!',
           trigger: 'user_action',
           actionRequired: {
             type: 'tap',
-            timeout: 15000
+            timeout: 15000,
           },
           skipAllowed: true,
           category: 'progression',
-          importance: 'recommended'
-        }
+          importance: 'recommended',
+        },
       ],
       skippable: true,
       triggerConditions: [
         {
           event: 'mystery_balloon_spawn',
-          frequency: 'once'
-        }
+          frequency: 'once',
+        },
       ],
       completionReward: {
         type: 'coins',
-        amount: 100
-      }
+        amount: 100,
+      },
     };
   }
 
@@ -552,22 +562,23 @@ export class TutorialManager implements ITutorialManager {
           id: 'challenges_intro',
           type: 'tooltip',
           title: 'Daily Challenge',
-          description: 'Complete this challenge today for bonus coins and XP! New challenges appear every day.',
+          description:
+            'Complete this challenge today for bonus coins and XP! New challenges appear every day.',
           trigger: 'challenge_available',
           skipAllowed: true,
           category: 'progression',
           importance: 'recommended',
           targetElement: 'challenge_progress_bar',
-          arrow: 'up'
-        }
+          arrow: 'up',
+        },
       ],
       skippable: true,
       triggerConditions: [
         {
           event: 'challenge_available',
-          frequency: 'once'
-        }
-      ]
+          frequency: 'once',
+        },
+      ],
     };
   }
 
@@ -582,22 +593,23 @@ export class TutorialManager implements ITutorialManager {
           id: 'battlepass_intro',
           type: 'tooltip',
           title: 'Battle Pass',
-          description: 'Earn XP by playing to unlock tiers and claim rewards! Each tier has cool prizes.',
+          description:
+            'Earn XP by playing to unlock tiers and claim rewards! Each tier has cool prizes.',
           trigger: 'level_start',
           skipAllowed: true,
           category: 'progression',
           importance: 'recommended',
           targetElement: 'battle_pass_progress',
-          arrow: 'down'
-        }
+          arrow: 'down',
+        },
       ],
       skippable: true,
       triggerConditions: [
         {
           event: 'battle_pass_tier_up',
-          frequency: 'once'
-        }
-      ]
+          frequency: 'once',
+        },
+      ],
     };
   }
 
@@ -612,21 +624,22 @@ export class TutorialManager implements ITutorialManager {
           id: 'achievement_unlock',
           type: 'celebration',
           title: 'Achievement Unlocked!',
-          description: 'You earned an achievement! These provide coins, XP, and sometimes unlock new customizations.',
+          description:
+            'You earned an achievement! These provide coins, XP, and sometimes unlock new customizations.',
           trigger: 'achievement_unlock',
           skipAllowed: true,
           category: 'progression',
           importance: 'recommended',
-          autoAdvance: 3000
-        }
+          autoAdvance: 3000,
+        },
       ],
       skippable: true,
       triggerConditions: [
         {
           event: 'achievement_unlock',
-          frequency: 'once'
-        }
-      ]
+          frequency: 'once',
+        },
+      ],
     };
   }
 }

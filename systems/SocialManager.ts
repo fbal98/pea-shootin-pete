@@ -1,6 +1,6 @@
 /**
  * Social Manager - Central hub for all social features and networking
- * 
+ *
  * Handles:
  * - Friend system operations and networking
  * - Real-time social updates and synchronization
@@ -9,7 +9,7 @@
  * - Gift system and exchange protocols
  * - Social group management
  * - Viral sharing and referral tracking
- * 
+ *
  * Designed as a singleton for centralized social state management.
  */
 
@@ -31,7 +31,7 @@ import {
   ChallengeFilter,
   SocialEvent,
   SocialPlatform,
-  SOCIAL_CONSTANTS
+  SOCIAL_CONSTANTS,
 } from '@/types/SocialTypes';
 import { useSocialStore } from '@/store/socialStore';
 
@@ -53,11 +53,11 @@ class SocialManager implements ISocialManager {
   private isConnected = false;
   private retryCount = 0;
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
-  
+
   // Cache for performance
   private leaderboardCache = new Map<string, { data: Leaderboard; expiry: number }>();
   private playerCache = new Map<string, { data: SocialPlayer; expiry: number }>();
-  
+
   private constructor() {
     this.config = {
       apiBaseUrl: process.env.EXPO_PUBLIC_SOCIAL_API_URL || 'https://api.peashootinpete.com/social',
@@ -67,7 +67,7 @@ class SocialManager implements ISocialManager {
       enableAnalytics: true,
       enableViralTracking: true,
       maxRetries: 3,
-      retryDelay: 1000
+      retryDelay: 1000,
     };
   }
 
@@ -84,10 +84,10 @@ class SocialManager implements ISocialManager {
       await this.connectWebSocket();
       await this.loadPersistedSocialData();
       this.startHeartbeat();
-      
+
       const store = useSocialStore.getState();
       store.setSocialConnectionStatus('connected');
-      
+
       console.log('Social Manager initialized successfully');
     } catch (error) {
       console.error('Failed to initialize Social Manager:', error);
@@ -102,36 +102,35 @@ class SocialManager implements ISocialManager {
     return new Promise((resolve, reject) => {
       try {
         this.websocket = new WebSocket(this.config.websocketUrl);
-        
+
         this.websocket.onopen = () => {
           this.isConnected = true;
           this.retryCount = 0;
           console.log('Social WebSocket connected');
           resolve();
         };
-        
-        this.websocket.onmessage = (event) => {
+
+        this.websocket.onmessage = event => {
           this.handleWebSocketMessage(event);
         };
-        
+
         this.websocket.onclose = () => {
           this.isConnected = false;
           console.log('Social WebSocket disconnected');
           this.scheduleReconnect();
         };
-        
-        this.websocket.onerror = (error) => {
+
+        this.websocket.onerror = error => {
           console.error('Social WebSocket error:', error);
           reject(error);
         };
-        
+
         // Timeout for connection
         setTimeout(() => {
           if (!this.isConnected) {
             reject(new Error('WebSocket connection timeout'));
           }
         }, 5000);
-        
       } catch (error) {
         reject(error);
       }
@@ -142,43 +141,43 @@ class SocialManager implements ISocialManager {
     try {
       const message = JSON.parse(event.data);
       const store = useSocialStore.getState();
-      
+
       switch (message.type) {
         case 'friend_request_received':
           store.addReceivedFriendRequest(message.data);
           break;
-          
+
         case 'friend_online':
           store.updateFriend(message.data.playerId, {
-            player: { ...message.data.player, isOnline: true }
+            player: { ...message.data.player, isOnline: true },
           });
           break;
-          
+
         case 'friend_offline':
           store.updateFriend(message.data.playerId, {
-            player: { ...message.data.player, isOnline: false, lastSeen: Date.now() }
+            player: { ...message.data.player, isOnline: false, lastSeen: Date.now() },
           });
           break;
-          
+
         case 'gift_received':
           store.addReceivedGift(message.data);
           break;
-          
+
         case 'challenge_invitation':
           store.addActiveChallenge(message.data);
           break;
-          
+
         case 'leaderboard_update':
           const { category, type, timeframe, leaderboard } = message.data;
           const key = `${category}_${type}_${timeframe}`;
           store.updateLeaderboard(key, leaderboard);
           break;
-          
+
         case 'social_achievement':
           // Handle social achievements (friend milestones, etc.)
           console.log('Social achievement unlocked:', message.data);
           break;
-          
+
         default:
           console.log('Unknown social message type:', message.type);
       }
@@ -189,11 +188,14 @@ class SocialManager implements ISocialManager {
 
   private scheduleReconnect(): void {
     if (this.retryCount < this.config.maxRetries) {
-      setTimeout(() => {
-        this.retryCount++;
-        console.log(`Attempting social reconnect ${this.retryCount}/${this.config.maxRetries}`);
-        this.connectWebSocket();
-      }, this.config.retryDelay * Math.pow(2, this.retryCount));
+      setTimeout(
+        () => {
+          this.retryCount++;
+          console.log(`Attempting social reconnect ${this.retryCount}/${this.config.maxRetries}`);
+          this.connectWebSocket();
+        },
+        this.config.retryDelay * Math.pow(2, this.retryCount)
+      );
     }
   }
 
@@ -221,20 +223,24 @@ class SocialManager implements ISocialManager {
     const url = `${this.config.apiBaseUrl}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
-      ...options.headers
+      Authorization: `Bearer ${this.config.apiKey}`,
+      ...options.headers,
     };
 
     const response = await fetch(url, { ...options, headers });
-    
+
     if (!response.ok) {
       throw new Error(`Social API error: ${response.status} ${response.statusText}`);
     }
-    
+
     return response.json();
   }
 
-  private getCacheKey(category: LeaderboardCategory, type: LeaderboardType, timeframe: LeaderboardTimeframe): string {
+  private getCacheKey(
+    category: LeaderboardCategory,
+    type: LeaderboardType,
+    timeframe: LeaderboardTimeframe
+  ): string {
     return `${category}_${type}_${timeframe}`;
   }
 
@@ -243,18 +249,18 @@ class SocialManager implements ISocialManager {
     try {
       const request = await this.makeApiCall<FriendRequest>('/friends/request', {
         method: 'POST',
-        body: JSON.stringify({ playerId, message })
+        body: JSON.stringify({ playerId, message }),
       });
-      
+
       const store = useSocialStore.getState();
       store.addSentFriendRequest(request);
       store.trackSocialEvent({
         type: 'friend_request_sent',
         playerId: store.currentPlayer?.id || '',
         targetId: playerId,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      
+
       return true;
     } catch (error) {
       console.error('Failed to send friend request:', error);
@@ -265,12 +271,12 @@ class SocialManager implements ISocialManager {
   public async acceptFriendRequest(requestId: string): Promise<boolean> {
     try {
       const friend = await this.makeApiCall<Friend>(`/friends/request/${requestId}/accept`, {
-        method: 'POST'
+        method: 'POST',
       });
-      
+
       const store = useSocialStore.getState();
       await store.acceptFriendRequest(requestId);
-      
+
       return true;
     } catch (error) {
       console.error('Failed to accept friend request:', error);
@@ -281,12 +287,12 @@ class SocialManager implements ISocialManager {
   public async declineFriendRequest(requestId: string): Promise<boolean> {
     try {
       await this.makeApiCall(`/friends/request/${requestId}/decline`, {
-        method: 'POST'
+        method: 'POST',
       });
-      
+
       const store = useSocialStore.getState();
       store.declineFriendRequest(requestId);
-      
+
       return true;
     } catch (error) {
       console.error('Failed to decline friend request:', error);
@@ -297,18 +303,18 @@ class SocialManager implements ISocialManager {
   public async removeFriend(playerId: string): Promise<boolean> {
     try {
       await this.makeApiCall(`/friends/${playerId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       });
-      
+
       const store = useSocialStore.getState();
       store.removeFriend(playerId);
       store.trackSocialEvent({
         type: 'friend_removed',
         playerId: store.currentPlayer?.id || '',
         targetId: playerId,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      
+
       return true;
     } catch (error) {
       console.error('Failed to remove friend:', error);
@@ -319,12 +325,12 @@ class SocialManager implements ISocialManager {
   public async blockPlayer(playerId: string): Promise<boolean> {
     try {
       await this.makeApiCall(`/players/${playerId}/block`, {
-        method: 'POST'
+        method: 'POST',
       });
-      
+
       const store = useSocialStore.getState();
       store.blockPlayer(playerId);
-      
+
       return true;
     } catch (error) {
       console.error('Failed to block player:', error);
@@ -337,10 +343,10 @@ class SocialManager implements ISocialManager {
     try {
       const friends = await this.makeApiCall<Friend[]>('/friends');
       const store = useSocialStore.getState();
-      
+
       // Update store with fresh friend data
       friends.forEach(friend => store.addFriend(friend));
-      
+
       return friends;
     } catch (error) {
       console.error('Failed to get friends:', error);
@@ -362,16 +368,18 @@ class SocialManager implements ISocialManager {
 
   public async searchPlayers(query: string): Promise<SocialPlayer[]> {
     try {
-      const players = await this.makeApiCall<SocialPlayer[]>(`/players/search?q=${encodeURIComponent(query)}`);
-      
+      const players = await this.makeApiCall<SocialPlayer[]>(
+        `/players/search?q=${encodeURIComponent(query)}`
+      );
+
       // Cache searched players
       players.forEach(player => {
         this.playerCache.set(player.id, {
           data: player,
-          expiry: Date.now() + 300000 // 5 minutes
+          expiry: Date.now() + 300000, // 5 minutes
         });
       });
-      
+
       return players;
     } catch (error) {
       console.error('Failed to search players:', error);
@@ -386,37 +394,37 @@ class SocialManager implements ISocialManager {
     timeframe: LeaderboardTimeframe
   ): Promise<Leaderboard> {
     const cacheKey = this.getCacheKey(category, type, timeframe);
-    
+
     // Check cache first
     const cached = this.leaderboardCache.get(cacheKey);
     if (cached && cached.expiry > Date.now()) {
       return cached.data;
     }
-    
+
     try {
       const leaderboard = await this.makeApiCall<Leaderboard>(
         `/leaderboards/${category}/${type}/${timeframe}`
       );
-      
+
       // Update cache
       this.leaderboardCache.set(cacheKey, {
         data: leaderboard,
-        expiry: Date.now() + SOCIAL_CONSTANTS.LEADERBOARD_UPDATE_INTERVAL
+        expiry: Date.now() + SOCIAL_CONSTANTS.LEADERBOARD_UPDATE_INTERVAL,
       });
-      
+
       // Update store
       const store = useSocialStore.getState();
       store.updateLeaderboard(cacheKey, leaderboard);
-      
+
       return leaderboard;
     } catch (error) {
       console.error('Failed to get leaderboard:', error);
-      
+
       // Return cached data if available
       if (cached) {
         return cached.data;
       }
-      
+
       throw error;
     }
   }
@@ -424,10 +432,10 @@ class SocialManager implements ISocialManager {
   public async getPlayerRank(category: LeaderboardCategory): Promise<number> {
     try {
       const response = await this.makeApiCall<{ rank: number }>(`/leaderboards/${category}/rank`);
-      
+
       const store = useSocialStore.getState();
       store.setPlayerRank(category, response.rank);
-      
+
       return response.rank;
     } catch (error) {
       console.error('Failed to get player rank:', error);
@@ -444,22 +452,22 @@ class SocialManager implements ISocialManager {
         type: 'content_shared',
         playerId: store.currentPlayer?.id || '',
         data: { contentType: content.type, platform },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      
+
       // Platform-specific sharing logic would go here
       // For now, just log and copy to clipboard if needed
       if (platform === 'clipboard') {
         // Would use clipboard API here
         console.log('Copied to clipboard:', content.deepLink);
       }
-      
+
       // Update share metrics
       await this.makeApiCall(`/sharing/${content.shareId}/shared`, {
         method: 'POST',
-        body: JSON.stringify({ platform })
+        body: JSON.stringify({ platform }),
       });
-      
+
       return true;
     } catch (error) {
       console.error('Failed to share content:', error);
@@ -470,7 +478,7 @@ class SocialManager implements ISocialManager {
   public trackShareMetrics(shareId: string, event: 'view' | 'click' | 'install'): void {
     // Track share performance metrics
     this.makeApiCall(`/sharing/${shareId}/${event}`, {
-      method: 'POST'
+      method: 'POST',
     }).catch(error => {
       console.warn('Failed to track share metric:', error);
     });
@@ -481,18 +489,18 @@ class SocialManager implements ISocialManager {
     try {
       const sentGift = await this.makeApiCall<Gift>('/gifts/send', {
         method: 'POST',
-        body: JSON.stringify(gift)
+        body: JSON.stringify(gift),
       });
-      
+
       const store = useSocialStore.getState();
       store.addSentGift(sentGift);
       store.trackSocialEvent({
         type: 'gift_sent',
         playerId: store.currentPlayer?.id || '',
         targetId: gift.toPlayerId,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      
+
       return sentGift.id;
     } catch (error) {
       console.error('Failed to send gift:', error);
@@ -503,12 +511,12 @@ class SocialManager implements ISocialManager {
   public async claimGift(giftId: string): Promise<boolean> {
     try {
       await this.makeApiCall(`/gifts/${giftId}/claim`, {
-        method: 'POST'
+        method: 'POST',
       });
-      
+
       const store = useSocialStore.getState();
       store.claimGift(giftId);
-      
+
       return true;
     } catch (error) {
       console.error('Failed to claim gift:', error);
@@ -519,10 +527,10 @@ class SocialManager implements ISocialManager {
   public async getReceivedGifts(): Promise<Gift[]> {
     try {
       const gifts = await this.makeApiCall<Gift[]>('/gifts/received');
-      
+
       const store = useSocialStore.getState();
       gifts.forEach(gift => store.addReceivedGift(gift));
-      
+
       return gifts;
     } catch (error) {
       console.error('Failed to get received gifts:', error);
@@ -531,21 +539,23 @@ class SocialManager implements ISocialManager {
   }
 
   // Challenge System Implementation
-  public async createChallenge(challenge: Omit<SocialChallenge, 'id' | 'createdAt'>): Promise<string> {
+  public async createChallenge(
+    challenge: Omit<SocialChallenge, 'id' | 'createdAt'>
+  ): Promise<string> {
     try {
       const createdChallenge = await this.makeApiCall<SocialChallenge>('/challenges', {
         method: 'POST',
-        body: JSON.stringify(challenge)
+        body: JSON.stringify(challenge),
       });
-      
+
       const store = useSocialStore.getState();
       store.addActiveChallenge(createdChallenge);
       store.trackSocialEvent({
         type: 'challenge_created',
         playerId: store.currentPlayer?.id || '',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      
+
       return createdChallenge.id;
     } catch (error) {
       console.error('Failed to create challenge:', error);
@@ -556,17 +566,17 @@ class SocialManager implements ISocialManager {
   public async joinChallenge(challengeId: string): Promise<boolean> {
     try {
       await this.makeApiCall(`/challenges/${challengeId}/join`, {
-        method: 'POST'
+        method: 'POST',
       });
-      
+
       const store = useSocialStore.getState();
       store.trackSocialEvent({
         type: 'challenge_joined',
         playerId: store.currentPlayer?.id || '',
         data: { challengeId },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
-      
+
       return true;
     } catch (error) {
       console.error('Failed to join challenge:', error);
@@ -584,11 +594,11 @@ class SocialManager implements ISocialManager {
           }
         });
       }
-      
+
       const challenges = await this.makeApiCall<SocialChallenge[]>(
         `/challenges?${queryParams.toString()}`
       );
-      
+
       return challenges;
     } catch (error) {
       console.error('Failed to get challenges:', error);
@@ -597,16 +607,18 @@ class SocialManager implements ISocialManager {
   }
 
   // Group System (Basic Implementation)
-  public async createGroup(group: Omit<SocialGroup, 'id' | 'createdAt' | 'members'>): Promise<string> {
+  public async createGroup(
+    group: Omit<SocialGroup, 'id' | 'createdAt' | 'members'>
+  ): Promise<string> {
     try {
       const createdGroup = await this.makeApiCall<SocialGroup>('/groups', {
         method: 'POST',
-        body: JSON.stringify(group)
+        body: JSON.stringify(group),
       });
-      
+
       const store = useSocialStore.getState();
       store.joinGroup(createdGroup);
-      
+
       return createdGroup.id;
     } catch (error) {
       console.error('Failed to create group:', error);
@@ -617,12 +629,12 @@ class SocialManager implements ISocialManager {
   public async joinGroup(groupId: string): Promise<boolean> {
     try {
       const group = await this.makeApiCall<SocialGroup>(`/groups/${groupId}/join`, {
-        method: 'POST'
+        method: 'POST',
       });
-      
+
       const store = useSocialStore.getState();
       store.joinGroup(group);
-      
+
       return true;
     } catch (error) {
       console.error('Failed to join group:', error);
@@ -633,12 +645,12 @@ class SocialManager implements ISocialManager {
   public async leaveGroup(groupId: string): Promise<boolean> {
     try {
       await this.makeApiCall(`/groups/${groupId}/leave`, {
-        method: 'POST'
+        method: 'POST',
       });
-      
+
       const store = useSocialStore.getState();
       store.leaveGroup(groupId);
-      
+
       return true;
     } catch (error) {
       console.error('Failed to leave group:', error);
@@ -657,13 +669,15 @@ class SocialManager implements ISocialManager {
   }
 
   // Analytics Implementation
-  public async getSocialAnalytics(timeframe: 'daily' | 'weekly' | 'monthly'): Promise<SocialAnalytics> {
+  public async getSocialAnalytics(
+    timeframe: 'daily' | 'weekly' | 'monthly'
+  ): Promise<SocialAnalytics> {
     try {
       const analytics = await this.makeApiCall<SocialAnalytics>(`/analytics/${timeframe}`);
-      
+
       const store = useSocialStore.getState();
       store.updateSocialAnalytics(analytics);
-      
+
       return analytics;
     } catch (error) {
       console.error('Failed to get social analytics:', error);
@@ -673,15 +687,15 @@ class SocialManager implements ISocialManager {
 
   public trackSocialEvent(event: SocialEvent): void {
     if (!this.config.enableAnalytics) return;
-    
+
     // Update local store
     const store = useSocialStore.getState();
     store.trackSocialEvent(event);
-    
+
     // Send to analytics service (fire and forget)
     this.makeApiCall('/analytics/events', {
       method: 'POST',
-      body: JSON.stringify(event)
+      body: JSON.stringify(event),
     }).catch(error => {
       console.warn('Failed to track social event:', error);
     });
@@ -716,12 +730,12 @@ class SocialManager implements ISocialManager {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
     }
-    
+
     if (this.websocket) {
       this.websocket.close();
       this.websocket = null;
     }
-    
+
     this.isConnected = false;
     this.leaderboardCache.clear();
     this.playerCache.clear();

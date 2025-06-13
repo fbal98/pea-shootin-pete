@@ -1,5 +1,6 @@
 /**
  * Performance monitoring utility for tracking FPS and game performance
+ * Enhanced with memory management and performance optimization features
  */
 
 interface PerformanceMetrics {
@@ -11,6 +12,9 @@ interface PerformanceMetrics {
   minFps: number;
   maxFps: number;
   memoryUsage?: number;
+  gcCollections?: number;
+  memoryPressure?: 'low' | 'medium' | 'high';
+  performanceLevel?: 'optimal' | 'degraded' | 'critical';
 }
 
 interface PerformanceConfig {
@@ -31,6 +35,17 @@ export class PerformanceMonitor {
   private isRunning = false;
   private lastNotificationTime = 0;
   private notificationThrottle = 250; // Throttle notifications to ~4 times per second
+  
+  // Enhanced memory tracking
+  private lastMemoryUsage = 0;
+  private memoryReadings: number[] = [];
+  private gcCollections = 0;
+  private lastGCCheck = 0;
+  private memoryPressureLevel: 'low' | 'medium' | 'high' = 'low';
+  
+  // Performance level tracking
+  private performanceLevel: 'optimal' | 'degraded' | 'critical' = 'optimal';
+  private performanceDegradationCount = 0;
 
   private constructor(config: Partial<PerformanceConfig> = {}) {
     this.config = {
@@ -80,7 +95,7 @@ export class PerformanceMonitor {
   }
 
   /**
-   * Record a frame for performance tracking
+   * Record a frame for performance tracking with enhanced memory monitoring
    */
   recordFrame(timestamp: number = performance.now()): void {
     if (!this.isRunning) return;
@@ -98,6 +113,11 @@ export class PerformanceMonitor {
     // Keep only recent frames for FPS calculation
     if (this.frameTimes.length > this.config.sampleSize) {
       this.frameTimes.shift();
+    }
+
+    // Monitor memory usage periodically (every 60 frames ≈ 1 second)
+    if (this.totalFrames % 60 === 0) {
+      this.updateMemoryMetrics();
     }
 
     // Detect dropped frames (assuming 60 FPS target = ~16.67ms per frame)
@@ -167,6 +187,9 @@ export class PerformanceMonitor {
       minFps,
       maxFps,
       memoryUsage,
+      gcCollections: this.gcCollections,
+      memoryPressure: this.memoryPressureLevel,
+      performanceLevel: this.performanceLevel,
     };
   }
 
@@ -193,16 +216,6 @@ export class PerformanceMonitor {
     return `FPS: ${metrics.fps.toFixed(1)} | Avg: ${metrics.averageFps.toFixed(1)} | Min: ${metrics.minFps.toFixed(1)} | Max: ${metrics.maxFps.toFixed(1)} | Dropped: ${metrics.droppedFrames}/${metrics.totalFrames}`;
   }
 
-  /**
-   * Reset all metrics
-   */
-  reset(): void {
-    this.frameTimes = [];
-    this.totalFrames = 0;
-    this.droppedFrames = 0;
-    this.lastFrameTime = performance.now();
-    this.lastNotificationTime = performance.now();
-  }
 
   private notifyListeners(metrics: PerformanceMetrics): void {
     this.listeners.forEach(callback => {
@@ -212,6 +225,160 @@ export class PerformanceMonitor {
         console.error('Performance monitor listener error:', error);
       }
     });
+  }
+
+  /**
+   * Update memory metrics and detect memory pressure
+   */
+  private updateMemoryMetrics(): void {
+    try {
+      // Get memory information if available
+      if ('memory' in performance) {
+        const memory = (performance as any).memory;
+        if (memory) {
+          const currentMemory = memory.usedJSHeapSize || 0;
+          const memoryLimit = memory.jsHeapSizeLimit || 0;
+          
+          // Track memory readings
+          this.memoryReadings.push(currentMemory);
+          if (this.memoryReadings.length > 10) {
+            this.memoryReadings.shift(); // Keep last 10 readings
+          }
+          
+          // Detect potential garbage collection
+          if (this.lastMemoryUsage > 0 && currentMemory < this.lastMemoryUsage * 0.8) {
+            this.gcCollections++;
+          }
+          
+          this.lastMemoryUsage = currentMemory;
+          
+          // Determine memory pressure level
+          if (memoryLimit > 0) {
+            const memoryUsageRatio = currentMemory / memoryLimit;
+            if (memoryUsageRatio > 0.8) {
+              this.memoryPressureLevel = 'high';
+            } else if (memoryUsageRatio > 0.6) {
+              this.memoryPressureLevel = 'medium';
+            } else {
+              this.memoryPressureLevel = 'low';
+            }
+          }
+          
+          // Update performance level based on both FPS and memory
+          this.updatePerformanceLevel();
+        }
+      }
+    } catch (error) {
+      // Silently handle memory monitoring errors
+      if (this.config.enableLogging) {
+        console.warn('Memory monitoring error:', error);
+      }
+    }
+  }
+
+  /**
+   * Update overall performance level assessment
+   */
+  private updatePerformanceLevel(): void {
+    const metrics = this.getMetrics();
+    
+    // Determine performance level based on FPS and memory pressure
+    if (metrics.fps < this.config.criticalThreshold || this.memoryPressureLevel === 'high') {
+      this.performanceLevel = 'critical';
+      this.performanceDegradationCount++;
+    } else if (metrics.fps < this.config.warningThreshold || this.memoryPressureLevel === 'medium') {
+      this.performanceLevel = 'degraded';
+      this.performanceDegradationCount++;
+    } else {
+      this.performanceLevel = 'optimal';
+      // Gradually recover from degradation count
+      if (this.performanceDegradationCount > 0) {
+        this.performanceDegradationCount = Math.max(0, this.performanceDegradationCount - 1);
+      }
+    }
+  }
+
+  /**
+   * Get memory statistics
+   */
+  getMemoryStats(): {
+    currentUsage: number;
+    memoryPressure: 'low' | 'medium' | 'high';
+    gcCollections: number;
+    averageUsage: number;
+    memoryTrend: 'increasing' | 'stable' | 'decreasing';
+  } {
+    const currentUsage = this.lastMemoryUsage;
+    const averageUsage = this.memoryReadings.length > 0 
+      ? this.memoryReadings.reduce((a, b) => a + b, 0) / this.memoryReadings.length
+      : 0;
+    
+    // Determine memory trend
+    let memoryTrend: 'increasing' | 'stable' | 'decreasing' = 'stable';
+    if (this.memoryReadings.length >= 3) {
+      const recent = this.memoryReadings.slice(-3);
+      const trend = recent[2] - recent[0];
+      if (trend > currentUsage * 0.1) {
+        memoryTrend = 'increasing';
+      } else if (trend < -currentUsage * 0.1) {
+        memoryTrend = 'decreasing';
+      }
+    }
+
+    return {
+      currentUsage,
+      memoryPressure: this.memoryPressureLevel,
+      gcCollections: this.gcCollections,
+      averageUsage,
+      memoryTrend
+    };
+  }
+
+  /**
+   * Get performance recommendations based on current metrics
+   */
+  getPerformanceRecommendations(): string[] {
+    const recommendations: string[] = [];
+    const metrics = this.getMetrics();
+    
+    if (this.performanceLevel === 'critical') {
+      recommendations.push('Consider reducing visual effects');
+      recommendations.push('Limit number of game entities');
+      recommendations.push('Enable performance mode if available');
+    }
+    
+    if (this.memoryPressureLevel === 'high') {
+      recommendations.push('Force garbage collection');
+      recommendations.push('Clear unnecessary object pools');
+      recommendations.push('Reduce cache sizes');
+    }
+    
+    if (metrics.droppedFrames > metrics.totalFrames * 0.1) {
+      recommendations.push('Optimize game loop performance');
+      recommendations.push('Reduce collision detection frequency');
+    }
+    
+    return recommendations;
+  }
+
+  /**
+   * Reset all performance tracking data
+   */
+  reset(): void {
+    this.frameTimes = [];
+    this.totalFrames = 0;
+    this.droppedFrames = 0;
+    this.lastFrameTime = performance.now();
+    this.lastNotificationTime = performance.now();
+    
+    // Reset memory tracking
+    this.lastMemoryUsage = 0;
+    this.memoryReadings = [];
+    this.gcCollections = 0;
+    this.lastGCCheck = 0;
+    this.memoryPressureLevel = 'low';
+    this.performanceLevel = 'optimal';
+    this.performanceDegradationCount = 0;
   }
 }
 

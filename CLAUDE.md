@@ -48,25 +48,25 @@ app/
 └── +not-found.tsx               # 404 handling
 
 screens/                          # All game screens
-├── HyperCasualGameScreen.tsx    # Main game with level progression UI
-├── HyperCasualMenuScreen.tsx    # Main menu with level selection
-├── HyperCasualSettingsScreen.tsx # Settings integration
-├── HyperCasualAboutScreen.tsx   # About screen
+├── GameScreen.tsx               # Main game with level progression UI
+├── MenuScreen.tsx               # Main menu with level selection
+├── SettingsScreen.tsx           # Settings integration
+├── AboutScreen.tsx              # About screen
 ├── GameScreenMinimal.tsx        # Minimal game screen variant
 ├── PeteCustomizationScreen.tsx  # Character customization
 └── WorldMapScreen.tsx           # Level selection map
 
 components/
 ├── game/                        # Core game visual components
-│   ├── HyperCasualPete.tsx     # Pete with theme-based coloring
-│   ├── HyperCasualEnemy.tsx    # Enemies with type differentiation
-│   ├── HyperCasualProjectile.tsx # Projectiles with level physics
-│   ├── HyperCasualBackground.tsx # Theme-based backgrounds
+│   ├── Pete.tsx                # Pete with theme-based coloring
+│   ├── Enemy.tsx               # Enemies with type differentiation
+│   ├── Projectile.tsx          # Projectiles with level physics
+│   ├── GameBackground.tsx      # Theme-based backgrounds
 │   └── MysteryBalloon.tsx      # Special mystery balloon mechanic
 ├── ui/                         # UI components and HUD elements
 │   ├── LevelHUD.tsx           # Level progress, objectives, combo display
 │   ├── LevelTransition.tsx    # Level start/victory/failure screens
-│   ├── HyperCasualHUD.tsx     # Main game HUD
+│   ├── GameHUD.tsx            # Main game HUD
 │   ├── CelebrationSystem.tsx  # Victory celebrations and rewards
 │   ├── ProgressionHUD.tsx     # Meta-progression display
 │   ├── TutorialOverlay.tsx    # Tutorial system
@@ -104,8 +104,8 @@ store/                          # State management (Zustand)
 └── celebrationStore.ts        # Celebration system state
 
 hooks/                          # Custom React hooks
-├── useHyperCasualGameLogic.ts # Wave-based enemy spawning and level physics
-├── useHyperCasualInput.ts     # Smooth swipe controls for Pete
+├── useGameLogic.ts           # Wave-based enemy spawning and level physics
+├── useGameInput.ts           # Smooth swipe controls for Pete
 ├── useCelebrationManager.ts   # Celebration system integration
 └── useTutorialIntegration.ts  # Tutorial system hooks
 
@@ -123,7 +123,7 @@ types/                          # TypeScript type definitions
 
 constants/                      # Configuration and constants
 ├── GameConfig.ts             # Level-configurable game parameters
-├── HyperCasualColors.ts      # Theme-based color schemes
+├── GameColors.ts             # Theme-based color schemes
 └── Colors.ts                 # Standard Expo color definitions
 
 utils/                          # Utility functions and helpers
@@ -409,21 +409,21 @@ The following files are **obsolete** after the hyper-casual transformation and c
 
 ### Arcade UI Components (OBSOLETE)
 - `components/arcade/` - All arcade-style UI components
-- `constants/ArcadeColors.ts` - Neon color palette (replaced by HyperCasualColors.ts)
-- `screens/MenuScreen.tsx` - Old arcade menu (replaced by HyperCasualMenuScreen.tsx)
+- `constants/ArcadeColors.ts` - Neon color palette (replaced by GameColors.ts)
+- `screens/MenuScreen.tsx` - Old arcade menu (replaced by MenuScreen.tsx)
 - `screens/EnhancedMenuScreen.tsx` - Enhanced arcade menu
-- `screens/GameScreen.tsx` - Old arcade game screen (replaced by HyperCasualGameScreen.tsx)
-- `components/ui/EnhancedGameHUD.tsx` - Complex arcade HUD (replaced by HyperCasualHUD.tsx)
+- `screens/GameScreen.tsx` - Old arcade game screen (replaced by GameScreen.tsx)
+- `components/ui/EnhancedGameHUD.tsx` - Complex arcade HUD (replaced by GameHUD.tsx)
 - `components/ui/CRTFrame.tsx` - CRT screen effect component
 - `components/ui/AnimatedLogo.tsx` - Arcade-style animated logo
-- `hooks/useGameLogic.ts` - Complex arcade game logic (replaced by useHyperCasualGameLogic.ts)
-- `hooks/useGameInput.ts` - Arcade input handling (replaced by useHyperCasualInput.ts)
+- `hooks/useGameLogic.ts` - Complex arcade game logic (replaced by useGameLogic.ts)
+- `hooks/useGameInput.ts` - Arcade input handling (replaced by useGameInput.ts)
 
 ### Original Game Components (LEGACY)
-- `components/game/Pete.tsx` - Detailed arcade Pete (replaced by HyperCasualPete.tsx)
-- `components/game/Enemy.tsx` - Complex arcade enemies (replaced by HyperCasualEnemy.tsx)
-- `components/game/Projectile.tsx` - Animated arcade projectiles (replaced by HyperCasualProjectile.tsx)
-- `components/game/Starfield.tsx` - Arcade starfield background (replaced by HyperCasualBackground.tsx)
+- `components/game/Pete.tsx` - Detailed arcade Pete (replaced by Pete.tsx)
+- `components/game/Enemy.tsx` - Complex arcade enemies (replaced by Enemy.tsx)
+- `components/game/Projectile.tsx` - Animated arcade projectiles (replaced by Projectile.tsx)
+- `components/game/Starfield.tsx` - Arcade starfield background (replaced by GameBackground.tsx)
 
 **Note**: These files are kept for reference but are no longer used in the active hyper-casual game.
 
@@ -508,7 +508,7 @@ export const useCurrentCombo = () => useLevelProgressionStore(state => state.cur
 #### Files That Were Fixed
 1. **`store/gameStore.ts`**: Added deprecation warning to `useUIState()` hook
 2. **`store/levelProgressionStore.ts`**: Added individual selectors for all state values
-3. **`hooks/useHyperCasualGameLogic.ts`**: Replaced composite selectors with individual ones
+3. **`hooks/useGameLogic.ts`**: Replaced composite selectors with individual ones
 4. **`hooks/useGameLogic.ts`**: Applied same fixes to legacy hook
 5. **`components/ui/LevelHUD.tsx`**: Replaced `useLevelProgress()` with individual selectors
 

@@ -1,6 +1,6 @@
 /**
  * Meta-Progression Store - Zustand store for persistent player statistics and progression
- * 
+ *
  * This store handles:
  * - Player statistics and records
  * - Achievement progress and unlocks
@@ -10,7 +10,7 @@
  * - 3-star level mastery system
  * - Mystery balloon rewards
  * - AsyncStorage persistence
- * 
+ *
  * Designed for 2025 hyper-casual retention and psychological engagement.
  */
 
@@ -33,7 +33,7 @@ import {
   CustomizationItem,
   UnlockableItem,
   XPSource,
-  META_PROGRESSION_CONSTANTS
+  META_PROGRESSION_CONSTANTS,
 } from '../types/MetaProgressionTypes';
 
 // Storage keys for persistence
@@ -43,7 +43,7 @@ const STORAGE_KEYS = {
   CUSTOMIZATIONS: 'psp_customizations',
   DAILY_CHALLENGES: 'psp_daily_challenges',
   BATTLE_PASS: 'psp_battle_pass',
-  MASTERY_RECORDS: 'psp_mastery_records'
+  MASTERY_RECORDS: 'psp_mastery_records',
 } as const;
 
 // ===== STORE STATE INTERFACE =====
@@ -51,36 +51,36 @@ const STORAGE_KEYS = {
 interface MetaProgressionState {
   // Core Player Progress
   metaProgress: PlayerMetaProgress | null;
-  
+
   // Achievement System
   achievements: Achievement[];
   achievementProgress: AchievementProgress;
-  
+
   // Level Mastery (3-star system)
   masteryRecords: Record<number, LevelMasteryRecord>;
-  
+
   // Pete Customization
   unlockedCustomizations: UnlockedCustomizations;
   activeCustomizations: ActiveCustomizations;
   availableCustomizations: CustomizationItem[];
-  
+
   // Daily Challenges
   dailyChallenges: DailyChallenge[];
   challengeProgress: Record<string, DailyChallengeProgress>;
   challengeHistory: ChallengeHistory;
-  
+
   // Battle Pass
   battlePassProgress: BattlePassProgress;
-  
+
   // Mystery Rewards
   mysteryRewardHistory: MysteryReward[];
-  
+
   // UI State
   isLoading: boolean;
   lastSyncTime: number;
-  pendingRewards: UnlockableItem[];      // Rewards waiting to be shown to player
-  newAchievements: Achievement[];        // Recently unlocked achievements
-  
+  pendingRewards: UnlockableItem[]; // Rewards waiting to be shown to player
+  newAchievements: Achievement[]; // Recently unlocked achievements
+
   // Session Statistics
   sessionStats: {
     balloonsPopped: number;
@@ -94,62 +94,72 @@ interface MetaProgressionState {
 interface MetaProgressionActions {
   // Initialization
   initialize: () => Promise<void>;
-  
+
   // Player Statistics
   updatePlayerStats: (updates: Partial<PlayerMetaProgress>) => void;
   addPlaytime: (milliseconds: number) => void;
   recordBalloonPop: () => void;
   recordShotFired: () => void;
   recordShotHit: () => void;
-  
+
   // Achievement System
   checkAchievements: () => void;
   unlockAchievement: (achievementId: string) => void;
   updateAchievementProgress: (achievementId: string, value: number) => void;
   clearNewAchievements: () => void;
-  
+
   // Level Mastery
-  recordLevelCompletion: (levelId: number, time: number, accuracy: number, styleScore: number) => void;
-  calculateMasteryStars: (time: number, accuracy: number, styleScore: number, thresholds: any) => number;
+  recordLevelCompletion: (
+    levelId: number,
+    time: number,
+    accuracy: number,
+    styleScore: number
+  ) => void;
+  calculateMasteryStars: (
+    time: number,
+    accuracy: number,
+    styleScore: number,
+    thresholds: any
+  ) => number;
   getMasteryRecord: (levelId: number) => LevelMasteryRecord | null;
-  
+
   // Pete Customization
   unlockCustomization: (itemId: string) => void;
   setActiveCustomization: (category: string, itemId: string) => void;
   purchaseCustomization: (itemId: string) => boolean;
-  
+
   // Daily Challenges
   generateDailyChallenges: () => void;
   updateChallengeProgress: (challengeId: string, progress: number) => void;
   claimChallengeReward: (challengeId: string) => void;
   refreshChallenges: () => void;
-  
+
   // Battle Pass
   earnXP: (amount: number, source: XPSource) => void;
   claimBattlePassReward: (tier: number, isPremium: boolean) => void;
   purchasePremiumPass: () => boolean;
-  
+
   // Mystery Rewards
   processMysteryReward: (reward: MysteryReward) => void;
-  
+
   // Currency
   addCoins: (amount: number) => void;
   spendCoins: (amount: number) => boolean;
   addGems: (amount: number) => void;
   spendGems: (amount: number) => boolean;
-  
+
   // Helper methods
   processUnlockableItem: (item: UnlockableItem) => void;
   processMysteryBox: (boxType: string) => void;
-  
+
   // Persistence
   saveToStorage: () => Promise<void>;
   loadFromStorage: () => Promise<void>;
-  
+
   // Session Management
   startSession: () => void;
   endSession: () => void;
-  
+
   // Feature Unlocks
   checkFeatureUnlocks: () => void;
   unlockFeature: (featureId: string) => void;
@@ -167,49 +177,49 @@ const createInitialMetaProgress = (): PlayerMetaProgress => ({
   balloonsPopped: 0,
   shotsFired: 0,
   shotsHit: 0,
-  
+
   longestCombo: 0,
   perfectLevelsCompleted: 0,
   consecutiveDaysPlayed: 0,
   currentLoginStreak: 0,
-  
+
   totalStarsEarned: 0,
   masteryChallengesCompleted: 0,
-  
+
   personalBests: {},
   globalRankings: {
-    lastUpdated: Date.now()
+    lastUpdated: Date.now(),
   },
-  
+
   firstPlayDate: Date.now(),
   lastPlayDate: Date.now(),
   lastDailyRewardClaim: 0,
-  
+
   unlockedCustomizations: {
     colors: new Set(['default']),
     trails: new Set(['none']),
     shootingEffects: new Set(['basic']),
     poses: new Set(['default']),
     emotes: new Set(['wave']),
-    backgrounds: new Set(['gradient'])
+    backgrounds: new Set(['gradient']),
   },
-  
+
   activeCustomizations: {
     color: 'default',
     trail: 'none',
     shootingEffect: 'basic',
     pose: 'default',
     emote: 'wave',
-    background: 'gradient'
+    background: 'gradient',
   },
-  
+
   achievements: {
     unlockedAchievements: new Set(),
     achievementProgress: {},
     recentlyUnlocked: [],
-    totalAchievementScore: 0
+    totalAchievementScore: 0,
   },
-  
+
   battlePassProgress: {
     currentSeason: 'season_1',
     currentTier: 0,
@@ -221,13 +231,13 @@ const createInitialMetaProgress = (): PlayerMetaProgress => ({
     completedSeasons: [],
     xpThisSession: 0,
     xpThisWeek: 0,
-    totalXPEarned: 0
+    totalXPEarned: 0,
   },
-  
+
   coins: 0,
   gems: 0,
-  
-  unlockedFeatures: ['achievements']
+
+  unlockedFeatures: ['achievements'],
 });
 
 const createInitialChallengeHistory = (): ChallengeHistory => ({
@@ -235,7 +245,7 @@ const createInitialChallengeHistory = (): ChallengeHistory => ({
   currentStreak: 0,
   longestStreak: 0,
   totalChallengesCompleted: 0,
-  weeklyCompletionRate: 0
+  weeklyCompletionRate: 0,
 });
 
 // ===== STORE IMPLEMENTATION =====
@@ -245,16 +255,16 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     // Initialize the store
     initialize: async () => {
       set({ isLoading: true });
-      
+
       try {
         await actions.loadFromStorage();
         actions.checkFeatureUnlocks();
         actions.generateDailyChallenges();
         actions.checkAchievements();
-        
-        set({ 
+
+        set({
           isLoading: false,
-          lastSyncTime: Date.now()
+          lastSyncTime: Date.now(),
         });
       } catch (error) {
         console.error('Failed to initialize meta progression:', error);
@@ -265,23 +275,27 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     // Update player statistics
     updatePlayerStats: (updates: Partial<PlayerMetaProgress>) => {
       set((state: MetaProgressionState) => ({
-        metaProgress: state.metaProgress ? {
-          ...state.metaProgress,
-          ...updates,
-          lastPlayDate: Date.now()
-        } : null
+        metaProgress: state.metaProgress
+          ? {
+              ...state.metaProgress,
+              ...updates,
+              lastPlayDate: Date.now(),
+            }
+          : null,
       }));
     },
 
     // Add playtime tracking
     addPlaytime: (milliseconds: number) => {
       set((state: MetaProgressionState) => ({
-        metaProgress: state.metaProgress ? {
-          ...state.metaProgress,
-          totalPlaytime: state.metaProgress.totalPlaytime + milliseconds
-        } : null
+        metaProgress: state.metaProgress
+          ? {
+              ...state.metaProgress,
+              totalPlaytime: state.metaProgress.totalPlaytime + milliseconds,
+            }
+          : null,
       }));
-      
+
       // Auto-save every 30 seconds of playtime
       const state = get();
       if (state.metaProgress && state.metaProgress.totalPlaytime % 30000 < milliseconds) {
@@ -292,16 +306,18 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     // Record balloon pop
     recordBalloonPop: () => {
       set((state: MetaProgressionState) => ({
-        metaProgress: state.metaProgress ? {
-          ...state.metaProgress,
-          balloonsPopped: state.metaProgress.balloonsPopped + 1
-        } : null,
+        metaProgress: state.metaProgress
+          ? {
+              ...state.metaProgress,
+              balloonsPopped: state.metaProgress.balloonsPopped + 1,
+            }
+          : null,
         sessionStats: {
           ...state.sessionStats,
-          balloonsPopped: state.sessionStats.balloonsPopped + 1
-        }
+          balloonsPopped: state.sessionStats.balloonsPopped + 1,
+        },
       }));
-      
+
       // Check achievements that might be triggered by balloon pops
       actions.checkAchievements();
     },
@@ -309,28 +325,32 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     // Record shot fired
     recordShotFired: () => {
       set((state: MetaProgressionState) => ({
-        metaProgress: state.metaProgress ? {
-          ...state.metaProgress,
-          shotsFired: state.metaProgress.shotsFired + 1
-        } : null,
+        metaProgress: state.metaProgress
+          ? {
+              ...state.metaProgress,
+              shotsFired: state.metaProgress.shotsFired + 1,
+            }
+          : null,
         sessionStats: {
           ...state.sessionStats,
-          shotsFired: state.sessionStats.shotsFired + 1
-        }
+          shotsFired: state.sessionStats.shotsFired + 1,
+        },
       }));
     },
 
     // Record shot hit
     recordShotHit: () => {
       set((state: MetaProgressionState) => ({
-        metaProgress: state.metaProgress ? {
-          ...state.metaProgress,
-          shotsHit: state.metaProgress.shotsHit + 1
-        } : null,
+        metaProgress: state.metaProgress
+          ? {
+              ...state.metaProgress,
+              shotsHit: state.metaProgress.shotsHit + 1,
+            }
+          : null,
         sessionStats: {
           ...state.sessionStats,
-          shotsHit: state.sessionStats.shotsHit + 1
-        }
+          shotsHit: state.sessionStats.shotsHit + 1,
+        },
       }));
     },
 
@@ -351,7 +371,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
 
         // Check if achievement should be unlocked
         let shouldUnlock = false;
-        
+
         switch (achievement.condition.metric) {
           case 'balloons_popped':
             shouldUnlock = state.metaProgress.balloonsPopped >= achievement.target;
@@ -376,7 +396,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
 
       if (newUnlocks.length > 0) {
         set((state: MetaProgressionState) => ({
-          newAchievements: [...state.newAchievements, ...newUnlocks]
+          newAchievements: [...state.newAchievements, ...newUnlocks],
         }));
       }
     },
@@ -390,13 +410,19 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       set((state: MetaProgressionState) => ({
         achievementProgress: {
           ...state.achievementProgress,
-          unlockedAchievements: new Set([...state.achievementProgress.unlockedAchievements, achievementId]),
-          totalAchievementScore: state.achievementProgress.totalAchievementScore + achievement.scoreReward
+          unlockedAchievements: new Set([
+            ...state.achievementProgress.unlockedAchievements,
+            achievementId,
+          ]),
+          totalAchievementScore:
+            state.achievementProgress.totalAchievementScore + achievement.scoreReward,
         },
-        metaProgress: state.metaProgress ? {
-          ...state.metaProgress,
-          coins: state.metaProgress.coins + achievement.coinReward
-        } : null
+        metaProgress: state.metaProgress
+          ? {
+              ...state.metaProgress,
+              coins: state.metaProgress.coins + achievement.coinReward,
+            }
+          : null,
       }));
 
       // Process any unlock rewards
@@ -412,7 +438,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       set((state: MetaProgressionState) => {
         const currentProgress = state.achievementProgress.achievementProgress[achievementId];
         const achievement = state.achievements.find((a: Achievement) => a.id === achievementId);
-        
+
         if (!achievement) return state;
 
         const newProgress: AchievementProgressData = {
@@ -420,7 +446,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
           targetValue: achievement.target,
           progressPercentage: Math.min(100, (value / achievement.target) * 100),
           firstProgressDate: currentProgress?.firstProgressDate || Date.now(),
-          lastProgressDate: Date.now()
+          lastProgressDate: Date.now(),
         };
 
         return {
@@ -428,9 +454,9 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
             ...state.achievementProgress,
             achievementProgress: {
               ...state.achievementProgress.achievementProgress,
-              [achievementId]: newProgress
-            }
-          }
+              [achievementId]: newProgress,
+            },
+          },
         };
       });
     },
@@ -441,7 +467,12 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     },
 
     // Record level completion for mastery system
-    recordLevelCompletion: async (levelId: number, time: number, accuracy: number, styleScore: number) => {
+    recordLevelCompletion: async (
+      levelId: number,
+      time: number,
+      accuracy: number,
+      styleScore: number
+    ) => {
       // Get level configuration for mastery thresholds
       let masteryThresholds;
       try {
@@ -454,16 +485,16 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
           goldTimeThreshold: getMasteryTimeThreshold(levelId),
           goldAccuracyThreshold: META_PROGRESSION_CONSTANTS.DEFAULT_ACCURACY_GOLD,
           goldStyleThreshold: META_PROGRESSION_CONSTANTS.DEFAULT_STYLE_GOLD,
-          perfectCompletionMultiplier: 2.0
+          perfectCompletionMultiplier: 2.0,
         };
       }
-      
+
       const stars = actions.calculateMasteryStars(time, accuracy, styleScore, masteryThresholds!);
-      
+
       set((state: MetaProgressionState) => {
         const existingRecord = state.masteryRecords[levelId];
         const isFirstCompletion = !existingRecord;
-        
+
         const newRecord: LevelMasteryRecord = {
           levelId,
           timeStars: time <= masteryThresholds!.goldTimeThreshold ? 1 : 0,
@@ -477,23 +508,27 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
           badges: existingRecord?.badges || [],
           firstCompletionDate: existingRecord?.firstCompletionDate || Date.now(),
           lastAttemptDate: Date.now(),
-          totalAttempts: (existingRecord?.totalAttempts || 0) + 1
+          totalAttempts: (existingRecord?.totalAttempts || 0) + 1,
         };
 
         const starsEarned = stars - (existingRecord?.totalStars || 0);
-        
+
         return {
           masteryRecords: {
             ...state.masteryRecords,
-            [levelId]: newRecord
+            [levelId]: newRecord,
           },
-          metaProgress: state.metaProgress ? {
-            ...state.metaProgress,
-            totalStarsEarned: state.metaProgress.totalStarsEarned + starsEarned,
-            perfectLevelsCompleted: accuracy === 100 
-              ? state.metaProgress.perfectLevelsCompleted + (isFirstCompletion && accuracy === 100 ? 1 : 0)
-              : state.metaProgress.perfectLevelsCompleted
-          } : null
+          metaProgress: state.metaProgress
+            ? {
+                ...state.metaProgress,
+                totalStarsEarned: state.metaProgress.totalStarsEarned + starsEarned,
+                perfectLevelsCompleted:
+                  accuracy === 100
+                    ? state.metaProgress.perfectLevelsCompleted +
+                      (isFirstCompletion && accuracy === 100 ? 1 : 0)
+                    : state.metaProgress.perfectLevelsCompleted,
+              }
+            : null,
         };
       });
 
@@ -501,14 +536,14 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       actions.earnXP(META_PROGRESSION_CONSTANTS.BASE_XP_PER_LEVEL, {
         source: 'level_completion',
         baseXP: META_PROGRESSION_CONSTANTS.BASE_XP_PER_LEVEL,
-        bonusMultipliers: []
+        bonusMultipliers: [],
       });
 
       if (stars > 0) {
         actions.earnXP(stars * 50, {
           source: 'star_earned',
           baseXP: 50,
-          bonusMultipliers: []
+          bonusMultipliers: [],
         });
       }
 
@@ -516,18 +551,23 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     },
 
     // Calculate mastery stars for a level completion
-    calculateMasteryStars: (time: number, accuracy: number, styleScore: number, thresholds: any): number => {
+    calculateMasteryStars: (
+      time: number,
+      accuracy: number,
+      styleScore: number,
+      thresholds: any
+    ): number => {
       let stars = 0;
-      
+
       // Time star
       if (time <= thresholds.goldTimeThreshold) stars += 1;
-      
-      // Accuracy star  
+
+      // Accuracy star
       if (accuracy >= thresholds.goldAccuracyThreshold) stars += 1;
-      
+
       // Style star
       if (styleScore >= thresholds.goldStyleThreshold) stars += 1;
-      
+
       return stars;
     },
 
@@ -535,9 +575,9 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     processUnlockableItem: (item: UnlockableItem) => {
       // This will be assigned later in the function
     },
-    
+
     processMysteryBox: (boxType: string) => {
-      // This will be assigned later in the function  
+      // This will be assigned later in the function
     },
 
     // Get mastery record for level
@@ -550,21 +590,28 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     earnXP: (amount: number, source: XPSource) => {
       set((state: MetaProgressionState) => {
         let finalAmount = amount;
-        
+
         // Apply bonus multipliers
         source.bonusMultipliers.forEach(bonus => {
           finalAmount *= bonus.multiplier;
         });
 
         const newXP = state.battlePassProgress.currentXP + finalAmount;
-        const xpPerTier = META_PROGRESSION_CONSTANTS.BASE_XP_PER_LEVEL * 
-          Math.pow(META_PROGRESSION_CONSTANTS.XP_SCALING_FACTOR, state.battlePassProgress.currentTier);
-        
+        const xpPerTier =
+          META_PROGRESSION_CONSTANTS.BASE_XP_PER_LEVEL *
+          Math.pow(
+            META_PROGRESSION_CONSTANTS.XP_SCALING_FACTOR,
+            state.battlePassProgress.currentTier
+          );
+
         let newTier = state.battlePassProgress.currentTier;
         let remainingXP = newXP;
-        
+
         // Calculate tier ups
-        while (remainingXP >= xpPerTier && newTier < META_PROGRESSION_CONSTANTS.DEFAULT_BATTLE_PASS_TIERS) {
+        while (
+          remainingXP >= xpPerTier &&
+          newTier < META_PROGRESSION_CONSTANTS.DEFAULT_BATTLE_PASS_TIERS
+        ) {
           remainingXP -= xpPerTier;
           newTier += 1;
         }
@@ -576,8 +623,8 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
             currentXP: remainingXP,
             xpToNextTier: xpPerTier - remainingXP,
             xpThisSession: state.battlePassProgress.xpThisSession + finalAmount,
-            totalXPEarned: state.battlePassProgress.totalXPEarned + finalAmount
-          }
+            totalXPEarned: state.battlePassProgress.totalXPEarned + finalAmount,
+          },
         };
       });
     },
@@ -585,10 +632,12 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     // Add coins
     addCoins: (amount: number) => {
       set((state: MetaProgressionState) => ({
-        metaProgress: state.metaProgress ? {
-          ...state.metaProgress,
-          coins: state.metaProgress.coins + amount
-        } : null
+        metaProgress: state.metaProgress
+          ? {
+              ...state.metaProgress,
+              coins: state.metaProgress.coins + amount,
+            }
+          : null,
       }));
     },
 
@@ -600,10 +649,12 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       }
 
       set((state: MetaProgressionState) => ({
-        metaProgress: state.metaProgress ? {
-          ...state.metaProgress,
-          coins: state.metaProgress.coins - amount
-        } : null
+        metaProgress: state.metaProgress
+          ? {
+              ...state.metaProgress,
+              coins: state.metaProgress.coins - amount,
+            }
+          : null,
       }));
 
       return true;
@@ -617,8 +668,8 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
           shotsFired: 0,
           shotsHit: 0,
           sessionStartTime: Date.now(),
-          xpEarnedThisSession: 0
-        }
+          xpEarnedThisSession: 0,
+        },
       });
     },
 
@@ -626,7 +677,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     endSession: () => {
       const state = get();
       const sessionDuration = Date.now() - state.sessionStats.sessionStartTime;
-      
+
       actions.addPlaytime(sessionDuration);
       actions.saveToStorage();
     },
@@ -634,30 +685,42 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     // Save all data to AsyncStorage
     saveToStorage: async () => {
       const state = get();
-      
+
       try {
         const savePromises = [
-          AsyncStorage.setItem(STORAGE_KEYS.META_PROGRESS, JSON.stringify({
-            ...state.metaProgress,
-            unlockedCustomizations: {
-              colors: Array.from(state.metaProgress?.unlockedCustomizations.colors || []),
-              trails: Array.from(state.metaProgress?.unlockedCustomizations.trails || []),
-              shootingEffects: Array.from(state.metaProgress?.unlockedCustomizations.shootingEffects || []),
-              poses: Array.from(state.metaProgress?.unlockedCustomizations.poses || []),
-              emotes: Array.from(state.metaProgress?.unlockedCustomizations.emotes || []),
-              backgrounds: Array.from(state.metaProgress?.unlockedCustomizations.backgrounds || [])
-            },
-            achievements: {
-              ...state.metaProgress?.achievements,
-              unlockedAchievements: Array.from(state.metaProgress?.achievements.unlockedAchievements || [])
-            }
-          })),
+          AsyncStorage.setItem(
+            STORAGE_KEYS.META_PROGRESS,
+            JSON.stringify({
+              ...state.metaProgress,
+              unlockedCustomizations: {
+                colors: Array.from(state.metaProgress?.unlockedCustomizations.colors || []),
+                trails: Array.from(state.metaProgress?.unlockedCustomizations.trails || []),
+                shootingEffects: Array.from(
+                  state.metaProgress?.unlockedCustomizations.shootingEffects || []
+                ),
+                poses: Array.from(state.metaProgress?.unlockedCustomizations.poses || []),
+                emotes: Array.from(state.metaProgress?.unlockedCustomizations.emotes || []),
+                backgrounds: Array.from(
+                  state.metaProgress?.unlockedCustomizations.backgrounds || []
+                ),
+              },
+              achievements: {
+                ...state.metaProgress?.achievements,
+                unlockedAchievements: Array.from(
+                  state.metaProgress?.achievements.unlockedAchievements || []
+                ),
+              },
+            })
+          ),
           AsyncStorage.setItem(STORAGE_KEYS.MASTERY_RECORDS, JSON.stringify(state.masteryRecords)),
-          AsyncStorage.setItem(STORAGE_KEYS.BATTLE_PASS, JSON.stringify({
-            ...state.battlePassProgress,
-            freeTrackRewards: Array.from(state.battlePassProgress.freeTrackRewards),
-            premiumTrackRewards: Array.from(state.battlePassProgress.premiumTrackRewards)
-          }))
+          AsyncStorage.setItem(
+            STORAGE_KEYS.BATTLE_PASS,
+            JSON.stringify({
+              ...state.battlePassProgress,
+              freeTrackRewards: Array.from(state.battlePassProgress.freeTrackRewards),
+              premiumTrackRewards: Array.from(state.battlePassProgress.premiumTrackRewards),
+            })
+          ),
         ];
 
         await Promise.all(savePromises);
@@ -672,7 +735,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
         const [metaProgressData, masteryData, battlePassData] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEYS.META_PROGRESS),
           AsyncStorage.getItem(STORAGE_KEYS.MASTERY_RECORDS),
-          AsyncStorage.getItem(STORAGE_KEYS.BATTLE_PASS)
+          AsyncStorage.getItem(STORAGE_KEYS.BATTLE_PASS),
         ]);
 
         let metaProgress = createInitialMetaProgress();
@@ -689,12 +752,12 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
               shootingEffects: new Set(parsed.unlockedCustomizations?.shootingEffects || ['basic']),
               poses: new Set(parsed.unlockedCustomizations?.poses || ['default']),
               emotes: new Set(parsed.unlockedCustomizations?.emotes || ['wave']),
-              backgrounds: new Set(parsed.unlockedCustomizations?.backgrounds || ['gradient'])
+              backgrounds: new Set(parsed.unlockedCustomizations?.backgrounds || ['gradient']),
             },
             achievements: {
               ...parsed.achievements,
-              unlockedAchievements: new Set(parsed.achievements?.unlockedAchievements || [])
-            }
+              unlockedAchievements: new Set(parsed.achievements?.unlockedAchievements || []),
+            },
           };
         }
 
@@ -707,7 +770,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
           battlePassProgress = {
             ...parsed,
             freeTrackRewards: new Set(parsed.freeTrackRewards || []),
-            premiumTrackRewards: new Set(parsed.premiumTrackRewards || [])
+            premiumTrackRewards: new Set(parsed.premiumTrackRewards || []),
           };
         }
 
@@ -717,16 +780,15 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
           battlePassProgress,
           achievementProgress: metaProgress.achievements,
           unlockedCustomizations: metaProgress.unlockedCustomizations,
-          activeCustomizations: metaProgress.activeCustomizations
+          activeCustomizations: metaProgress.activeCustomizations,
         });
-
       } catch (error) {
         console.error('Failed to load meta progression data:', error);
         // Initialize with default data
         set({
           metaProgress: createInitialMetaProgress(),
           masteryRecords: {},
-          challengeHistory: createInitialChallengeHistory()
+          challengeHistory: createInitialChallengeHistory(),
         });
       }
     },
@@ -736,16 +798,16 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       try {
         const { dailyChallengeManager } = await import('../systems/DailyChallengeManager');
         await dailyChallengeManager.checkAndRefreshChallenges();
-        
+
         // Update store with new challenges
         const challenges = dailyChallengeManager.getCurrentChallenges();
         const progress = dailyChallengeManager.getChallengeProgress();
         const history = dailyChallengeManager.getChallengeHistory();
-        
+
         set({
           dailyChallenges: challenges,
           challengeProgress: progress,
-          challengeHistory: history
+          challengeHistory: history,
         });
       } catch (error) {
         console.error('Failed to generate daily challenges:', error);
@@ -756,16 +818,16 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       try {
         const { dailyChallengeManager } = await import('../systems/DailyChallengeManager');
         dailyChallengeManager.updateChallengeProgress(challengeId, progress);
-        
+
         // Update store with new progress
         const updatedProgress = dailyChallengeManager.getChallengeProgress();
         const updatedHistory = dailyChallengeManager.getChallengeHistory();
-        
+
         set({
           challengeProgress: updatedProgress,
-          challengeHistory: updatedHistory
+          challengeHistory: updatedHistory,
         });
-        
+
         // Check if challenge was completed and award XP
         const challengeProgressData = updatedProgress[challengeId];
         if (challengeProgressData?.completed && !challengeProgressData.claimed) {
@@ -775,7 +837,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
             actions.earnXP(challenge.baseReward.experiencePoints || 100, {
               source: 'daily_challenge',
               baseXP: challenge.baseReward.experiencePoints || 100,
-              bonusMultipliers: []
+              bonusMultipliers: [],
             });
           }
         }
@@ -788,20 +850,20 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       try {
         const { dailyChallengeManager } = await import('../systems/DailyChallengeManager');
         const reward = dailyChallengeManager.claimChallengeReward(challengeId);
-        
+
         if (reward) {
           // Add coins to player
           actions.addCoins(reward.coins);
-          
+
           // Process any unlockable items
           if (reward.unlockableItem) {
             actions.processUnlockableItem(reward.unlockableItem);
           }
-          
+
           // Update store progress
           const updatedProgress = dailyChallengeManager.getChallengeProgress();
           set({ challengeProgress: updatedProgress });
-          
+
           console.log('Challenge reward claimed:', reward);
         }
       } catch (error) {
@@ -813,7 +875,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       try {
         const { dailyChallengeManager } = await import('../systems/DailyChallengeManager');
         const wasRefreshed = await dailyChallengeManager.checkAndRefreshChallenges();
-        
+
         if (wasRefreshed) {
           // Update store with refreshed challenges
           await actions.generateDailyChallenges();
@@ -829,7 +891,10 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
         const category = extractCustomizationCategory(itemId);
         if (!category || !state.metaProgress) return state;
 
-        const currentUnlocked = state.metaProgress.unlockedCustomizations[category as keyof typeof state.metaProgress.unlockedCustomizations];
+        const currentUnlocked =
+          state.metaProgress.unlockedCustomizations[
+            category as keyof typeof state.metaProgress.unlockedCustomizations
+          ];
         if (currentUnlocked.has(itemId)) return state;
 
         return {
@@ -837,9 +902,9 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
             ...state.metaProgress,
             unlockedCustomizations: {
               ...state.metaProgress.unlockedCustomizations,
-              [category]: new Set([...currentUnlocked, itemId])
-            }
-          }
+              [category]: new Set([...currentUnlocked, itemId]),
+            },
+          },
         };
       });
     },
@@ -849,7 +914,10 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
         if (!state.metaProgress) return state;
 
         // Check if item is unlocked
-        const unlockedItems = state.metaProgress.unlockedCustomizations[category as keyof typeof state.metaProgress.unlockedCustomizations];
+        const unlockedItems =
+          state.metaProgress.unlockedCustomizations[
+            category as keyof typeof state.metaProgress.unlockedCustomizations
+          ];
         if (!unlockedItems?.has(itemId)) {
           console.warn(`Customization ${itemId} not unlocked for category ${category}`);
           return state;
@@ -860,16 +928,16 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
             ...state.metaProgress,
             activeCustomizations: {
               ...state.metaProgress.activeCustomizations,
-              [category]: itemId
-            }
-          }
+              [category]: itemId,
+            },
+          },
         };
       });
     },
 
     purchaseCustomization: (itemId: string): boolean => {
       const state = get();
-      
+
       // Find customization item (would come from a customization catalog)
       const item = state.availableCustomizations.find((c: CustomizationItem) => c.id === itemId);
       if (!item || !item.purchasable) return false;
@@ -891,67 +959,82 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     processMysteryReward: (reward: MysteryReward) => {
       try {
         console.log('Processing mystery reward:', reward);
-        
+
         switch (reward.type) {
           case 'coins':
             const coinAmount = typeof reward.value === 'number' ? reward.value : 0;
             actions.addCoins(coinAmount);
             break;
-            
+
           case 'experience':
             const xpAmount = typeof reward.value === 'number' ? reward.value : 0;
             actions.earnXP(xpAmount, {
               source: 'mystery_balloon',
               baseXP: xpAmount,
-              bonusMultipliers: []
+              bonusMultipliers: [],
             });
             break;
-            
+
           case 'customization':
             // For now, randomly unlock a color customization
-            const colorIds = ['color_red', 'color_blue', 'color_green', 'color_purple', 'color_orange'];
+            const colorIds = [
+              'color_red',
+              'color_blue',
+              'color_green',
+              'color_purple',
+              'color_orange',
+            ];
             const randomColor = colorIds[Math.floor(Math.random() * colorIds.length)];
             actions.unlockCustomization(randomColor);
             break;
-            
+
           case 'score_multiplier':
             // This would be handled by the game engine for current level
             // For now, just add it to pending rewards for UI display
             set((state: MetaProgressionState) => ({
-              pendingRewards: [...state.pendingRewards, {
-                type: 'booster',
-                itemId: 'score_multiplier',
-                quantity: typeof reward.value === 'number' ? reward.value : 1
-              }]
+              pendingRewards: [
+                ...state.pendingRewards,
+                {
+                  type: 'booster',
+                  itemId: 'score_multiplier',
+                  quantity: typeof reward.value === 'number' ? reward.value : 1,
+                },
+              ],
             }));
             break;
-            
+
           case 'mystery_box':
             // Process secondary mystery reward (mystery within mystery!)
             actions.processMysteryBox(reward.value as string);
             break;
-            
+
           default:
             console.warn('Unknown mystery reward type:', reward.type);
         }
-        
+
         // Track reward in history
         set((state: MetaProgressionState) => ({
-          mysteryRewardHistory: [...state.mysteryRewardHistory, reward]
+          mysteryRewardHistory: [...state.mysteryRewardHistory, reward],
         }));
-        
       } catch (error) {
         console.error('Failed to process mystery reward:', error);
       }
     },
 
-
-    claimBattlePassReward: (tier: number, isPremium: boolean) => { /* TODO */ },
+    claimBattlePassReward: (tier: number, isPremium: boolean) => {
+      /* TODO */
+    },
     purchasePremiumPass: (): boolean => false,
-    addGems: (amount: number) => { /* TODO */ },
+    addGems: (amount: number) => {
+      /* TODO */
+    },
     spendGems: (amount: number): boolean => false,
-    checkFeatureUnlocks: () => { /* TODO */ },
-    unlockFeature: (featureId: string) => { /* TODO */ }
+    checkFeatureUnlocks: () => {
+      /* TODO */
+    },
+    unlockFeature: (featureId: string) => {
+      /* TODO */
+    },
   };
 
   // Helper function to extract customization category from item ID
@@ -959,10 +1042,10 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
     // Simple convention: itemId format like "color_red", "trail_sparkle", etc.
     const parts = itemId.split('_');
     if (parts.length < 2) return null;
-    
+
     const category = parts[0];
     const validCategories = ['color', 'trail', 'shootingEffect', 'pose', 'emote', 'background'];
-    
+
     return validCategories.includes(category) ? category : null;
   };
 
@@ -991,7 +1074,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
   actions.processMysteryBox = (boxType: string) => {
     // Mystery boxes contain multiple smaller rewards
     const rewards: any[] = [];
-    
+
     switch (boxType) {
       case 'common_box':
         rewards.push(
@@ -999,7 +1082,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
           { type: 'experience', value: 50 + Math.floor(Math.random() * 50) }
         );
         break;
-        
+
       case 'rare_box':
         rewards.push(
           { type: 'coins', value: 200 + Math.floor(Math.random() * 200) },
@@ -1007,7 +1090,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
           { type: 'customization', value: 'random_cosmetic' }
         );
         break;
-        
+
       case 'epic_box':
         rewards.push(
           { type: 'coins', value: 500 + Math.floor(Math.random() * 300) },
@@ -1016,7 +1099,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
           { type: 'score_multiplier', value: 3 }
         );
         break;
-        
+
       case 'legendary_box':
         rewards.push(
           { type: 'coins', value: 1000 + Math.floor(Math.random() * 500) },
@@ -1026,7 +1109,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
         );
         break;
     }
-    
+
     // Process each reward in the box
     rewards.forEach(reward => {
       actions.processMysteryReward(reward as any);
@@ -1041,7 +1124,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       unlockedAchievements: new Set(),
       achievementProgress: {},
       recentlyUnlocked: [],
-      totalAchievementScore: 0
+      totalAchievementScore: 0,
     },
     masteryRecords: {},
     unlockedCustomizations: {
@@ -1050,7 +1133,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       shootingEffects: new Set(['basic']),
       poses: new Set(['default']),
       emotes: new Set(['wave']),
-      backgrounds: new Set(['gradient'])
+      backgrounds: new Set(['gradient']),
     },
     activeCustomizations: {
       color: 'default',
@@ -1058,7 +1141,7 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       shootingEffect: 'basic',
       pose: 'default',
       emote: 'wave',
-      background: 'gradient'
+      background: 'gradient',
     },
     availableCustomizations: [],
     dailyChallenges: [],
@@ -1075,9 +1158,9 @@ const createMetaProgressionStore = (set: any, get: any): MetaProgressionStore =>
       shotsFired: 0,
       shotsHit: 0,
       sessionStartTime: Date.now(),
-      xpEarnedThisSession: 0
+      xpEarnedThisSession: 0,
     },
-    actions
+    actions,
   };
 };
 
@@ -1095,41 +1178,35 @@ export const useMetaProgressionStore = create<MetaProgressionStore>()(
 );
 
 // Individual selectors to avoid infinite re-render loops
-export const useMetaProgressionActions = () => 
-  useMetaProgressionStore(state => state.actions);
+export const useMetaProgressionActions = () => useMetaProgressionStore(state => state.actions);
 
-export const usePlayerMetaProgress = () => 
-  useMetaProgressionStore(state => state.metaProgress);
+export const usePlayerMetaProgress = () => useMetaProgressionStore(state => state.metaProgress);
 
-export const useTotalStarsEarned = () => 
+export const useTotalStarsEarned = () =>
   useMetaProgressionStore(state => state.metaProgress?.totalStarsEarned || 0);
 
-export const usePlayerCoins = () => 
+export const usePlayerCoins = () =>
   useMetaProgressionStore(state => state.metaProgress?.coins || 0);
 
-export const usePlayerGems = () => 
-  useMetaProgressionStore(state => state.metaProgress?.gems || 0);
+export const usePlayerGems = () => useMetaProgressionStore(state => state.metaProgress?.gems || 0);
 
-export const useCurrentLoginStreak = () => 
+export const useCurrentLoginStreak = () =>
   useMetaProgressionStore(state => state.metaProgress?.currentLoginStreak || 0);
 
-export const useBattlePassTier = () => 
+export const useBattlePassTier = () =>
   useMetaProgressionStore(state => state.battlePassProgress.currentTier);
 
-export const useBattlePassXP = () => 
+export const useBattlePassXP = () =>
   useMetaProgressionStore(state => state.battlePassProgress.currentXP);
 
-export const useNewAchievements = () => 
-  useMetaProgressionStore(state => state.newAchievements);
+export const useNewAchievements = () => useMetaProgressionStore(state => state.newAchievements);
 
-export const useActiveCustomizations = () => 
+export const useActiveCustomizations = () =>
   useMetaProgressionStore(state => state.activeCustomizations);
 
-export const useSessionStats = () => 
-  useMetaProgressionStore(state => state.sessionStats);
+export const useSessionStats = () => useMetaProgressionStore(state => state.sessionStats);
 
-export const useMasteryRecord = (levelId: number) => 
+export const useMasteryRecord = (levelId: number) =>
   useMetaProgressionStore(state => state.masteryRecords[levelId] || null);
 
-export const useIsMetaProgressionLoading = () => 
-  useMetaProgressionStore(state => state.isLoading);
+export const useIsMetaProgressionLoading = () => useMetaProgressionStore(state => state.isLoading);

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import { HyperCasualColors } from '../../constants/HyperCasualColors';
+import { getColorScheme } from '../../constants/GameColors';
 import { useSocialStore } from '../../store/socialStore';
 import { trackSocialShare } from '../../utils/analytics';
 
@@ -46,14 +46,16 @@ const socialPlatforms: SocialPlatform[] = [
     name: 'Twitter',
     icon: 'logo-twitter',
     color: '#1DA1F2',
-    shareUrl: (text, url) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+    shareUrl: (text, url) =>
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
   },
   {
     id: 'facebook',
     name: 'Facebook',
     icon: 'logo-facebook',
     color: '#4267B2',
-    shareUrl: (text, url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
+    shareUrl: (text, url) =>
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
   },
   {
     id: 'instagram',
@@ -88,7 +90,7 @@ export const SocialSharingModal: React.FC<SocialSharingModalProps> = ({
 
   const generateShareText = (): string => {
     const { type, title, description, score, level, achievement } = shareData;
-    
+
     switch (type) {
       case 'achievement':
         return `🏆 Just unlocked "${achievement}" in Pea Shootin' Pete! ${description} #PeaShootinPete #Achievement`;
@@ -113,12 +115,12 @@ export const SocialSharingModal: React.FC<SocialSharingModalProps> = ({
   const handleNativeShare = async () => {
     if (isSharing) return;
     setIsSharing(true);
-    
+
     try {
       const shareText = generateShareText();
       const shareUrl = generateShareUrl();
       const fullText = `${shareText}\n\n${shareUrl}`;
-      
+
       const result = await Share.share({
         message: Platform.OS === 'ios' ? shareText : fullText,
         url: Platform.OS === 'ios' ? shareUrl : undefined,
@@ -139,12 +141,12 @@ export const SocialSharingModal: React.FC<SocialSharingModalProps> = ({
   const handlePlatformShare = async (platform: SocialPlatform) => {
     if (isSharing) return;
     setIsSharing(true);
-    
+
     try {
       const shareText = generateShareText();
       const shareUrl = generateShareUrl();
       const platformUrl = platform.shareUrl(shareText, shareUrl);
-      
+
       if (platform.id === 'instagram' || platform.id === 'tiktok' || platform.id === 'discord') {
         // These platforms require special handling or app integration
         Alert.alert(
@@ -152,7 +154,10 @@ export const SocialSharingModal: React.FC<SocialSharingModalProps> = ({
           `Copy the following text and share it on ${platform.name}:\n\n${shareText}\n\n${shareUrl}`,
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Copy & Open App', onPress: () => handleSpecialPlatformShare(platform, shareText, shareUrl) },
+            {
+              text: 'Copy & Open App',
+              onPress: () => handleSpecialPlatformShare(platform, shareText, shareUrl),
+            },
           ]
         );
       } else {
@@ -167,24 +172,28 @@ export const SocialSharingModal: React.FC<SocialSharingModalProps> = ({
     }
   };
 
-  const handleSpecialPlatformShare = async (platform: SocialPlatform, text: string, url: string) => {
+  const handleSpecialPlatformShare = async (
+    platform: SocialPlatform,
+    text: string,
+    url: string
+  ) => {
     try {
       // Copy to clipboard
       const fullText = `${text}\n\n${url}`;
       await Share.share({ message: fullText });
-      
+
       // Open platform URL (will open app if installed)
       const platformUrls = {
         instagram: 'instagram://app',
         tiktok: 'tiktok://app',
         discord: 'discord://app',
       };
-      
+
       const platformUrl = platformUrls[platform.id as keyof typeof platformUrls];
       if (platformUrl) {
         await WebBrowser.openBrowserAsync(platformUrl);
       }
-      
+
       handleShareSuccess(platform.id);
     } catch (error) {
       console.error(`Error with special platform share for ${platform.name}:`, error);
@@ -223,28 +232,21 @@ export const SocialSharingModal: React.FC<SocialSharingModalProps> = ({
     }
   };
 
-  const currentTheme = HyperCasualColors.getTheme(1); // You can pass actual level here
+  const currentTheme = getColorScheme(1); // You can pass actual level here
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={[styles.modal, { backgroundColor: currentTheme.background }]}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: currentTheme.text }]}>
-              Share Your Achievement
-            </Text>
+            <Text style={[styles.title, { color: currentTheme.text }]}>Share Your Achievement</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={currentTheme.text} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.content}>
-            <Text style={[styles.shareText, { color: currentTheme.textSecondary }]}>
+            <Text style={[styles.shareText, { color: currentTheme.secondary }]}>
               {generateShareText()}
             </Text>
 
@@ -259,7 +261,7 @@ export const SocialSharingModal: React.FC<SocialSharingModalProps> = ({
               </TouchableOpacity>
 
               <View style={styles.platformsGrid}>
-                {socialPlatforms.map((platform) => (
+                {socialPlatforms.map(platform => (
                   <TouchableOpacity
                     key={platform.id}
                     style={[styles.platformButton, { backgroundColor: platform.color }]}

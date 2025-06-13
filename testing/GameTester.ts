@@ -3,15 +3,15 @@
  * Analyzes game configuration and provides data-driven improvement suggestions
  */
 
-import { 
-  GAME_CONFIG, 
-  GAME_PHYSICS, 
-  getBalloonSize, 
+import {
+  GAME_CONFIG,
+  GAME_PHYSICS,
+  getBalloonSize,
   getBalloonPoints,
   ENTITY_CONFIG,
   createLevelConfig,
   levelBalanceToConfigOverrides,
-  LevelConfigOverrides
+  LevelConfigOverrides,
 } from '../constants/GameConfig';
 
 export interface GameplayMetrics {
@@ -48,9 +48,9 @@ export class GameTester {
         gravityMultiplier: 0.3,
         enemySpeedMultiplier: 0.7,
         balloonSizeMultiplier: 1.2,
-        bounceEnergyMultiplier: 0.8
+        bounceEnergyMultiplier: 0.8,
       },
-      expectedOutcome: 'Higher completion rate, less frustration for new players'
+      expectedOutcome: 'Higher completion rate, less frustration for new players',
     },
     {
       id: 'faster_paced',
@@ -60,9 +60,9 @@ export class GameTester {
         enemySpeedMultiplier: 1.3,
         spawnRateMultiplier: 1.5,
         projectileSpeedMultiplier: 1.2,
-        peteSpeedMultiplier: 1.1
+        peteSpeedMultiplier: 1.1,
       },
-      expectedOutcome: 'More challenging, higher engagement for skilled players'
+      expectedOutcome: 'More challenging, higher engagement for skilled players',
     },
     {
       id: 'balanced_feedback',
@@ -72,9 +72,9 @@ export class GameTester {
         projectileSpeedMultiplier: 1.1,
         enemySpeedMultiplier: 0.9,
         bounceEnergyMultiplier: 0.9,
-        gravityMultiplier: 0.35
+        gravityMultiplier: 0.35,
       },
-      expectedOutcome: 'More satisfying shooting mechanics, better hit feedback'
+      expectedOutcome: 'More satisfying shooting mechanics, better hit feedback',
     },
     {
       id: 'hyper_casual_optimized',
@@ -85,9 +85,9 @@ export class GameTester {
         enemySpeedMultiplier: 0.8,
         projectileSpeedMultiplier: 1.15,
         gravityMultiplier: 0.25,
-        bounceEnergyMultiplier: 0.7
+        bounceEnergyMultiplier: 0.7,
       },
-      expectedOutcome: 'Easier to understand, more forgiving, instant gratification'
+      expectedOutcome: 'Easier to understand, more forgiving, instant gratification',
     },
     {
       id: 'dynamic_difficulty',
@@ -99,8 +99,8 @@ export class GameTester {
         balloonSizeMultiplier: 1.0,
         // This would require dynamic adjustment based on player performance
       },
-      expectedOutcome: 'Maintains optimal challenge level for all skill levels'
-    }
+      expectedOutcome: 'Maintains optimal challenge level for all skill levels',
+    },
   ];
 
   /**
@@ -167,7 +167,9 @@ export class GameTester {
     suggestions.push('🎈 Make large balloons 1.4x bigger for clearer visual hierarchy');
     suggestions.push('⚡ Add slight energy loss on bounces (0.95x) to prevent infinite bouncing');
     suggestions.push('🏃 Reduce enemy speed by 20% for more accessible gameplay');
-    suggestions.push('🎊 Increase point difference between balloon sizes for better progression feel');
+    suggestions.push(
+      '🎊 Increase point difference between balloon sizes for better progression feel'
+    );
     suggestions.push('🎪 Add more visual feedback for successful hits (particles, screen shake)');
     suggestions.push('⏱️ Consider shorter enemy spawn intervals for more action');
 
@@ -179,23 +181,23 @@ export class GameTester {
    */
   public createOptimizedConfiguration(): LevelConfigOverrides {
     const issues = this.analyzeCurrentConfiguration();
-    
+
     // Base optimization on identified issues
     const optimized: LevelConfigOverrides = {
       // Make physics more casual-friendly
-      gravityMultiplier: 0.25,  // Very light, floaty feel
-      bounceEnergyMultiplier: 0.9,  // Slight energy loss prevents infinite bouncing
-      
+      gravityMultiplier: 0.25, // Very light, floaty feel
+      bounceEnergyMultiplier: 0.9, // Slight energy loss prevents infinite bouncing
+
       // Improve responsiveness
-      projectileSpeedMultiplier: 1.17,  // 700px/s total (600 * 1.17)
-      peteSpeedMultiplier: 1.1,  // More responsive movement
-      
+      projectileSpeedMultiplier: 1.17, // 700px/s total (600 * 1.17)
+      peteSpeedMultiplier: 1.1, // More responsive movement
+
       // Better balance
-      enemySpeedMultiplier: 0.8,  // More manageable enemy speed
-      balloonSizeMultiplier: 1.2,  // Bigger targets for casual players
-      
+      enemySpeedMultiplier: 0.8, // More manageable enemy speed
+      balloonSizeMultiplier: 1.2, // Bigger targets for casual players
+
       // More action
-      spawnRateMultiplier: 1.2,  // Slightly more frequent spawning
+      spawnRateMultiplier: 1.2, // Slightly more frequent spawning
     };
 
     return optimized;
@@ -228,24 +230,33 @@ export class GameTester {
       retryCount: 2.3,
       frustrationPoints: [],
       engagementScore: 6.5,
-      difficultyRating: 7.0
+      difficultyRating: 7.0,
     };
 
     // Adjust based on config overrides
     let adjustedMetrics = { ...baseMetrics };
 
-    if (config.configOverrides.enemySpeedMultiplier && config.configOverrides.enemySpeedMultiplier < 0.8) {
+    if (
+      config.configOverrides.enemySpeedMultiplier &&
+      config.configOverrides.enemySpeedMultiplier < 0.8
+    ) {
       adjustedMetrics.playerHitRate += 0.15;
       adjustedMetrics.difficultyRating -= 1.5;
       adjustedMetrics.engagementScore += 0.8;
     }
 
-    if (config.configOverrides.balloonSizeMultiplier && config.configOverrides.balloonSizeMultiplier > 1.1) {
+    if (
+      config.configOverrides.balloonSizeMultiplier &&
+      config.configOverrides.balloonSizeMultiplier > 1.1
+    ) {
       adjustedMetrics.playerHitRate += 0.1;
       adjustedMetrics.frustrationPoints.splice(0, 1); // Remove one frustration point
     }
 
-    if (config.configOverrides.projectileSpeedMultiplier && config.configOverrides.projectileSpeedMultiplier > 1.1) {
+    if (
+      config.configOverrides.projectileSpeedMultiplier &&
+      config.configOverrides.projectileSpeedMultiplier > 1.1
+    ) {
       adjustedMetrics.engagementScore += 0.5;
     }
 
@@ -261,7 +272,7 @@ export class GameTester {
     const optimizedConfig = this.createOptimizedConfiguration();
 
     let report = '# 🎮 Game Testing Report\n\n';
-    
+
     report += '## 🔍 Current Configuration Analysis\n';
     if (issues.length > 0) {
       report += issues.map(issue => `- ${issue}`).join('\n') + '\n\n';

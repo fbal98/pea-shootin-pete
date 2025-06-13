@@ -1,12 +1,12 @@
 /**
  * Tutorial Integration Hook - Connects tutorial system with gameplay
- * 
+ *
  * Provides seamless integration between:
  * - Game events and tutorial triggers
  * - UI components and tutorial targets
  * - Progress tracking and tutorial completion
  * - Context-aware tutorial timing
- * 
+ *
  * Designed for non-intrusive, contextual guidance.
  */
 
@@ -14,11 +14,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { tutorialManager } from '@/systems/TutorialManager';
 import { TutorialStep, TutorialTriggerEvent } from '@/types/TutorialTypes';
 import { useMetaProgressionActions, usePlayerMetaProgress } from '@/store/metaProgressionStore';
-import { 
-  useCurrentLevel, 
-  useLevelCompleted, 
+import {
+  useCurrentLevel,
+  useLevelCompleted,
   useLevelFailed,
-  useCurrentCombo
+  useCurrentCombo,
 } from '@/store/levelProgressionStore';
 
 interface TutorialIntegrationState {
@@ -31,7 +31,7 @@ export const useTutorialIntegration = () => {
   const [state, setState] = useState<TutorialIntegrationState>({
     currentTutorial: null,
     isShowingTutorial: false,
-    tutorialTargets: new Map()
+    tutorialTargets: new Map(),
   });
 
   // Game state for tutorial triggers
@@ -95,7 +95,7 @@ export const useTutorialIntegration = () => {
     setState(prev => ({
       ...prev,
       currentTutorial: step,
-      isShowingTutorial: true
+      isShowingTutorial: true,
     }));
   }, []);
 
@@ -103,7 +103,7 @@ export const useTutorialIntegration = () => {
     setState(prev => ({
       ...prev,
       currentTutorial: null,
-      isShowingTutorial: false
+      isShowingTutorial: false,
     }));
   }, []);
 
@@ -111,7 +111,7 @@ export const useTutorialIntegration = () => {
     setState(prev => ({
       ...prev,
       currentTutorial: null,
-      isShowingTutorial: false
+      isShowingTutorial: false,
     }));
   }, []);
 
@@ -143,13 +143,16 @@ export const useTutorialIntegration = () => {
   }, []);
 
   // Tutorial step completion
-  const completeTutorialStep = useCallback((stepId?: string) => {
-    if (stepId) {
-      tutorialManager.completeTutorialStep(stepId);
-    } else if (state.currentTutorial) {
-      tutorialManager.completeTutorialStep(state.currentTutorial.id);
-    }
-  }, [state.currentTutorial]);
+  const completeTutorialStep = useCallback(
+    (stepId?: string) => {
+      if (stepId) {
+        tutorialManager.completeTutorialStep(stepId);
+      } else if (state.currentTutorial) {
+        tutorialManager.completeTutorialStep(state.currentTutorial.id);
+      }
+    },
+    [state.currentTutorial]
+  );
 
   // Tutorial skipping
   const skipCurrentTutorial = useCallback(() => {
@@ -166,7 +169,7 @@ export const useTutorialIntegration = () => {
       newTargets.set(targetId, ref);
       return {
         ...prev,
-        tutorialTargets: newTargets
+        tutorialTargets: newTargets,
       };
     });
   }, []);
@@ -177,14 +180,17 @@ export const useTutorialIntegration = () => {
       newTargets.delete(targetId);
       return {
         ...prev,
-        tutorialTargets: newTargets
+        tutorialTargets: newTargets,
       };
     });
   }, []);
 
-  const getTutorialTarget = useCallback((targetId: string) => {
-    return state.tutorialTargets.get(targetId);
-  }, [state.tutorialTargets]);
+  const getTutorialTarget = useCallback(
+    (targetId: string) => {
+      return state.tutorialTargets.get(targetId);
+    },
+    [state.tutorialTargets]
+  );
 
   // Context-aware tutorial suggestions
   const checkContextualTutorials = useCallback(() => {
@@ -215,35 +221,38 @@ export const useTutorialIntegration = () => {
   }, [checkContextualTutorials]);
 
   // Tutorial progress tracking for specific game events
-  const trackTutorialProgress = useCallback((action: string, metadata?: any) => {
-    // Track specific actions that might complete tutorial objectives
-    if (state.currentTutorial) {
-      const step = state.currentTutorial;
-      
-      // Check if this action completes the tutorial step
-      if (step.actionRequired) {
-        const required = step.actionRequired;
-        
-        switch (required.type) {
-          case 'tap':
-            if (action === 'tap') {
-              completeTutorialStep();
-            }
-            break;
-          case 'swipe':
-            if (action === 'swipe') {
-              completeTutorialStep();
-            }
-            break;
-          case 'observe':
-            if (action === required.target) {
-              completeTutorialStep();
-            }
-            break;
+  const trackTutorialProgress = useCallback(
+    (action: string, metadata?: any) => {
+      // Track specific actions that might complete tutorial objectives
+      if (state.currentTutorial) {
+        const step = state.currentTutorial;
+
+        // Check if this action completes the tutorial step
+        if (step.actionRequired) {
+          const required = step.actionRequired;
+
+          switch (required.type) {
+            case 'tap':
+              if (action === 'tap') {
+                completeTutorialStep();
+              }
+              break;
+            case 'swipe':
+              if (action === 'swipe') {
+                completeTutorialStep();
+              }
+              break;
+            case 'observe':
+              if (action === required.target) {
+                completeTutorialStep();
+              }
+              break;
+          }
         }
       }
-    }
-  }, [state.currentTutorial, completeTutorialStep]);
+    },
+    [state.currentTutorial, completeTutorialStep]
+  );
 
   // Special tutorial triggers for mystery balloons
   const onMysteryBalloonSpawned = useCallback(() => {
@@ -252,14 +261,20 @@ export const useTutorialIntegration = () => {
   }, [triggerEvent, triggerMysteryBalloonTutorial]);
 
   // Achievement unlock tutorial trigger
-  const onAchievementUnlocked = useCallback((achievementId: string) => {
-    triggerEvent('achievement_unlock', { achievementId });
-  }, [triggerEvent]);
+  const onAchievementUnlocked = useCallback(
+    (achievementId: string) => {
+      triggerEvent('achievement_unlock', { achievementId });
+    },
+    [triggerEvent]
+  );
 
   // Battle pass tier up tutorial trigger
-  const onBattlePassTierUp = useCallback((newTier: number) => {
-    triggerEvent('battle_pass_tier_up', { tier: newTier });
-  }, [triggerEvent]);
+  const onBattlePassTierUp = useCallback(
+    (newTier: number) => {
+      triggerEvent('battle_pass_tier_up', { tier: newTier });
+    },
+    [triggerEvent]
+  );
 
   // Daily challenge available tutorial trigger
   const onDailyChallengeAvailable = useCallback(() => {
@@ -270,33 +285,33 @@ export const useTutorialIntegration = () => {
     // State
     currentTutorial: state.currentTutorial,
     isShowingTutorial: state.isShowingTutorial,
-    
+
     // Tutorial control
     completeTutorialStep,
     skipCurrentTutorial,
-    
+
     // Target management
     registerTutorialTarget,
     unregisterTutorialTarget,
     getTutorialTarget,
-    
+
     // Event tracking
     trackTutorialProgress,
-    
+
     // Specific triggers
     onMysteryBalloonSpawned,
     onAchievementUnlocked,
     onBattlePassTierUp,
     onDailyChallengeAvailable,
-    
+
     // Manual triggers
     triggerFirstGameTutorial,
     triggerMysteryBalloonTutorial,
     triggerDailyChallengesTutorial,
-    
+
     // Utility
     triggerEvent,
-    checkContextualTutorials
+    checkContextualTutorials,
   };
 };
 

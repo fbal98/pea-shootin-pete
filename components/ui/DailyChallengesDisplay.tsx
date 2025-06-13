@@ -1,15 +1,22 @@
 /**
  * Daily Challenges Display Component
- * 
+ *
  * Shows current daily challenges with progress tracking and reward claiming.
  * Designed for maximum engagement with streak visualization and clear CTAs.
  * Implements 2025 mobile game retention best practices.
  */
 
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { useMetaProgressionStore, useMetaProgressionActions } from '../../store/metaProgressionStore';
-import { DailyChallenge, DailyChallengeProgress, ChallengeDifficulty } from '../../types/MetaProgressionTypes';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated } from 'react-native';
+import {
+  useMetaProgressionStore,
+  useMetaProgressionActions,
+} from '../../store/metaProgressionStore';
+import {
+  DailyChallenge,
+  DailyChallengeProgress,
+  ChallengeDifficulty,
+} from '../../types/MetaProgressionTypes';
 
 interface DailyChallengesDisplayProps {
   onChallengeClicked?: (challenge: DailyChallenge) => void;
@@ -43,42 +50,65 @@ const DifficultyBadge: React.FC<{ difficulty: ChallengeDifficulty }> = ({ diffic
 
   return (
     <View style={[styles.difficultyBadge, { backgroundColor: config.bg }]}>
-      <Text style={[styles.difficultyText, { color: config.color }]}>
-        {config.text}
-      </Text>
+      <Text style={[styles.difficultyText, { color: config.color }]}>{config.text}</Text>
     </View>
   );
 };
 
-const ProgressBar: React.FC<{ current: number; target: number; color: string }> = ({ 
-  current, 
-  target, 
-  color 
+const ProgressBar: React.FC<{ current: number; target: number; color: string }> = ({
+  current,
+  target,
+  color,
 }) => {
   const progress = Math.min(100, (current / target) * 100);
-  
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: progress,
+      duration: 600,
+      useNativeDriver: false,
+    }).start();
+  }, [progress]);
+
+  const getChallengeIcon = (current: number, target: number) => {
+    if (current >= target) return '✅';
+    if (current > 0) return '🎯';
+    return '⭐';
+  };
+
   return (
     <View style={styles.progressBarContainer}>
-      <View style={styles.progressBarTrack}>
-        <View 
-          style={[
-            styles.progressBarFill, 
-            { width: `${progress}%`, backgroundColor: color }
-          ]} 
-        />
+      <View style={styles.progressBarHeader}>
+        <Text style={styles.progressIcon}>{getChallengeIcon(current, target)}</Text>
+        <Text style={styles.progressText}>
+          {current}/{target}
+        </Text>
       </View>
-      <Text style={styles.progressText}>
-        {current}/{target}
-      </Text>
+      <View style={styles.progressBarTrack}>
+        <Animated.View
+          style={[
+            styles.progressBarFill,
+            {
+              backgroundColor: color,
+              width: progressAnim.interpolate({
+                inputRange: [0, 100],
+                outputRange: ['0%', '100%'],
+              }),
+            },
+          ]}
+        />
+        <View style={styles.progressBarGlow} />
+      </View>
     </View>
   );
 };
 
-const ChallengeCard: React.FC<ChallengeCardProps> = ({ 
-  challenge, 
-  progress, 
-  onClaimReward, 
-  onChallengeClicked 
+const ChallengeCard: React.FC<ChallengeCardProps> = ({
+  challenge,
+  progress,
+  onClaimReward,
+  onChallengeClicked,
 }) => {
   const isCompleted = progress.completed;
   const isClaimed = progress.claimed;
@@ -101,7 +131,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
   const totalReward = challenge.baseReward.coins + (challenge.streakBonus?.coins || 0);
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.challengeCard, { backgroundColor: getCardColor() }]}
       onPress={handlePress}
       disabled={isClaimed}
@@ -113,16 +143,12 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
           <DifficultyBadge difficulty={challenge.difficulty} />
         </View>
         {isCompleted && (
-          <Text style={styles.completedBadge}>
-            {isClaimed ? 'CLAIMED ✓' : 'COMPLETE!'}
-          </Text>
+          <Text style={styles.completedBadge}>{isClaimed ? 'CLAIMED ✓' : 'COMPLETE!'}</Text>
         )}
       </View>
 
       {/* Description */}
-      <Text style={styles.challengeDescription}>
-        {challenge.description}
-      </Text>
+      <Text style={styles.challengeDescription}>{challenge.description}</Text>
 
       {/* Progress */}
       <ProgressBar
@@ -139,17 +165,19 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
             <Text style={styles.coinReward}>🪙 {totalReward}</Text>
             {challenge.baseReward.experiencePoints && (
               <Text style={styles.xpReward}>
-                ⭐ {challenge.baseReward.experiencePoints + (challenge.streakBonus?.experiencePoints || 0)}
+                ⭐{' '}
+                {challenge.baseReward.experiencePoints +
+                  (challenge.streakBonus?.experiencePoints || 0)}
               </Text>
             )}
           </View>
         </View>
-        
-        {challenge.streakBonus && (challenge.streakBonus.coins > 0 || (challenge.streakBonus.experiencePoints || 0) > 0) && (
-          <Text style={styles.streakBonusText}>
-            🔥 Streak bonus included!
-          </Text>
-        )}
+
+        {challenge.streakBonus &&
+          (challenge.streakBonus.coins > 0 ||
+            (challenge.streakBonus.experiencePoints || 0) > 0) && (
+            <Text style={styles.streakBonusText}>🔥 Streak bonus included!</Text>
+          )}
       </View>
 
       {/* Action Button */}
@@ -158,7 +186,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
           <Text style={styles.claimButtonText}>CLAIM REWARD</Text>
         </View>
       )}
-      
+
       {progress.attempts > 0 && !isCompleted && (
         <Text style={styles.attemptsText}>
           Attempts: {progress.attempts}/{challenge.objective.allowedAttempts || '∞'}
@@ -168,9 +196,9 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
   );
 };
 
-const StreakDisplay: React.FC<{ streak: number; longestStreak: number }> = ({ 
-  streak, 
-  longestStreak 
+const StreakDisplay: React.FC<{ streak: number; longestStreak: number }> = ({
+  streak,
+  longestStreak,
 }) => (
   <View style={styles.streakContainer}>
     <View style={styles.streakItem}>
@@ -185,9 +213,9 @@ const StreakDisplay: React.FC<{ streak: number; longestStreak: number }> = ({
   </View>
 );
 
-export const DailyChallengesDisplay: React.FC<DailyChallengesDisplayProps> = ({ 
-  onChallengeClicked, 
-  style 
+export const DailyChallengesDisplay: React.FC<DailyChallengesDisplayProps> = ({
+  onChallengeClicked,
+  style,
 }) => {
   const dailyChallenges = useMetaProgressionStore(state => state.dailyChallenges);
   const challengeProgress = useMetaProgressionStore(state => state.challengeProgress);
@@ -217,16 +245,16 @@ export const DailyChallengesDisplay: React.FC<DailyChallengesDisplayProps> = ({
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
-    
+
     const diff = tomorrow.getTime() - now.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     return `${hours}h ${minutes}m`;
   };
 
-  const completedToday = dailyChallenges.filter(challenge => 
-    challengeProgress[challenge.id]?.completed
+  const completedToday = dailyChallenges.filter(
+    challenge => challengeProgress[challenge.id]?.completed
   ).length;
 
   return (
@@ -234,15 +262,13 @@ export const DailyChallengesDisplay: React.FC<DailyChallengesDisplayProps> = ({
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Daily Challenges</Text>
-        <Text style={styles.refreshTimer}>
-          Refreshes in {getTimeUntilRefresh()}
-        </Text>
+        <Text style={styles.refreshTimer}>Refreshes in {getTimeUntilRefresh()}</Text>
       </View>
 
       {/* Streak Display */}
-      <StreakDisplay 
-        streak={challengeHistory.currentStreak} 
-        longestStreak={challengeHistory.longestStreak} 
+      <StreakDisplay
+        streak={challengeHistory.currentStreak}
+        longestStreak={challengeHistory.longestStreak}
       />
 
       {/* Progress Summary */}
@@ -251,9 +277,7 @@ export const DailyChallengesDisplay: React.FC<DailyChallengesDisplayProps> = ({
           Completed today: {completedToday}/{dailyChallenges.length}
         </Text>
         {completedToday === dailyChallenges.length && dailyChallenges.length > 0 && (
-          <Text style={styles.allCompleteText}>
-            🎉 All challenges complete! Great job!
-          </Text>
+          <Text style={styles.allCompleteText}>🎉 All challenges complete! Great job!</Text>
         )}
       </View>
 
@@ -435,31 +459,53 @@ const styles = StyleSheet.create({
   },
 
   progressBarContainer: {
+    marginBottom: 12,
+  },
+
+  progressBarHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+
+  progressIcon: {
+    fontSize: 14,
   },
 
   progressBarTrack: {
-    flex: 1,
-    height: 6,
+    height: 8,
     backgroundColor: '#E3E3E3',
-    borderRadius: 3,
+    borderRadius: 4,
     overflow: 'hidden',
+    position: 'relative',
   },
 
   progressBarFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
+    shadowColor: '#4ECDC4',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  progressBarGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    borderRadius: 4,
   },
 
   progressText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#636E72',
-    minWidth: 40,
-    textAlign: 'right',
+    fontWeight: '700',
+    color: '#2D3436',
+    letterSpacing: 0.5,
   },
 
   rewardSection: {

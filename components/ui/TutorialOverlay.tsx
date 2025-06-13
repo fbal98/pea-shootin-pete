@@ -1,12 +1,12 @@
 /**
  * Tutorial Overlay - Interactive tutorial UI components
- * 
+ *
  * Provides various tutorial overlay types:
  * - Modal tutorials with step progression
  * - Tooltip guidance with arrows
  * - Spotlight highlighting with backdrop
  * - Guided interactions with visual cues
- * 
+ *
  * Designed for seamless integration and maximum engagement.
  */
 
@@ -19,16 +19,16 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
 } from 'react-native';
 import {
   TutorialStep,
   TutorialOverlayProps,
   TutorialTooltipProps,
   TutorialSpotlightProps,
-  HighlightArea
+  HighlightArea,
 } from '@/types/TutorialTypes';
-import { getColorScheme } from '@/constants/HyperCasualColors';
+import { getColorScheme } from '@/constants/GameColors';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -38,7 +38,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   onNext,
   onSkip,
   onComplete,
-  progress
+  progress,
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -56,7 +56,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         tension: 120,
         friction: 8,
         useNativeDriver: true,
-      })
+      }),
     ]).start();
   }, []);
 
@@ -79,7 +79,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         toValue: 0.8,
         duration: 200,
         useNativeDriver: true,
-      })
+      }),
     ]).start(() => {
       onSkip();
     });
@@ -87,20 +87,15 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   if (step.type === 'modal') {
     return (
-      <Modal
-        visible={true}
-        transparent={true}
-        animationType="none"
-        onRequestClose={handleSkip}
-      >
+      <Modal visible={true} transparent={true} animationType="none" onRequestClose={handleSkip}>
         <View style={styles.modalBackdrop}>
           <Animated.View
             style={[
               styles.modalContainer,
               {
                 opacity: fadeAnim,
-                transform: [{ scale: scaleAnim }]
-              }
+                transform: [{ scale: scaleAnim }],
+              },
             ]}
           >
             <View style={styles.modalHeader}>
@@ -111,16 +106,16 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                 </TouchableOpacity>
               )}
             </View>
-            
+
             <Text style={styles.modalDescription}>{step.description}</Text>
-            
+
             {/* Progress indicator */}
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
                 <View
                   style={[
                     styles.progressFill,
-                    { width: `${(progress.current / progress.total) * 100}%` }
+                    { width: `${(progress.current / progress.total) * 100}%` },
                   ]}
                 />
               </View>
@@ -128,7 +123,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
                 {progress.current} of {progress.total}
               </Text>
             </View>
-            
+
             <TouchableOpacity onPress={handleNext} style={styles.nextButton}>
               <Text style={styles.nextButtonText}>
                 {progress.current === progress.total ? 'Complete' : 'Next'}
@@ -148,7 +143,7 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
   step,
   targetRef,
   onDismiss,
-  visible
+  visible,
 }) => {
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -158,32 +153,34 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
     if (visible) {
       // Calculate position relative to target
       if (targetRef.current) {
-        targetRef.current.measure((fx: number, fy: number, width: number, height: number, px: number, py: number) => {
-          const tooltipWidth = 250;
-          const tooltipHeight = 80;
-          
-          let x = px + width / 2 - tooltipWidth / 2;
-          let y = py - tooltipHeight - 10; // Above target by default
-          
-          // Adjust for arrow direction
-          if (step.arrow === 'down') {
-            y = py + height + 10;
-          } else if (step.arrow === 'left') {
-            x = px - tooltipWidth - 10;
-            y = py + height / 2 - tooltipHeight / 2;
-          } else if (step.arrow === 'right') {
-            x = px + width + 10;
-            y = py + height / 2 - tooltipHeight / 2;
+        targetRef.current.measure(
+          (fx: number, fy: number, width: number, height: number, px: number, py: number) => {
+            const tooltipWidth = 250;
+            const tooltipHeight = 80;
+
+            let x = px + width / 2 - tooltipWidth / 2;
+            let y = py - tooltipHeight - 10; // Above target by default
+
+            // Adjust for arrow direction
+            if (step.arrow === 'down') {
+              y = py + height + 10;
+            } else if (step.arrow === 'left') {
+              x = px - tooltipWidth - 10;
+              y = py + height / 2 - tooltipHeight / 2;
+            } else if (step.arrow === 'right') {
+              x = px + width + 10;
+              y = py + height / 2 - tooltipHeight / 2;
+            }
+
+            // Keep within screen bounds
+            x = Math.max(10, Math.min(screenWidth - tooltipWidth - 10, x));
+            y = Math.max(10, Math.min(screenHeight - tooltipHeight - 10, y));
+
+            setTooltipPosition({ x, y });
           }
-          
-          // Keep within screen bounds
-          x = Math.max(10, Math.min(screenWidth - tooltipWidth - 10, x));
-          y = Math.max(10, Math.min(screenHeight - tooltipHeight - 10, y));
-          
-          setTooltipPosition({ x, y });
-        });
+        );
       }
-      
+
       // Show animation
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -195,7 +192,7 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
           toValue: 0,
           duration: 300,
           useNativeDriver: true,
-        })
+        }),
       ]).start();
     } else {
       // Hide animation
@@ -209,7 +206,7 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
           toValue: -10,
           duration: 200,
           useNativeDriver: true,
-        })
+        }),
       ]).start();
     }
   }, [visible]);
@@ -225,32 +222,42 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
           top: tooltipPosition.y,
           opacity: fadeAnim,
           transform: [
-            { 
-              translateY: step.arrow === 'up' ? translateAnim : 
-                         step.arrow === 'down' ? Animated.multiply(translateAnim, -1) : 0 
+            {
+              translateY:
+                step.arrow === 'up'
+                  ? translateAnim
+                  : step.arrow === 'down'
+                    ? Animated.multiply(translateAnim, -1)
+                    : 0,
             },
-            { 
-              translateX: step.arrow === 'left' ? translateAnim :
-                         step.arrow === 'right' ? Animated.multiply(translateAnim, -1) : 0
-            }
-          ]
-        }
+            {
+              translateX:
+                step.arrow === 'left'
+                  ? translateAnim
+                  : step.arrow === 'right'
+                    ? Animated.multiply(translateAnim, -1)
+                    : 0,
+            },
+          ],
+        },
       ]}
     >
       {/* Arrow */}
       {step.arrow && step.arrow !== 'none' && (
-        <View style={[
-          styles.arrow,
-          step.arrow === 'up' && styles.arrowUp,
-          step.arrow === 'down' && styles.arrowDown,
-          step.arrow === 'left' && styles.arrowLeft,
-          step.arrow === 'right' && styles.arrowRight
-        ]} />
+        <View
+          style={[
+            styles.arrow,
+            step.arrow === 'up' && styles.arrowUp,
+            step.arrow === 'down' && styles.arrowDown,
+            step.arrow === 'left' && styles.arrowLeft,
+            step.arrow === 'right' && styles.arrowRight,
+          ]}
+        />
       )}
-      
+
       <Text style={styles.tooltipTitle}>{step.title}</Text>
       <Text style={styles.tooltipDescription}>{step.description}</Text>
-      
+
       <TouchableOpacity onPress={onDismiss} style={styles.tooltipButton}>
         <Text style={styles.tooltipButtonText}>Got it!</Text>
       </TouchableOpacity>
@@ -262,9 +269,14 @@ export const TutorialTooltip: React.FC<TutorialTooltipProps> = ({
 export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
   step,
   targetArea,
-  onInteraction
+  onInteraction,
 }) => {
-  const [spotlightDimensions, setSpotlightDimensions] = useState({ width: 100, height: 100, x: 0, y: 0 });
+  const [spotlightDimensions, setSpotlightDimensions] = useState({
+    width: 100,
+    height: 100,
+    x: 0,
+    y: 0,
+  });
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -281,7 +293,7 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
             toValue: 1,
             duration: 1000,
             useNativeDriver: true,
-          })
+          }),
         ])
       ).start();
     }
@@ -290,7 +302,7 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
   const renderSpotlight = () => {
     const { shape, padding } = targetArea;
     const { width, height, x, y } = spotlightDimensions;
-    
+
     const spotlightStyle = {
       position: 'absolute' as const,
       left: x - padding,
@@ -307,10 +319,10 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
     } else if (shape === 'rounded_rectangle') {
       borderRadius = 12;
     }
-    
+
     const finalSpotlightStyle = {
       ...spotlightStyle,
-      borderRadius
+      borderRadius,
     };
 
     return (
@@ -318,8 +330,8 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
         style={[
           finalSpotlightStyle,
           {
-            transform: [{ scale: pulseAnim }]
-          }
+            transform: [{ scale: pulseAnim }],
+          },
         ]}
       />
     );
@@ -331,10 +343,10 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
       <TouchableWithoutFeedback onPress={onInteraction}>
         <View style={styles.spotlightBackdrop} />
       </TouchableWithoutFeedback>
-      
+
       {/* Spotlight highlight */}
       {renderSpotlight()}
-      
+
       {/* Instruction text */}
       <View style={styles.spotlightInstructions}>
         <Text style={styles.spotlightTitle}>{step.title}</Text>
@@ -363,7 +375,7 @@ export const useTutorial = () => {
     currentStep,
     isVisible,
     showTutorial,
-    hideTutorial
+    hideTutorial,
   };
 };
 
@@ -376,7 +388,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  
+
   modalContainer: {
     backgroundColor: 'white',
     borderRadius: 20,
@@ -389,75 +401,75 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 20,
   },
-  
+
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  
+
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#333',
     flex: 1,
   },
-  
+
   skipButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  
+
   skipText: {
     fontSize: 14,
     color: '#666',
     fontWeight: '500',
   },
-  
+
   modalDescription: {
     fontSize: 16,
     color: '#666',
     lineHeight: 24,
     marginBottom: 24,
   },
-  
+
   progressContainer: {
     marginBottom: 24,
   },
-  
+
   progressBar: {
     height: 6,
     backgroundColor: '#E5E5E5',
     borderRadius: 3,
     marginBottom: 8,
   },
-  
+
   progressFill: {
     height: '100%',
     backgroundColor: '#4ECDC4',
     borderRadius: 3,
   },
-  
+
   progressText: {
     fontSize: 12,
     color: '#999',
     textAlign: 'center',
   },
-  
+
   nextButton: {
     backgroundColor: '#4ECDC4',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
-  
+
   nextButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
   },
-  
+
   // Tooltip styles
   tooltipContainer: {
     position: 'absolute',
@@ -472,21 +484,21 @@ const styles = StyleSheet.create({
     elevation: 8,
     zIndex: 1000,
   },
-  
+
   tooltipTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: 'white',
     marginBottom: 8,
   },
-  
+
   tooltipDescription: {
     fontSize: 12,
     color: '#E5E5E5',
     lineHeight: 18,
     marginBottom: 12,
   },
-  
+
   tooltipButton: {
     backgroundColor: '#4ECDC4',
     paddingVertical: 8,
@@ -494,13 +506,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignSelf: 'flex-end',
   },
-  
+
   tooltipButtonText: {
     fontSize: 12,
     fontWeight: '600',
     color: 'white',
   },
-  
+
   // Arrow styles
   arrow: {
     position: 'absolute',
@@ -509,7 +521,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderStyle: 'solid',
   },
-  
+
   arrowUp: {
     bottom: -8,
     left: '50%',
@@ -521,7 +533,7 @@ const styles = StyleSheet.create({
     borderRightColor: 'transparent',
     borderTopColor: '#333',
   },
-  
+
   arrowDown: {
     top: -8,
     left: '50%',
@@ -533,7 +545,7 @@ const styles = StyleSheet.create({
     borderRightColor: 'transparent',
     borderBottomColor: '#333',
   },
-  
+
   arrowLeft: {
     right: -8,
     top: '50%',
@@ -545,7 +557,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
     borderLeftColor: '#333',
   },
-  
+
   arrowRight: {
     left: -8,
     top: '50%',
@@ -557,7 +569,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
     borderRightColor: '#333',
   },
-  
+
   // Spotlight styles
   spotlightContainer: {
     position: 'absolute',
@@ -567,12 +579,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 999,
   },
-  
+
   spotlightBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
-  
+
   spotlightInstructions: {
     position: 'absolute',
     bottom: 100,
@@ -583,7 +595,7 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
   },
-  
+
   spotlightTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -591,7 +603,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  
+
   spotlightDescription: {
     fontSize: 14,
     color: '#666',

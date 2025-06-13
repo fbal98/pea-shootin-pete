@@ -67,29 +67,29 @@ export interface PurchaseHistory {
 export interface EconomyState {
   // Currency balances
   balances: CurrencyBalance;
-  
+
   // Transaction history
   transactions: CurrencyTransaction[];
-  
+
   // Store items
   storeItems: StoreItem[];
   featuredItems: StoreItem[];
-  
+
   // Owned items
   ownedItems: string[];
   equippedItems: Record<string, string>; // category -> itemId
-  
+
   // Purchase history
   purchaseHistory: PurchaseHistory[];
-  
+
   // Store state
   storeLastRefresh: number;
   dailySpecials: StoreItem[];
-  
+
   // Premium state
   hasPremiumPass: boolean;
   premiumPassExpiry?: number;
-  
+
   // Energy system
   maxEnergy: number;
   energyRegenRate: number; // per minute
@@ -98,31 +98,41 @@ export interface EconomyState {
 
 export interface EconomyActions {
   // Currency management
-  addCurrency: (currency: keyof CurrencyBalance, amount: number, reason: string, metadata?: Record<string, any>) => void;
-  spendCurrency: (currency: keyof CurrencyBalance, amount: number, reason: string, metadata?: Record<string, any>) => boolean;
+  addCurrency: (
+    currency: keyof CurrencyBalance,
+    amount: number,
+    reason: string,
+    metadata?: Record<string, any>
+  ) => void;
+  spendCurrency: (
+    currency: keyof CurrencyBalance,
+    amount: number,
+    reason: string,
+    metadata?: Record<string, any>
+  ) => boolean;
   setCurrencyBalance: (currency: keyof CurrencyBalance, amount: number) => void;
-  
+
   // Store management
   setStoreItems: (items: StoreItem[]) => void;
   updateStoreItem: (itemId: string, updates: Partial<StoreItem>) => void;
   setFeaturedItems: (items: StoreItem[]) => void;
   setDailySpecials: (items: StoreItem[]) => void;
   refreshStore: () => void;
-  
+
   // Item management
   purchaseItem: (itemId: string) => Promise<boolean>;
   equipItem: (category: string, itemId: string) => void;
   unequipItem: (category: string) => void;
   refundPurchase: (purchaseId: string) => boolean;
-  
+
   // Premium features
   setPremiumPass: (active: boolean, expiryTime?: number) => void;
-  
+
   // Energy system
   updateEnergy: () => void;
   spendEnergy: (amount: number) => boolean;
   refillEnergy: () => void;
-  
+
   // Utility
   canAfford: (price: ItemPrice) => boolean;
   getItemsByCategory: (category: string) => StoreItem[];
@@ -212,7 +222,7 @@ const DEFAULT_STORE_ITEMS: StoreItem[] = [
     available: true,
     requirements: { level: 20 },
   },
-  
+
   // Boosters
   {
     id: 'double_score',
@@ -247,7 +257,7 @@ const DEFAULT_STORE_ITEMS: StoreItem[] = [
     limited: false,
     available: true,
   },
-  
+
   // Currency packs
   {
     id: 'coins_small',
@@ -278,9 +288,9 @@ const DEFAULT_STORE_ITEMS: StoreItem[] = [
 const initialState: EconomyState = {
   balances: {
     coins: 1000, // Starting coins
-    gems: 50,    // Starting gems
+    gems: 50, // Starting gems
     energy: 100, // Starting energy
-    tokens: 0,   // Starting tokens
+    tokens: 0, // Starting tokens
   },
   transactions: [],
   storeItems: DEFAULT_STORE_ITEMS,
@@ -367,33 +377,34 @@ export const useEconomyStore = create<EconomyStore>()(
 
       setCurrencyBalance: (currency, amount) => {
         set(state => ({
-          balances: { ...state.balances, [currency]: Math.max(0, amount) }
+          balances: { ...state.balances, [currency]: Math.max(0, amount) },
         }));
       },
 
       // Store management
-      setStoreItems: (items) => set({ storeItems: items }),
-      
-      updateStoreItem: (itemId, updates) => set(state => ({
-        storeItems: state.storeItems.map(item =>
-          item.id === itemId ? { ...item, ...updates } : item
-        )
-      })),
+      setStoreItems: items => set({ storeItems: items }),
 
-      setFeaturedItems: (items) => set({ featuredItems: items }),
-      
-      setDailySpecials: (items) => set({ dailySpecials: items }),
-      
+      updateStoreItem: (itemId, updates) =>
+        set(state => ({
+          storeItems: state.storeItems.map(item =>
+            item.id === itemId ? { ...item, ...updates } : item
+          ),
+        })),
+
+      setFeaturedItems: items => set({ featuredItems: items }),
+
+      setDailySpecials: items => set({ dailySpecials: items }),
+
       refreshStore: () => {
         set({ storeLastRefresh: Date.now() });
         // In a real implementation, this would fetch new items from server
       },
 
       // Item management
-      purchaseItem: async (itemId) => {
+      purchaseItem: async itemId => {
         const state = get();
         const item = state.storeItems.find(i => i.id === itemId);
-        
+
         if (!item || !item.available) {
           return false;
         }
@@ -472,12 +483,12 @@ export const useEconomyStore = create<EconomyStore>()(
         const state = get();
         if (state.ownedItems.includes(itemId)) {
           set(state => ({
-            equippedItems: { ...state.equippedItems, [category]: itemId }
+            equippedItems: { ...state.equippedItems, [category]: itemId },
           }));
         }
       },
 
-      unequipItem: (category) => {
+      unequipItem: category => {
         set(state => {
           const newEquipped = { ...state.equippedItems };
           delete newEquipped[category];
@@ -485,10 +496,10 @@ export const useEconomyStore = create<EconomyStore>()(
         });
       },
 
-      refundPurchase: (purchaseId) => {
+      refundPurchase: purchaseId => {
         const state = get();
         const purchase = state.purchaseHistory.find(p => p.id === purchaseId);
-        
+
         if (!purchase || purchase.refunded) {
           return false;
         }
@@ -505,12 +516,10 @@ export const useEconomyStore = create<EconomyStore>()(
         }
 
         // Process refund
-        get().addCurrency(
-          purchase.price.currency,
-          purchase.price.amount,
-          `Refund: ${item.name}`,
-          { purchaseId, itemId: purchase.itemId }
-        );
+        get().addCurrency(purchase.price.currency, purchase.price.amount, `Refund: ${item.name}`, {
+          purchaseId,
+          itemId: purchase.itemId,
+        });
 
         set(state => ({
           ownedItems: state.ownedItems.filter(id => id !== purchase.itemId),
@@ -536,22 +545,22 @@ export const useEconomyStore = create<EconomyStore>()(
           const now = Date.now();
           const timeDiff = now - state.lastEnergyUpdate;
           const energyToAdd = Math.floor(timeDiff / (60 * 1000)) * state.energyRegenRate;
-          
+
           if (energyToAdd > 0) {
             return {
               balances: {
                 ...state.balances,
-                energy: Math.min(state.maxEnergy, state.balances.energy + energyToAdd)
+                energy: Math.min(state.maxEnergy, state.balances.energy + energyToAdd),
               },
               lastEnergyUpdate: now,
             };
           }
-          
+
           return state;
         });
       },
 
-      spendEnergy: (amount) => {
+      spendEnergy: amount => {
         const state = get();
         if (state.balances.energy < amount) {
           return false;
@@ -563,17 +572,17 @@ export const useEconomyStore = create<EconomyStore>()(
 
       refillEnergy: () => {
         set(state => ({
-          balances: { ...state.balances, energy: state.maxEnergy }
+          balances: { ...state.balances, energy: state.maxEnergy },
         }));
       },
 
       // Utility functions
-      canAfford: (price) => {
+      canAfford: price => {
         const state = get();
         return state.balances[price.currency] >= price.amount;
       },
 
-      getItemsByCategory: (category) => {
+      getItemsByCategory: category => {
         const state = get();
         return state.storeItems.filter(item => item.category === category && item.available);
       },
@@ -601,7 +610,7 @@ export const useEconomyStore = create<EconomyStore>()(
           await AsyncStorage.removeItem(name);
         },
       },
-      partialize: (state) => ({
+      partialize: state => ({
         balances: state.balances,
         ownedItems: state.ownedItems,
         equippedItems: state.equippedItems,
@@ -625,16 +634,17 @@ export const usePurchaseHistory = () => useEconomyStore(state => state.purchaseH
 export const useHasPremiumPass = () => useEconomyStore(state => state.hasPremiumPass);
 
 // Action selectors
-export const useEconomyActions = () => useEconomyStore(state => ({
-  addCurrency: state.addCurrency,
-  spendCurrency: state.spendCurrency,
-  purchaseItem: state.purchaseItem,
-  equipItem: state.equipItem,
-  unequipItem: state.unequipItem,
-  updateEnergy: state.updateEnergy,
-  spendEnergy: state.spendEnergy,
-  canAfford: state.canAfford,
-  getItemsByCategory: state.getItemsByCategory,
-}));
+export const useEconomyActions = () =>
+  useEconomyStore(state => ({
+    addCurrency: state.addCurrency,
+    spendCurrency: state.spendCurrency,
+    purchaseItem: state.purchaseItem,
+    equipItem: state.equipItem,
+    unequipItem: state.unequipItem,
+    updateEnergy: state.updateEnergy,
+    spendEnergy: state.spendEnergy,
+    canAfford: state.canAfford,
+    getItemsByCategory: state.getItemsByCategory,
+  }));
 
 export default useEconomyStore;

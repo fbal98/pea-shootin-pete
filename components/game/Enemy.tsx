@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { getColorScheme } from '@/constants/HyperCasualColors';
+import { getColorScheme } from '@/constants/GameColors';
 import { ENTITY_CONFIG, getBalloonOpacity } from '@/constants/GameConfig';
 
-interface HyperCasualEnemyProps {
+interface EnemyProps {
   x: number;
   y: number;
   size: number;
@@ -12,16 +12,16 @@ interface HyperCasualEnemyProps {
   level: number;
 }
 
-export const HyperCasualEnemy: React.FC<HyperCasualEnemyProps> = ({ 
-  x, 
-  y, 
-  size, 
-  type = 'basic', 
+export const Enemy: React.FC<EnemyProps> = ({
+  x,
+  y,
+  size,
+  type = 'basic',
   sizeLevel = 3,
-  level 
+  level,
 }) => {
   const colorScheme = getColorScheme(level);
-  
+
   // Minimal visual differentiation
   const getOpacity = () => {
     return getBalloonOpacity(sizeLevel as 1 | 2 | 3);
@@ -43,7 +43,7 @@ export const HyperCasualEnemy: React.FC<HyperCasualEnemyProps> = ({
       default:
         // Circle
         return {
-          borderRadius: size * ENTITY_CONFIG.BALLOON.BORDER_RADIUS.CIRCLE / 2,
+          borderRadius: (size * ENTITY_CONFIG.BALLOON.BORDER_RADIUS.CIRCLE) / 2,
         };
     }
   };

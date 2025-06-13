@@ -1,26 +1,26 @@
 /**
  * Analytics System for Pea Shootin' Pete
- * 
+ *
  * Comprehensive analytics tracking that supports:
  * - Level progression events (required by publishing checklist)
  * - Player behavior tracking
  * - Performance metrics
  * - Revenue optimization data
  * - A/B testing event tagging
- * 
+ *
  * Designed to integrate with Firebase Analytics, GameAnalytics, etc.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Event types based on publishing checklist requirements
-export type AnalyticsEventType = 
+export type AnalyticsEventType =
   // Core level progression events (CRITICAL for publishing)
   | 'level_start'
-  | 'level_complete' 
+  | 'level_complete'
   | 'level_failed'
   | 'game_over'
-  
+
   // Player behavior events
   | 'game_start'
   | 'session_start'
@@ -30,14 +30,14 @@ export type AnalyticsEventType =
   | 'combo_achieved'
   | 'retry_level'
   | 'mystery_balloon_popped'
-  
+
   // Social and viral events
   | 'social_share'
   | 'viral_referral'
   | 'deep_link_used'
   | 'friend_invited'
   | 'challenge_shared'
-  
+
   // Monetization events
   | 'purchase_initiated'
   | 'purchase_completed'
@@ -48,14 +48,14 @@ export type AnalyticsEventType =
   | 'ad_clicked'
   | 'ad_completed'
   | 'ad_failed'
-  
+
   // Special events and FOMO
   | 'special_event_joined'
   | 'special_event_completed'
   | 'flash_sale_viewed'
   | 'flash_sale_purchased'
   | 'event_participation'
-  
+
   // Progression events
   | 'level_unlocked'
   | 'achievement_unlocked'
@@ -65,12 +65,12 @@ export type AnalyticsEventType =
   | 'skin_equipped'
   | 'customization_changed'
   | 'ab_test_assigned'
-  
+
   // World map and navigation
   | 'world_map_opened'
   | 'node_selected'
   | 'theme_unlocked'
-  
+
   // Performance events
   | 'crash_reported'
   | 'performance_issue'
@@ -83,25 +83,25 @@ export interface AnalyticsEventData {
   timestamp: number;
   session_id: string;
   user_id?: string;
-  
+
   // Level-specific data
   level?: number;
   level_name?: string;
   level_duration?: number;
   level_attempts?: number;
-  
+
   // Score and performance data
   score?: number;
   high_score?: number;
   accuracy?: number;
   combo_count?: number;
   enemies_eliminated?: number;
-  
+
   // Failure/completion data
   failure_reason?: string;
   completion_time?: number;
   objectives_completed?: string[];
-  
+
   // Device and session data
   device_info?: {
     platform: string;
@@ -109,11 +109,11 @@ export interface AnalyticsEventData {
     app_version: string;
     device_model?: string;
   };
-  
+
   // A/B testing data
   ab_test_group?: string;
   ab_test_variant?: string;
-  
+
   // Custom properties
   custom_properties?: Record<string, any>;
 }
@@ -250,9 +250,9 @@ export class AnalyticsManager {
   }
 
   public trackLevelComplete(
-    levelId: number, 
-    levelName: string, 
-    score: number, 
+    levelId: number,
+    levelName: string,
+    score: number,
     duration: number,
     accuracy: number,
     attempts: number = 1
@@ -269,8 +269,8 @@ export class AnalyticsManager {
   }
 
   public trackLevelFailed(
-    levelId: number, 
-    levelName: string, 
+    levelId: number,
+    levelName: string,
     reason: string,
     score: number = 0,
     duration: number = 0,
@@ -338,7 +338,7 @@ export class AnalyticsManager {
     try {
       // In a real implementation, this would send to Firebase Analytics, etc.
       await this.sendEventsToService(eventsToSend);
-      
+
       if (this.config.debug) {
         console.log(`Flushed ${eventsToSend.length} analytics events`);
       }
@@ -347,7 +347,7 @@ export class AnalyticsManager {
       await AsyncStorage.removeItem(STORAGE_KEYS.EVENTS_QUEUE);
     } catch (error) {
       console.error('Failed to flush analytics events:', error);
-      
+
       // Re-add events to queue for retry
       this.eventQueue = [...eventsToSend, ...this.eventQueue];
       await this.saveQueueToStorage();
@@ -465,23 +465,43 @@ export class AnalyticsManager {
 export const analytics = AnalyticsManager.getInstance();
 
 // Convenience function exports
-export const trackLevelStart = (levelId: number, levelName: string, attempts?: number) => 
+export const trackLevelStart = (levelId: number, levelName: string, attempts?: number) =>
   analytics.trackLevelStart(levelId, levelName, attempts);
 
-export const trackLevelComplete = (levelId: number, levelName: string, score: number, duration: number, accuracy: number, attempts?: number) => 
-  analytics.trackLevelComplete(levelId, levelName, score, duration, accuracy, attempts);
+export const trackLevelComplete = (
+  levelId: number,
+  levelName: string,
+  score: number,
+  duration: number,
+  accuracy: number,
+  attempts?: number
+) => analytics.trackLevelComplete(levelId, levelName, score, duration, accuracy, attempts);
 
-export const trackLevelFailed = (levelId: number, levelName: string, reason: string, score?: number, duration?: number, attempts?: number) => 
-  analytics.trackLevelFailed(levelId, levelName, reason, score, duration, attempts);
+export const trackLevelFailed = (
+  levelId: number,
+  levelName: string,
+  reason: string,
+  score?: number,
+  duration?: number,
+  attempts?: number
+) => analytics.trackLevelFailed(levelId, levelName, reason, score, duration, attempts);
 
-export const trackGameOver = (finalScore: number, highScore: number, levelsCompleted: number) => 
+export const trackGameOver = (finalScore: number, highScore: number, levelsCompleted: number) =>
   analytics.trackGameOver(finalScore, highScore, levelsCompleted);
 
-export const trackBalloonPopped = (balloonSize: number, points: number, combo?: number, levelId?: number) => 
-  analytics.trackBalloonPopped(balloonSize, points, combo, levelId);
+export const trackBalloonPopped = (
+  balloonSize: number,
+  points: number,
+  combo?: number,
+  levelId?: number
+) => analytics.trackBalloonPopped(balloonSize, points, combo, levelId);
 
-export const trackMysteryBalloonPopped = (rewardType: string, rarity: string, value: string | number, levelId?: number) => 
-  analytics.trackMysteryBalloonPopped(rewardType, rarity, value, levelId);
+export const trackMysteryBalloonPopped = (
+  rewardType: string,
+  rarity: string,
+  value: string | number,
+  levelId?: number
+) => analytics.trackMysteryBalloonPopped(rewardType, rarity, value, levelId);
 
 // Social and viral tracking
 export const trackSocialShare = (data: {

@@ -1,12 +1,12 @@
 /**
  * Mystery Reward Display - Celebration animations for mystery balloon rewards
- * 
+ *
  * Shows immediate visual feedback when mystery balloons are popped:
  * - Reward type and value with rarity-based styling
  * - Particle effects and animations
  * - Sound and haptic feedback integration points
  * - Smooth transitions and celebrations
- * 
+ *
  * Designed to maximize dopamine response and reward satisfaction.
  */
 
@@ -36,7 +36,7 @@ const Particle: React.FC<ParticleProps> = ({ x, y, color, size, velocity, life }
       Animated.timing(positionAnim, {
         toValue: {
           x: x + velocity.x * life,
-          y: y + velocity.y * life
+          y: y + velocity.y * life,
         },
         duration: life,
         useNativeDriver: true,
@@ -56,8 +56,8 @@ const Particle: React.FC<ParticleProps> = ({ x, y, color, size, velocity, life }
           toValue: 0,
           duration: life * 0.7,
           useNativeDriver: true,
-        })
-      ])
+        }),
+      ]),
     ]).start();
   }, []);
 
@@ -74,9 +74,9 @@ const Particle: React.FC<ParticleProps> = ({ x, y, color, size, velocity, life }
           transform: [
             { translateX: positionAnim.x },
             { translateY: positionAnim.y },
-            { scale: scaleAnim }
-          ]
-        }
+            { scale: scaleAnim },
+          ],
+        },
       ]}
     />
   );
@@ -95,14 +95,14 @@ const ParticleSystem: React.FC<ParticleSystemProps> = ({ x, y, rarity, onComplet
   useEffect(() => {
     const particleCount = getParticleCount(rarity);
     const colors = getParticleColors(rarity);
-    
+
     const newParticles: ParticleProps[] = [];
-    
+
     for (let i = 0; i < particleCount; i++) {
       const angle = (Math.PI * 2 * i) / particleCount;
       const speed = 50 + Math.random() * 100;
       const life = 1000 + Math.random() * 1000;
-      
+
       newParticles.push({
         x,
         y,
@@ -110,14 +110,14 @@ const ParticleSystem: React.FC<ParticleSystemProps> = ({ x, y, rarity, onComplet
         size: 4 + Math.random() * 8,
         velocity: {
           x: Math.cos(angle) * speed,
-          y: Math.sin(angle) * speed - 30 // Slight upward bias
+          y: Math.sin(angle) * speed - 30, // Slight upward bias
         },
-        life
+        life,
       });
     }
-    
+
     setParticles(newParticles);
-    
+
     // Clean up after longest particle life
     setTimeout(onComplete, 2000);
   }, []);
@@ -133,11 +133,16 @@ const ParticleSystem: React.FC<ParticleSystemProps> = ({ x, y, rarity, onComplet
 
 const getParticleCount = (rarity: RewardRarity): number => {
   switch (rarity) {
-    case 'legendary': return 20;
-    case 'epic': return 15;
-    case 'rare': return 10;
-    case 'uncommon': return 6;
-    default: return 4;
+    case 'legendary':
+      return 20;
+    case 'epic':
+      return 15;
+    case 'rare':
+      return 10;
+    case 'uncommon':
+      return 6;
+    default:
+      return 4;
   }
 };
 
@@ -167,7 +172,7 @@ export const MysteryRewardDisplay: React.FC<MysteryRewardDisplayProps> = ({
   reward,
   x,
   y,
-  onComplete
+  onComplete,
 }) => {
   const [showParticles, setShowParticles] = useState(true);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -188,7 +193,7 @@ export const MysteryRewardDisplay: React.FC<MysteryRewardDisplayProps> = ({
           toValue: 1,
           duration: 300,
           useNativeDriver: true,
-        })
+        }),
       ]),
       // Settle to normal size
       Animated.spring(scaleAnim, {
@@ -208,7 +213,7 @@ export const MysteryRewardDisplay: React.FC<MysteryRewardDisplayProps> = ({
           toValue: 0,
           duration: 200,
           useNativeDriver: true,
-        })
+        }),
       ]),
       // Hold for readability
       Animated.delay(1000),
@@ -223,8 +228,8 @@ export const MysteryRewardDisplay: React.FC<MysteryRewardDisplayProps> = ({
           toValue: 0,
           duration: 300,
           useNativeDriver: true,
-        })
-      ])
+        }),
+      ]),
     ]).start(onComplete);
   }, []);
 
@@ -234,38 +239,38 @@ export const MysteryRewardDisplay: React.FC<MysteryRewardDisplayProps> = ({
         return {
           backgroundColor: 'rgba(255, 215, 0, 0.95)',
           borderColor: '#FFD700',
-          textColor: '#B8860B'
+          textColor: '#B8860B',
         };
       case 'epic':
         return {
           backgroundColor: 'rgba(163, 116, 213, 0.95)',
           borderColor: '#A374D5',
-          textColor: '#FFFFFF'
+          textColor: '#FFFFFF',
         };
       case 'rare':
         return {
           backgroundColor: 'rgba(225, 112, 85, 0.95)',
           borderColor: '#E17055',
-          textColor: '#FFFFFF'
+          textColor: '#FFFFFF',
         };
       case 'uncommon':
         return {
           backgroundColor: 'rgba(78, 205, 196, 0.95)',
           borderColor: '#4ECDC4',
-          textColor: '#FFFFFF'
+          textColor: '#FFFFFF',
         };
       default:
         return {
           backgroundColor: 'rgba(116, 185, 255, 0.95)',
           borderColor: '#74B9FF',
-          textColor: '#FFFFFF'
+          textColor: '#FFFFFF',
         };
     }
   };
 
   const formatRewardText = () => {
     const value = reward.value;
-    
+
     switch (reward.type) {
       case 'coins':
         return `+${value} Coins`;
@@ -295,7 +300,7 @@ export const MysteryRewardDisplay: React.FC<MysteryRewardDisplayProps> = ({
           onComplete={() => setShowParticles(false)}
         />
       )}
-      
+
       {/* Main reward display */}
       <Animated.View
         style={[
@@ -306,25 +311,20 @@ export const MysteryRewardDisplay: React.FC<MysteryRewardDisplayProps> = ({
             backgroundColor: rarityStyle.backgroundColor,
             borderColor: rarityStyle.borderColor,
             opacity: opacityAnim,
-            transform: [
-              { scale: scaleAnim },
-              { translateY: bounceAnim }
-            ]
-          }
+            transform: [{ scale: scaleAnim }, { translateY: bounceAnim }],
+          },
         ]}
       >
         {/* Rarity indicator */}
         <View style={[styles.rarityBadge, { backgroundColor: rarityStyle.borderColor }]}>
-          <Text style={styles.rarityText}>
-            {reward.rarity.toUpperCase()}
-          </Text>
+          <Text style={styles.rarityText}>{reward.rarity.toUpperCase()}</Text>
         </View>
-        
+
         {/* Reward text */}
         <Text style={[styles.rewardText, { color: rarityStyle.textColor }]}>
           {formatRewardText()}
         </Text>
-        
+
         {/* Reward type icon area - could add icons here */}
         <View style={styles.iconPlaceholder}>
           <Text style={[styles.iconText, { color: rarityStyle.textColor }]}>
@@ -338,12 +338,18 @@ export const MysteryRewardDisplay: React.FC<MysteryRewardDisplayProps> = ({
 
 const getRewardIcon = (type: string): string => {
   switch (type) {
-    case 'coins': return '💰';
-    case 'experience': return '⭐';
-    case 'score_multiplier': return '🚀';
-    case 'customization': return '🎨';
-    case 'mystery_box': return '📦';
-    default: return '🎁';
+    case 'coins':
+      return '💰';
+    case 'experience':
+      return '⭐';
+    case 'score_multiplier':
+      return '🚀';
+    case 'customization':
+      return '🎨';
+    case 'mystery_box':
+      return '📦';
+    default:
+      return '🎁';
   }
 };
 
@@ -356,7 +362,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     pointerEvents: 'none',
   },
-  
+
   particleContainer: {
     position: 'absolute',
     top: 0,
@@ -364,11 +370,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  
+
   particle: {
     position: 'absolute',
   },
-  
+
   rewardContainer: {
     position: 'absolute',
     paddingHorizontal: 20,
@@ -383,7 +389,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minWidth: 200,
   },
-  
+
   rarityBadge: {
     position: 'absolute',
     top: -8,
@@ -394,14 +400,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  
+
   rarityText: {
     fontSize: 10,
     fontWeight: '700',
     color: 'white',
     letterSpacing: 1,
   },
-  
+
   rewardText: {
     fontSize: 18,
     fontWeight: '700',
@@ -411,14 +417,14 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  
+
   iconPlaceholder: {
     width: 24,
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  
+
   iconText: {
     fontSize: 20,
   },

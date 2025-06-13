@@ -8,14 +8,10 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-import {
-  PanGestureHandler,
-  PinchGestureHandler,
-  State,
-} from 'react-native-gesture-handler';
+import { PanGestureHandler, PinchGestureHandler, State } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Circle, Line, Polygon } from 'react-native-svg';
-import { HyperCasualColors } from '../constants/HyperCasualColors';
+import { getColorScheme } from '../constants/GameColors';
 import { useLevelProgressionStore } from '../store/levelProgressionStore';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -343,12 +339,12 @@ interface WorldMapScreenProps {
 export const WorldMapScreen: React.FC<WorldMapScreenProps> = ({ onBack, onLevelSelect }) => {
   const [selectedNode, setSelectedNode] = useState<WorldNode | null>(null);
   const [currentTheme, setCurrentTheme] = useState<WorldTheme>(WORLD_THEMES.beach);
-  
+
   // Animation values for pan and zoom
   const translateX = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
-  
+
   const lastPan = useRef({ x: 0, y: 0 });
   const lastScale = useRef(1);
 
@@ -362,11 +358,11 @@ export const WorldMapScreen: React.FC<WorldMapScreenProps> = ({ onBack, onLevelS
 
     setSelectedNode(node);
     setCurrentTheme(WORLD_THEMES[node.theme]);
-    
+
     // Animate to center the node
     const centerX = screenWidth / 2 - node.position.x;
     const centerY = screenHeight / 2 - node.position.y;
-    
+
     Animated.parallel([
       Animated.spring(translateX, {
         toValue: centerX,
@@ -403,10 +399,9 @@ export const WorldMapScreen: React.FC<WorldMapScreenProps> = ({ onBack, onLevelS
     }
   };
 
-  const onPinchGestureEvent = Animated.event(
-    [{ nativeEvent: { scale: scale } }],
-    { useNativeDriver: true }
-  );
+  const onPinchGestureEvent = Animated.event([{ nativeEvent: { scale: scale } }], {
+    useNativeDriver: true,
+  });
 
   const onPinchHandlerStateChange = (event: any) => {
     if (event.nativeEvent.oldState === State.ACTIVE) {
@@ -427,7 +422,7 @@ export const WorldMapScreen: React.FC<WorldMapScreenProps> = ({ onBack, onLevelS
         y2={to.position.y}
         stroke={theme.pathColor}
         strokeWidth={4}
-        strokeDasharray={from.completed ? "0" : "10,5"}
+        strokeDasharray={from.completed ? '0' : '10,5'}
         opacity={from.locked ? 0.3 : 0.8}
       />
     );
@@ -436,7 +431,7 @@ export const WorldMapScreen: React.FC<WorldMapScreenProps> = ({ onBack, onLevelS
   const renderNode = (node: WorldNode) => {
     const theme = WORLD_THEMES[node.theme];
     const nodeSize = node.landmark ? 50 : 40;
-    
+
     return (
       <TouchableOpacity
         key={node.id}
@@ -467,22 +462,22 @@ export const WorldMapScreen: React.FC<WorldMapScreenProps> = ({ onBack, onLevelS
           ) : (
             <Text style={styles.levelNumber}>{node.levelId}</Text>
           )}
-          
+
           {node.locked && (
             <View style={styles.lockOverlay}>
               <Ionicons name="lock-closed" size={16} color="white" />
             </View>
           )}
         </View>
-        
+
         {node.completed && (
           <View style={styles.starsContainer}>
             {[1, 2, 3].map(star => (
               <Ionicons
                 key={star}
-                name={star <= node.stars ? "star" : "star-outline"}
+                name={star <= node.stars ? 'star' : 'star-outline'}
                 size={8}
-                color={star <= node.stars ? "#FFD700" : "#CCCCCC"}
+                color={star <= node.stars ? '#FFD700' : '#CCCCCC'}
               />
             ))}
           </View>
@@ -498,9 +493,9 @@ export const WorldMapScreen: React.FC<WorldMapScreenProps> = ({ onBack, onLevelS
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle}>World Map</Text>
-        
+
         <TouchableOpacity style={styles.infoButton}>
           <Ionicons name="information-circle" size={24} color="white" />
         </TouchableOpacity>
@@ -529,12 +524,8 @@ export const WorldMapScreen: React.FC<WorldMapScreenProps> = ({ onBack, onLevelS
               ]}
             >
               {/* SVG for paths */}
-              <Svg
-                width={1200}
-                height={1000}
-                style={StyleSheet.absoluteFill}
-              >
-                {WORLD_NODES.map(node => 
+              <Svg width={1200} height={1000} style={StyleSheet.absoluteFill}>
+                {WORLD_NODES.map(node =>
                   node.connections.map(connectionId => {
                     const connectedNode = WORLD_NODES.find(n => n.id === connectionId);
                     return connectedNode ? renderPath(node, connectedNode) : null;
@@ -556,11 +547,11 @@ export const WorldMapScreen: React.FC<WorldMapScreenProps> = ({ onBack, onLevelS
             <Text style={styles.nodeInfoTitle}>{selectedNode.name}</Text>
             <Text style={styles.nodeInfoTheme}>{currentTheme.name}</Text>
           </View>
-          
+
           <Text style={styles.nodeInfoDescription}>
             {selectedNode.landmark?.description || currentTheme.description}
           </Text>
-          
+
           <View style={styles.nodeInfoStats}>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Level</Text>
@@ -595,17 +586,14 @@ export const WorldMapScreen: React.FC<WorldMapScreenProps> = ({ onBack, onLevelS
 
       {/* Theme Legend */}
       <View style={styles.themeLegend}>
-        {Object.values(WORLD_THEMES).slice(0, 4).map(theme => (
-          <View key={theme.id} style={styles.themeItem}>
-            <View
-              style={[
-                styles.themeColor,
-                { backgroundColor: theme.nodeColor },
-              ]}
-            />
-            <Text style={styles.themeName}>{theme.landmark}</Text>
-          </View>
-        ))}
+        {Object.values(WORLD_THEMES)
+          .slice(0, 4)
+          .map(theme => (
+            <View key={theme.id} style={styles.themeItem}>
+              <View style={[styles.themeColor, { backgroundColor: theme.nodeColor }]} />
+              <Text style={styles.themeName}>{theme.landmark}</Text>
+            </View>
+          ))}
       </View>
     </View>
   );

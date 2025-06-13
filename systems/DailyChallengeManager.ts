@@ -1,13 +1,13 @@
 /**
  * Daily Challenge Manager - Handles rotating daily challenges for player retention
- * 
+ *
  * This system provides:
  * - Rotating daily objectives with varying difficulty
  * - Streak-based rewards to encourage consecutive daily play
  * - Analytics integration for optimization
  * - Challenge templates for easy content creation
  * - Time-zone aware challenge refresh
- * 
+ *
  * Based on 2025 mobile game retention best practices and psychological engagement.
  */
 
@@ -20,7 +20,7 @@ import {
   ChallengeReward,
   ChallengeDifficulty,
   ChallengeObjectiveType,
-  META_PROGRESSION_CONSTANTS
+  META_PROGRESSION_CONSTANTS,
 } from '../types/MetaProgressionTypes';
 
 // Storage keys
@@ -28,7 +28,7 @@ const STORAGE_KEYS = {
   DAILY_CHALLENGES: 'psp_daily_challenges',
   CHALLENGE_PROGRESS: 'psp_challenge_progress',
   CHALLENGE_HISTORY: 'psp_challenge_history',
-  LAST_CHALLENGE_REFRESH: 'psp_last_challenge_refresh'
+  LAST_CHALLENGE_REFRESH: 'psp_last_challenge_refresh',
 } as const;
 
 // Challenge templates for generation
@@ -55,9 +55,9 @@ export class DailyChallengeManager {
       currentStreak: 0,
       longestStreak: 0,
       totalChallengesCompleted: 0,
-      weeklyCompletionRate: 0
+      weeklyCompletionRate: 0,
     };
-    
+
     this.initializeChallengeTemplates();
   }
 
@@ -75,119 +75,119 @@ export class DailyChallengeManager {
     this.challengeTemplates = [
       // Easy challenges (high completion rate, good for streaks)
       {
-        name: "Balloon Buster",
-        description: "Pop 25 balloons",
+        name: 'Balloon Buster',
+        description: 'Pop 25 balloons',
         objective: {
           type: 'pop_balloons',
           target: 25,
-          contextFilter: undefined
+          contextFilter: undefined,
         },
         difficulty: 'easy',
         baseReward: { coins: 50, experiencePoints: 75 },
-        weight: 25
+        weight: 25,
       },
       {
-        name: "Level Runner",
-        description: "Complete 3 levels",
+        name: 'Level Runner',
+        description: 'Complete 3 levels',
         objective: {
           type: 'complete_levels',
           target: 3,
-          contextFilter: undefined
+          contextFilter: undefined,
         },
         difficulty: 'easy',
         baseReward: { coins: 75, experiencePoints: 100 },
-        weight: 20
+        weight: 20,
       },
       {
-        name: "Sharp Shooter",
-        description: "Achieve 80% accuracy in any level",
+        name: 'Sharp Shooter',
+        description: 'Achieve 80% accuracy in any level',
         objective: {
           type: 'achieve_accuracy',
           target: 80,
-          contextFilter: undefined
+          contextFilter: undefined,
         },
         difficulty: 'medium',
         baseReward: { coins: 100, experiencePoints: 125 },
-        weight: 15
+        weight: 15,
       },
-      
+
       // Medium challenges (moderate difficulty, good rewards)
       {
-        name: "Perfect Performance",
-        description: "Complete any level with 100% accuracy",
+        name: 'Perfect Performance',
+        description: 'Complete any level with 100% accuracy',
         objective: {
           type: 'achieve_accuracy',
           target: 100,
-          contextFilter: undefined
+          contextFilter: undefined,
         },
         difficulty: 'medium',
         baseReward: { coins: 150, experiencePoints: 200 },
-        weight: 12
+        weight: 12,
       },
       {
-        name: "Combo Master",
-        description: "Achieve a 5-hit combo",
+        name: 'Combo Master',
+        description: 'Achieve a 5-hit combo',
         objective: {
           type: 'consecutive_hits',
           target: 5,
-          contextFilter: undefined
+          contextFilter: undefined,
         },
         difficulty: 'medium',
         baseReward: { coins: 125, experiencePoints: 175 },
-        weight: 15
+        weight: 15,
       },
       {
-        name: "Speed Runner",
-        description: "Complete level 1 in under 30 seconds",
+        name: 'Speed Runner',
+        description: 'Complete level 1 in under 30 seconds',
         objective: {
           type: 'speed_completion',
           target: 30,
           contextFilter: {
-            levelIds: [1]
-          }
+            levelIds: [1],
+          },
         },
         difficulty: 'medium',
         baseReward: { coins: 175, experiencePoints: 225 },
-        weight: 10
+        weight: 10,
       },
-      
+
       // Hard challenges (high skill requirement, great rewards)
       {
-        name: "Three Star Elite",
-        description: "Get 3 stars on any level",
+        name: 'Three Star Elite',
+        description: 'Get 3 stars on any level',
         objective: {
           type: 'specific_level_mastery',
           target: 3,
-          contextFilter: undefined
+          contextFilter: undefined,
         },
         difficulty: 'hard',
         baseReward: { coins: 250, experiencePoints: 300 },
-        weight: 8
+        weight: 8,
       },
       {
-        name: "Precision Master",
-        description: "Complete 2 levels without missing a shot",
+        name: 'Precision Master',
+        description: 'Complete 2 levels without missing a shot',
         objective: {
           type: 'perfect_levels',
           target: 2,
-          contextFilter: undefined
+          contextFilter: undefined,
         },
         difficulty: 'hard',
         baseReward: { coins: 300, experiencePoints: 400 },
-        weight: 5
+        weight: 5,
       },
       {
-        name: "Chain Reaction",
-        description: "Achieve a 10-hit combo",
+        name: 'Chain Reaction',
+        description: 'Achieve a 10-hit combo',
         objective: {
           type: 'consecutive_hits',
           target: 10,
-          contextFilter: undefined
+          contextFilter: undefined,
         },
         difficulty: 'expert',
         baseReward: { coins: 500, experiencePoints: 600 },
-        weight: 3
-      }
+        weight: 3,
+      },
     ];
   }
 
@@ -211,13 +211,13 @@ export class DailyChallengeManager {
   public async checkAndRefreshChallenges(): Promise<boolean> {
     const now = Date.now();
     const todayStart = this.getTodayStartTime();
-    
+
     // Check if we need to refresh (new day)
     if (this.lastRefreshDate < todayStart) {
       await this.generateDailyChallenges();
       return true;
     }
-    
+
     return false;
   }
 
@@ -231,8 +231,10 @@ export class DailyChallengeManager {
 
     // Update streak logic
     if (this.lastRefreshDate > 0) {
-      const daysSinceLastRefresh = Math.floor((todayStart - this.lastRefreshDate) / (24 * 60 * 60 * 1000));
-      
+      const daysSinceLastRefresh = Math.floor(
+        (todayStart - this.lastRefreshDate) / (24 * 60 * 60 * 1000)
+      );
+
       if (daysSinceLastRefresh === 1) {
         // Consecutive day - maintain or increase streak
         const completedYesterday = this.didCompleteAnyChallenge(this.lastRefreshDate);
@@ -253,18 +255,18 @@ export class DailyChallengeManager {
 
     // Select challenges based on player skill and history
     const selectedTemplates = this.selectChallengeTemplates();
-    
+
     // Generate challenges from templates
     this.currentChallenges = selectedTemplates.map((template, index) => {
       const challengeId = `daily_${todayStart}_${index}`;
-      
+
       return {
         id: challengeId,
         name: template.name,
         description: template.description,
         objective: {
           ...template.objective,
-          allowedAttempts: this.getAllowedAttempts(template.difficulty)
+          allowedAttempts: this.getAllowedAttempts(template.difficulty),
         },
         difficulty: template.difficulty,
         baseReward: template.baseReward,
@@ -273,7 +275,7 @@ export class DailyChallengeManager {
         endDate: tomorrowStart,
         refreshType: 'daily',
         completionRate: this.estimateCompletionRate(template),
-        averageAttempts: this.estimateAverageAttempts(template)
+        averageAttempts: this.estimateAverageAttempts(template),
       };
     });
 
@@ -286,7 +288,7 @@ export class DailyChallengeManager {
         targetProgress: challenge.objective.target,
         completed: false,
         claimed: false,
-        attempts: 0
+        attempts: 0,
       };
     });
 
@@ -300,21 +302,23 @@ export class DailyChallengeManager {
   private selectChallengeTemplates(): ChallengeTemplate[] {
     const maxChallenges = META_PROGRESSION_CONSTANTS.MAX_DAILY_CHALLENGES;
     const selected: ChallengeTemplate[] = [];
-    
+
     // Ensure difficulty distribution: 1 easy, 1 medium, 1 hard/expert
     const easyTemplates = this.challengeTemplates.filter(t => t.difficulty === 'easy');
     const mediumTemplates = this.challengeTemplates.filter(t => t.difficulty === 'medium');
-    const hardTemplates = this.challengeTemplates.filter(t => t.difficulty === 'hard' || t.difficulty === 'expert');
-    
+    const hardTemplates = this.challengeTemplates.filter(
+      t => t.difficulty === 'hard' || t.difficulty === 'expert'
+    );
+
     // Select one from each difficulty category
     if (easyTemplates.length > 0) {
       selected.push(this.weightedRandomSelect(easyTemplates));
     }
-    
+
     if (mediumTemplates.length > 0) {
       selected.push(this.weightedRandomSelect(mediumTemplates));
     }
-    
+
     if (hardTemplates.length > 0) {
       selected.push(this.weightedRandomSelect(hardTemplates));
     }
@@ -328,14 +332,14 @@ export class DailyChallengeManager {
   private weightedRandomSelect(templates: ChallengeTemplate[]): ChallengeTemplate {
     const totalWeight = templates.reduce((sum, template) => sum + template.weight, 0);
     let random = Math.random() * totalWeight;
-    
+
     for (const template of templates) {
       random -= template.weight;
       if (random <= 0) {
         return template;
       }
     }
-    
+
     return templates[templates.length - 1]; // Fallback
   }
 
@@ -344,11 +348,14 @@ export class DailyChallengeManager {
    */
   private calculateStreakBonus(baseReward: ChallengeReward): ChallengeReward {
     const streak = this.challengeHistory.currentStreak;
-    const multiplier = Math.min(1 + (streak * 0.1), META_PROGRESSION_CONSTANTS.CHALLENGE_STREAK_BONUS_MULTIPLIER);
-    
+    const multiplier = Math.min(
+      1 + streak * 0.1,
+      META_PROGRESSION_CONSTANTS.CHALLENGE_STREAK_BONUS_MULTIPLIER
+    );
+
     return {
       coins: Math.floor(baseReward.coins * (multiplier - 1)),
-      experiencePoints: Math.floor((baseReward.experiencePoints || 0) * (multiplier - 1))
+      experiencePoints: Math.floor((baseReward.experiencePoints || 0) * (multiplier - 1)),
     };
   }
 
@@ -364,7 +371,10 @@ export class DailyChallengeManager {
     challengeProgress.attempts += 1;
 
     // Check if challenge is completed
-    if (challengeProgress.currentProgress >= challengeProgress.targetProgress && !challengeProgress.completed) {
+    if (
+      challengeProgress.currentProgress >= challengeProgress.targetProgress &&
+      !challengeProgress.completed
+    ) {
       challengeProgress.completed = true;
       this.onChallengeCompleted(challengeId);
     }
@@ -394,18 +404,25 @@ export class DailyChallengeManager {
   public claimChallengeReward(challengeId: string): ChallengeReward | null {
     const challengeProgress = this.challengeProgress[challengeId];
     const challenge = this.currentChallenges.find(c => c.id === challengeId);
-    
-    if (!challengeProgress || !challenge || !challengeProgress.completed || challengeProgress.claimed) {
+
+    if (
+      !challengeProgress ||
+      !challenge ||
+      !challengeProgress.completed ||
+      challengeProgress.claimed
+    ) {
       return null;
     }
 
     challengeProgress.claimed = true;
-    
+
     // Calculate total reward (base + streak bonus)
     const totalReward: ChallengeReward = {
       coins: challenge.baseReward.coins + (challenge.streakBonus?.coins || 0),
-      experiencePoints: (challenge.baseReward.experiencePoints || 0) + (challenge.streakBonus?.experiencePoints || 0),
-      unlockableItem: challenge.baseReward.unlockableItem
+      experiencePoints:
+        (challenge.baseReward.experiencePoints || 0) +
+        (challenge.streakBonus?.experiencePoints || 0),
+      unlockableItem: challenge.baseReward.unlockableItem,
     };
 
     this.saveToStorage();
@@ -439,7 +456,7 @@ export class DailyChallengeManager {
   private didCompleteAnyChallenge(date: number): boolean {
     const dayStart = this.getDayStartTime(date);
     const dayEnd = dayStart + 24 * 60 * 60 * 1000;
-    
+
     return Array.from(this.challengeHistory.completedChallenges).some(challengeId => {
       const challengeDate = this.extractDateFromChallengeId(challengeId);
       return challengeDate >= dayStart && challengeDate < dayEnd;
@@ -459,11 +476,16 @@ export class DailyChallengeManager {
    */
   private getAllowedAttempts(difficulty: ChallengeDifficulty): number {
     switch (difficulty) {
-      case 'easy': return 5;
-      case 'medium': return 3;
-      case 'hard': return 2;
-      case 'expert': return 1;
-      default: return 3;
+      case 'easy':
+        return 5;
+      case 'medium':
+        return 3;
+      case 'hard':
+        return 2;
+      case 'expert':
+        return 1;
+      default:
+        return 3;
     }
   }
 
@@ -472,11 +494,16 @@ export class DailyChallengeManager {
    */
   private estimateCompletionRate(template: ChallengeTemplate): number {
     switch (template.difficulty) {
-      case 'easy': return 0.85;
-      case 'medium': return 0.65;
-      case 'hard': return 0.35;
-      case 'expert': return 0.15;
-      default: return 0.50;
+      case 'easy':
+        return 0.85;
+      case 'medium':
+        return 0.65;
+      case 'hard':
+        return 0.35;
+      case 'expert':
+        return 0.15;
+      default:
+        return 0.5;
     }
   }
 
@@ -485,11 +512,16 @@ export class DailyChallengeManager {
    */
   private estimateAverageAttempts(template: ChallengeTemplate): number {
     switch (template.difficulty) {
-      case 'easy': return 1.2;
-      case 'medium': return 2.1;
-      case 'hard': return 3.8;
-      case 'expert': return 4.5;
-      default: return 2.5;
+      case 'easy':
+        return 1.2;
+      case 'medium':
+        return 2.1;
+      case 'hard':
+        return 3.8;
+      case 'expert':
+        return 4.5;
+      default:
+        return 2.5;
     }
   }
 
@@ -520,7 +552,7 @@ export class DailyChallengeManager {
       challengeId: challenge.id,
       difficulty: challenge.difficulty,
       attempts: this.challengeProgress[challenge.id]?.attempts || 0,
-      streak: this.challengeHistory.currentStreak
+      streak: this.challengeHistory.currentStreak,
     });
   }
 
@@ -531,12 +563,18 @@ export class DailyChallengeManager {
     try {
       const savePromises = [
         AsyncStorage.setItem(STORAGE_KEYS.DAILY_CHALLENGES, JSON.stringify(this.currentChallenges)),
-        AsyncStorage.setItem(STORAGE_KEYS.CHALLENGE_PROGRESS, JSON.stringify(this.challengeProgress)),
-        AsyncStorage.setItem(STORAGE_KEYS.CHALLENGE_HISTORY, JSON.stringify({
-          ...this.challengeHistory,
-          completedChallenges: Array.from(this.challengeHistory.completedChallenges)
-        })),
-        AsyncStorage.setItem(STORAGE_KEYS.LAST_CHALLENGE_REFRESH, this.lastRefreshDate.toString())
+        AsyncStorage.setItem(
+          STORAGE_KEYS.CHALLENGE_PROGRESS,
+          JSON.stringify(this.challengeProgress)
+        ),
+        AsyncStorage.setItem(
+          STORAGE_KEYS.CHALLENGE_HISTORY,
+          JSON.stringify({
+            ...this.challengeHistory,
+            completedChallenges: Array.from(this.challengeHistory.completedChallenges),
+          })
+        ),
+        AsyncStorage.setItem(STORAGE_KEYS.LAST_CHALLENGE_REFRESH, this.lastRefreshDate.toString()),
       ];
 
       await Promise.all(savePromises);
@@ -554,7 +592,7 @@ export class DailyChallengeManager {
         AsyncStorage.getItem(STORAGE_KEYS.DAILY_CHALLENGES),
         AsyncStorage.getItem(STORAGE_KEYS.CHALLENGE_PROGRESS),
         AsyncStorage.getItem(STORAGE_KEYS.CHALLENGE_HISTORY),
-        AsyncStorage.getItem(STORAGE_KEYS.LAST_CHALLENGE_REFRESH)
+        AsyncStorage.getItem(STORAGE_KEYS.LAST_CHALLENGE_REFRESH),
       ]);
 
       if (challengesData) {
@@ -569,14 +607,13 @@ export class DailyChallengeManager {
         const parsed = JSON.parse(historyData);
         this.challengeHistory = {
           ...parsed,
-          completedChallenges: new Set(parsed.completedChallenges || [])
+          completedChallenges: new Set(parsed.completedChallenges || []),
         };
       }
 
       if (refreshData) {
         this.lastRefreshDate = parseInt(refreshData);
       }
-
     } catch (error) {
       console.error('Failed to load daily challenge data:', error);
     }
@@ -590,7 +627,7 @@ export class DailyChallengeManager {
       STORAGE_KEYS.DAILY_CHALLENGES,
       STORAGE_KEYS.CHALLENGE_PROGRESS,
       STORAGE_KEYS.CHALLENGE_HISTORY,
-      STORAGE_KEYS.LAST_CHALLENGE_REFRESH
+      STORAGE_KEYS.LAST_CHALLENGE_REFRESH,
     ]);
 
     this.currentChallenges = [];
@@ -600,7 +637,7 @@ export class DailyChallengeManager {
       currentStreak: 0,
       longestStreak: 0,
       totalChallengesCompleted: 0,
-      weeklyCompletionRate: 0
+      weeklyCompletionRate: 0,
     };
     this.lastRefreshDate = 0;
   }

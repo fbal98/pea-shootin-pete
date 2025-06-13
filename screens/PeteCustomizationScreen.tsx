@@ -20,8 +20,8 @@ import {
   useEconomyActions,
   StoreItem,
 } from '../store/economyStore';
-import { HyperCasualColors } from '../constants/HyperCasualColors';
-import { HyperCasualPete } from '../components/game/HyperCasualPete';
+import { getColorScheme } from '../constants/GameColors';
+import { Pete } from '../components/game/Pete';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -37,31 +37,31 @@ const TABS: TabConfig[] = [
     id: 'featured',
     title: 'Featured',
     icon: 'star',
-    filter: (item) => item.featured,
+    filter: item => item.featured,
   },
   {
     id: 'skins',
     title: 'Skins',
     icon: 'shirt',
-    filter: (item) => item.category === 'skin',
+    filter: item => item.category === 'skin',
   },
   {
     id: 'boosters',
     title: 'Boosters',
     icon: 'flash',
-    filter: (item) => item.category === 'booster',
+    filter: item => item.category === 'booster',
   },
   {
     id: 'currency',
     title: 'Currency',
     icon: 'wallet',
-    filter: (item) => item.category === 'currency',
+    filter: item => item.category === 'currency',
   },
   {
     id: 'premium',
     title: 'Premium',
     icon: 'diamond',
-    filter: (item) => item.category === 'premium',
+    filter: item => item.category === 'premium',
   },
 ];
 
@@ -79,16 +79,10 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
   const equippedItems = useEquippedItems();
   const storeItems = useStoreItems();
   const featuredItems = useFeaturedItems();
-  const {
-    purchaseItem,
-    equipItem,
-    unequipItem,
-    canAfford,
-    getItemsByCategory,
-    updateEnergy,
-  } = useEconomyActions();
+  const { purchaseItem, equipItem, unequipItem, canAfford, getItemsByCategory, updateEnergy } =
+    useEconomyActions();
 
-  const currentTheme = HyperCasualColors.getTheme(1);
+  const currentTheme = getColorScheme(1);
 
   useEffect(() => {
     // Update energy when screen loads
@@ -102,13 +96,13 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
     if (tabId === 'featured') {
       return featuredItems.length > 0 ? featuredItems : storeItems.filter(tab.filter);
     }
-    
+
     return storeItems.filter(tab.filter);
   };
 
   const handleItemPress = (item: StoreItem) => {
     setSelectedItem(item);
-    
+
     // Preview skin items
     if (item.category === 'skin') {
       setPreviewSkin(item.id);
@@ -126,30 +120,24 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
     }
 
     const success = await purchaseItem(item.id);
-    
+
     if (success) {
-      Alert.alert(
-        'Purchase Successful!',
-        `You've purchased ${item.name}`,
-        [
-          {
-            text: 'Equip Now',
-            onPress: () => {
-              if (item.category === 'skin') {
-                equipItem('skin', item.id);
-                setPreviewSkin(null);
-              }
-            },
+      Alert.alert('Purchase Successful!', `You've purchased ${item.name}`, [
+        {
+          text: 'Equip Now',
+          onPress: () => {
+            if (item.category === 'skin') {
+              equipItem('skin', item.id);
+              setPreviewSkin(null);
+            }
           },
-          { text: 'OK' },
-        ]
-      );
+        },
+        { text: 'OK' },
+      ]);
     } else {
-      Alert.alert(
-        'Purchase Failed',
-        'Unable to complete purchase. Please try again.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Purchase Failed', 'Unable to complete purchase. Please try again.', [
+        { text: 'OK' },
+      ]);
     }
   };
 
@@ -174,11 +162,16 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
-      case 'common': return '#808080';
-      case 'rare': return '#0066CC';
-      case 'epic': return '#9933CC';
-      case 'legendary': return '#FF6600';
-      default: return '#808080';
+      case 'common':
+        return '#808080';
+      case 'rare':
+        return '#0066CC';
+      case 'epic':
+        return '#9933CC';
+      case 'legendary':
+        return '#FF6600';
+      default:
+        return '#808080';
     }
   };
 
@@ -201,7 +194,7 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
             <Text style={styles.limitedText}>LIMITED</Text>
           </View>
         )}
-        
+
         {item.salePercentage && (
           <View style={[styles.saleBadge, { backgroundColor: '#00AA00' }]}>
             <Text style={styles.saleText}>-{item.salePercentage}%</Text>
@@ -210,11 +203,7 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
 
         <View style={styles.itemPreview}>
           {item.category === 'skin' ? (
-            <HyperCasualPete
-              position={{ x: 0, y: 0 }}
-              skinId={previewSkin === item.id ? item.id : (equipped ? item.id : undefined)}
-              size={40}
-            />
+            <Pete x={0} y={0} size={40} level={1} />
           ) : (
             <Text style={styles.itemIcon}>{getCategoryIcon(item.category)}</Text>
           )}
@@ -224,17 +213,14 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
           {item.name}
         </Text>
 
-        <Text style={[styles.itemDescription, { color: currentTheme.textSecondary }]} numberOfLines={2}>
+        <Text style={[styles.itemDescription, { color: currentTheme.secondary }]} numberOfLines={2}>
           {item.description}
         </Text>
 
         <View style={styles.itemFooter}>
           <View style={styles.priceContainer}>
             <Text style={styles.currencyIcon}>{getCurrencyIcon(item.price.currency)}</Text>
-            <Text style={[
-              styles.priceText,
-              { color: affordable ? currentTheme.text : '#FF4444' }
-            ]}>
+            <Text style={[styles.priceText, { color: affordable ? currentTheme.text : '#FF4444' }]}>
               {item.price.amount}
             </Text>
           </View>
@@ -260,7 +246,7 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
               <TouchableOpacity
                 style={[
                   styles.actionButton,
-                  { backgroundColor: affordable ? '#00AA00' : '#888888' }
+                  { backgroundColor: affordable ? '#00AA00' : '#888888' },
                 ]}
                 onPress={() => handlePurchase(item)}
                 disabled={!affordable}
@@ -276,21 +262,31 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
 
   const getCategoryIcon = (category: string): string => {
     switch (category) {
-      case 'skin': return '👕';
-      case 'booster': return '⚡';
-      case 'currency': return '💰';
-      case 'premium': return '💎';
-      default: return '📦';
+      case 'skin':
+        return '👕';
+      case 'booster':
+        return '⚡';
+      case 'currency':
+        return '💰';
+      case 'premium':
+        return '💎';
+      default:
+        return '📦';
     }
   };
 
   const getCurrencyIcon = (currency: string): string => {
     switch (currency) {
-      case 'coins': return '🪙';
-      case 'gems': return '💎';
-      case 'energy': return '⚡';
-      case 'tokens': return '🎫';
-      default: return '💰';
+      case 'coins':
+        return '🪙';
+      case 'gems':
+        return '💎';
+      case 'energy':
+        return '⚡';
+      case 'tokens':
+        return '🎫';
+      default:
+        return '💰';
     }
   };
 
@@ -301,10 +297,8 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={currentTheme.text} />
         </TouchableOpacity>
-        
-        <Text style={[styles.headerTitle, { color: currentTheme.text }]}>
-          Pete's Store
-        </Text>
+
+        <Text style={[styles.headerTitle, { color: currentTheme.text }]}>Pete's Store</Text>
 
         <View style={styles.currencyDisplay}>
           <View style={styles.currencyItem}>
@@ -324,12 +318,8 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
 
       {/* Pete Preview */}
       <View style={styles.previewContainer}>
-        <HyperCasualPete
-          position={{ x: screenWidth / 2 - 50, y: 50 }}
-          skinId={previewSkin || equippedItems.skin}
-          size={100}
-        />
-        <Text style={[styles.previewLabel, { color: currentTheme.textSecondary }]}>
+        <Pete x={screenWidth / 2 - 50} y={50} size={100} level={1} />
+        <Text style={[styles.previewLabel, { color: currentTheme.secondary }]}>
           {previewSkin ? 'Preview' : 'Current Look'}
         </Text>
       </View>
@@ -341,25 +331,22 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
         style={styles.tabContainer}
         contentContainerStyle={styles.tabContent}
       >
-        {TABS.map((tab) => (
+        {TABS.map(tab => (
           <TouchableOpacity
             key={tab.id}
-            style={[
-              styles.tab,
-              activeTab === tab.id && { backgroundColor: currentTheme.primary },
-            ]}
+            style={[styles.tab, activeTab === tab.id && { backgroundColor: currentTheme.primary }]}
             onPress={() => setActiveTab(tab.id)}
           >
             <Ionicons
               name={tab.icon}
               size={20}
-              color={activeTab === tab.id ? 'white' : currentTheme.textSecondary}
+              color={activeTab === tab.id ? 'white' : currentTheme.secondary}
             />
             <Text
               style={[
                 styles.tabText,
                 {
-                  color: activeTab === tab.id ? 'white' : currentTheme.textSecondary,
+                  color: activeTab === tab.id ? 'white' : currentTheme.secondary,
                 },
               ]}
             >
@@ -373,7 +360,7 @@ export const PeteCustomizationScreen: React.FC<PeteCustomizationScreenProps> = (
       <FlatList
         data={getItemsForTab(activeTab)}
         renderItem={renderStoreItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         numColumns={2}
         contentContainerStyle={styles.storeGrid}
         showsVerticalScrollIndicator={false}

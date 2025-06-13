@@ -13,7 +13,7 @@ This analysis reveals significant implementation gaps between documented feature
 ## 🔴 CRITICAL ISSUES
 
 ### 1. Dynamic `require` in Game Loop (Performance Critical)
-**File**: `hooks/useHyperCasualGameLogic.ts:613`  
+**File**: `hooks/useGameLogic.ts:613`  
 **Issue**: `require('../utils/analytics')` inside the game loop causes synchronous module lookup on every collision  
 **Impact**: Frame drops, stuttering, potential app crashes during high-collision scenarios  
 **Priority**: IMMEDIATE FIX REQUIRED
@@ -46,7 +46,7 @@ This analysis reveals significant implementation gaps between documented feature
 **Fix**: Apply changes through level JSON configs, not global constants
 
 ### 3. Incomplete Level Progression Flow
-**File**: `hooks/useHyperCasualGameLogic.ts:717`  
+**File**: `hooks/useGameLogic.ts:717`  
 **Issue**: Level completion detected but no transition to next level  
 **Impact**: Players stuck after completing levels  
 **Fix**: Implement victory screen with progression options
@@ -150,7 +150,7 @@ This analysis reveals significant implementation gaps between documented feature
 ### Zustand Infinite Loop Fix Applied
 **Issue**: Composite selectors returning new objects caused infinite re-render loops  
 **Status**: ✅ RESOLVED - Individual primitive selectors implemented  
-**Files Fixed**: `store/gameStore.ts`, `store/levelProgressionStore.ts`, `hooks/useHyperCasualGameLogic.ts`
+**Files Fixed**: `store/gameStore.ts`, `store/levelProgressionStore.ts`, `hooks/useGameLogic.ts`
 
 ---
 

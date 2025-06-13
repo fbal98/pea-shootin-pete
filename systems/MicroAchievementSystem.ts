@@ -9,17 +9,17 @@ export interface MicroAchievement {
   description: string;
   icon: string;
   rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
-  
+
   // Progress tracking
   type: 'counter' | 'milestone' | 'streak' | 'condition' | 'collection';
   target: number;
   current: number;
   completed: boolean;
   completedAt?: number;
-  
+
   // Rewards
   rewards: AchievementReward[];
-  
+
   // Requirements
   requirements?: {
     level?: number;
@@ -27,13 +27,13 @@ export interface MicroAchievement {
     timeFrame?: number; // Time limit in milliseconds
     conditions?: string[]; // Special conditions
   };
-  
+
   // Visual & UX
   hidden: boolean; // Hidden until discovered
   secret: boolean; // Secret achievement
   difficulty: 1 | 2 | 3 | 4 | 5;
   estimatedTime: string; // "5 minutes", "1 hour", etc.
-  
+
   // Metadata
   createdAt: number;
   tags: string[];
@@ -127,9 +127,18 @@ class MicroAchievementSystem {
 
   private async saveAchievements() {
     try {
-      await AsyncStorage.setItem('micro-achievements', JSON.stringify(Array.from(this.achievements.entries())));
-      await AsyncStorage.setItem('achievement-progress', JSON.stringify(Array.from(this.progress.entries())));
-      await AsyncStorage.setItem('achievement-chains', JSON.stringify(Array.from(this.chains.entries())));
+      await AsyncStorage.setItem(
+        'micro-achievements',
+        JSON.stringify(Array.from(this.achievements.entries()))
+      );
+      await AsyncStorage.setItem(
+        'achievement-progress',
+        JSON.stringify(Array.from(this.progress.entries()))
+      );
+      await AsyncStorage.setItem(
+        'achievement-chains',
+        JSON.stringify(Array.from(this.chains.entries()))
+      );
     } catch (error) {
       console.error('Error saving achievements:', error);
     }
@@ -243,7 +252,7 @@ class MicroAchievementSystem {
         createdAt: Date.now(),
         tags: ['combo', 'mastery'],
       },
-      
+
       // Social achievements
       {
         id: 'social_butterfly',
@@ -267,7 +276,7 @@ class MicroAchievementSystem {
         createdAt: Date.now(),
         tags: ['social', 'sharing'],
       },
-      
+
       // Collection achievements
       {
         id: 'skin_collector',
@@ -291,7 +300,7 @@ class MicroAchievementSystem {
         createdAt: Date.now(),
         tags: ['collection', 'customization'],
       },
-      
+
       // Progression achievements
       {
         id: 'level_master',
@@ -315,7 +324,7 @@ class MicroAchievementSystem {
         createdAt: Date.now(),
         tags: ['progression', 'levels'],
       },
-      
+
       // Special achievements
       {
         id: 'perfect_game',
@@ -340,7 +349,7 @@ class MicroAchievementSystem {
         createdAt: Date.now(),
         tags: ['perfect', 'secret', 'mastery'],
       },
-      
+
       // Streak achievements
       {
         id: 'daily_player',
@@ -433,7 +442,7 @@ class MicroAchievementSystem {
     // Find achievements that should be updated by this action
     this.achievements.forEach((achievement, achievementId) => {
       if (achievement.completed) return;
-      
+
       const shouldUpdate = this.shouldUpdateAchievement(achievement, action, data);
       if (shouldUpdate) {
         this.updateAchievementProgress(achievementId, data);
@@ -441,17 +450,21 @@ class MicroAchievementSystem {
     });
   }
 
-  private shouldUpdateAchievement(achievement: MicroAchievement, action: string, data: Record<string, any>): boolean {
+  private shouldUpdateAchievement(
+    achievement: MicroAchievement,
+    action: string,
+    data: Record<string, any>
+  ): boolean {
     // Map actions to achievement IDs
     const actionMappings: Record<string, string[]> = {
-      'shot_fired': ['first_shot'],
-      'balloon_popped': ['balloon_buster'],
-      'accurate_hit': ['sharpshooter'],
-      'level_completed': ['speed_demon', 'perfect_game', 'level_master'],
-      'combo_achieved': ['combo_king'],
-      'score_shared': ['social_butterfly'],
-      'skin_purchased': ['skin_collector'],
-      'daily_login': ['daily_player'],
+      shot_fired: ['first_shot'],
+      balloon_popped: ['balloon_buster'],
+      accurate_hit: ['sharpshooter'],
+      level_completed: ['speed_demon', 'perfect_game', 'level_master'],
+      combo_achieved: ['combo_king'],
+      score_shared: ['social_butterfly'],
+      skin_purchased: ['skin_collector'],
+      daily_login: ['daily_player'],
     };
 
     const relevantAchievements = actionMappings[action] || [];
@@ -461,7 +474,7 @@ class MicroAchievementSystem {
   private updateAchievementProgress(achievementId: string, data: Record<string, any>) {
     const achievement = this.achievements.get(achievementId);
     const progress = this.progress.get(achievementId);
-    
+
     if (!achievement || !progress || achievement.completed) return;
 
     const previousProgress = progress.progress;
@@ -495,15 +508,15 @@ class MicroAchievementSystem {
     // Check for milestones (25%, 50%, 75% progress)
     const progressPercentage = (newProgress / achievement.target) * 100;
     const milestoneThresholds = [25, 50, 75];
-    
+
     milestoneThresholds.forEach(threshold => {
       if (progressPercentage >= threshold && !progress.milestones.includes(threshold)) {
         progress.milestones.push(threshold);
-        
+
         if (this.callbacks.onMilestoneReached) {
           this.callbacks.onMilestoneReached(achievement, threshold);
         }
-        
+
         this.showToast({
           achievement,
           progress,
@@ -521,7 +534,7 @@ class MicroAchievementSystem {
       if (this.callbacks.onProgressUpdate) {
         this.callbacks.onProgressUpdate(achievement, progress);
       }
-      
+
       this.showToast({
         achievement,
         progress,
@@ -542,10 +555,14 @@ class MicroAchievementSystem {
     this.saveAchievements();
   }
 
-  private updateStreakProgress(achievement: MicroAchievement, progress: AchievementProgress, data: Record<string, any>): number {
+  private updateStreakProgress(
+    achievement: MicroAchievement,
+    progress: AchievementProgress,
+    data: Record<string, any>
+  ): number {
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000;
-    
+
     if (!progress.startTime) {
       progress.startTime = now;
       progress.streakCount = 1;
@@ -553,8 +570,9 @@ class MicroAchievementSystem {
     }
 
     const timeSinceLastUpdate = now - progress.lastUpdated;
-    
-    if (timeSinceLastUpdate <= oneDayMs * 1.5) { // Allow some buffer for daily streaks
+
+    if (timeSinceLastUpdate <= oneDayMs * 1.5) {
+      // Allow some buffer for daily streaks
       progress.streakCount = (progress.streakCount || 0) + 1;
       return progress.streakCount;
     } else {
@@ -621,11 +639,7 @@ class MicroAchievementSystem {
       switch (reward.type) {
         case 'currency':
           if (reward.currency && reward.amount) {
-            economyStore.addCurrency(
-              reward.currency,
-              reward.amount,
-              'Achievement reward'
-            );
+            economyStore.addCurrency(reward.currency, reward.amount, 'Achievement reward');
           }
           break;
         case 'item':
@@ -642,14 +656,14 @@ class MicroAchievementSystem {
   private updateAchievementChains(completedAchievementId: string) {
     this.chains.forEach(chain => {
       if (chain.completed) return;
-      
+
       const currentAchievementId = chain.achievementIds[chain.currentIndex];
       if (currentAchievementId === completedAchievementId) {
         chain.currentIndex++;
-        
+
         if (chain.currentIndex >= chain.achievementIds.length) {
           chain.completed = true;
-          
+
           if (chain.chainReward) {
             this.awardRewards([chain.chainReward]);
           }
@@ -660,12 +674,12 @@ class MicroAchievementSystem {
 
   private showToast(toast: AchievementToast) {
     this.recentToasts.push(toast);
-    
+
     // Keep only recent toasts
     if (this.recentToasts.length > 10) {
       this.recentToasts.shift();
     }
-    
+
     if (this.callbacks.onToastRequest) {
       this.callbacks.onToastRequest(toast);
     }
@@ -677,13 +691,13 @@ class MicroAchievementSystem {
   }
 
   public getAchievementsByCategory(category: string): MicroAchievement[] {
-    return Array.from(this.achievements.values())
-      .filter(achievement => achievement.category === category);
+    return Array.from(this.achievements.values()).filter(
+      achievement => achievement.category === category
+    );
   }
 
   public getCompletedAchievements(): MicroAchievement[] {
-    return Array.from(this.achievements.values())
-      .filter(achievement => achievement.completed);
+    return Array.from(this.achievements.values()).filter(achievement => achievement.completed);
   }
 
   public getAchievementProgress(achievementId: string): AchievementProgress | undefined {

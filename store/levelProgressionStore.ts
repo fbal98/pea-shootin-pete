@@ -1,6 +1,6 @@
 /**
  * Level Progression Store - Zustand store for managing level-based game progression
- * 
+ *
  * This store handles:
  * - Current level state and loading
  * - Victory condition tracking
@@ -32,19 +32,19 @@ interface LevelProgressionState {
   currentLevelId: LevelID;
   isLevelLoading: boolean;
   levelLoadError: string | null;
-  
+
   // Level Progress Tracking
   enemiesRemaining: number;
   totalEnemies: number;
   objectivesCompleted: LevelObjective[];
   currentWave: EnemyWave | null;
   waveIndex: number;
-  
+
   // Victory & Failure State
   levelCompleted: boolean;
   levelFailed: boolean;
   failureReason: string | null;
-  
+
   // Timing & Statistics
   levelStartTime: number;
   levelDuration: number;
@@ -53,12 +53,12 @@ interface LevelProgressionState {
   shotsHit: number;
   currentCombo: number;
   maxCombo: number;
-  
+
   // Player Progress
   unlockedLevels: number[];
   completedLevels: number[];
   levelStats: Record<number, LevelStats>;
-  
+
   // UI State
   showLevelTransition: boolean;
   showVictoryScreen: boolean;
@@ -70,42 +70,42 @@ interface LevelProgressionActions {
   loadLevel: (levelId: LevelID) => Promise<void>;
   startLevel: () => void;
   restartLevel: () => void;
-  
+
   // Progress Tracking
   enemyEliminated: (enemyId: string, points: number) => void;
   projectileFired: () => void;
   projectileHit: () => void;
   projectileMissed: () => void;
-  
+
   // Objective Management
   completeObjective: (objectiveType: string) => void;
   checkVictoryConditions: () => void;
   checkFailureConditions: () => void;
-  
+
   // Level Completion
   completeLevel: () => Promise<void>;
   failLevel: (reason: string) => void;
   proceedToNextLevel: () => Promise<void>;
-  
+
   // UI Management
   showTransition: (show: boolean) => void;
   showVictory: (show: boolean) => void;
   showFailure: (show: boolean) => void;
-  
+
   // Analytics & Statistics
   updateCombo: (combo: number) => void;
   resetLevelStats: () => void;
-  
+
   // Player Progress Management
   refreshPlayerProgress: () => Promise<void>;
-  
+
   // Daily Challenge Integration
   updateDailyChallengeProgress: (challengeType: string, value: number) => void;
-  
+
   // Mystery Balloon Integration
   onBalloonSpawned: () => void;
   onMysteryBalloonPopped: (balloonId: string) => void;
-  
+
   // Full reset for new game
   resetForNewGame: () => void;
 }
@@ -120,12 +120,15 @@ const calculateAccuracy = (hit: number, fired: number): number => {
 };
 
 // Helper function to check if all objectives are completed
-const areAllObjectivesCompleted = (level: Level, completedObjectives: LevelObjective[]): boolean => {
+const areAllObjectivesCompleted = (
+  level: Level,
+  completedObjectives: LevelObjective[]
+): boolean => {
   const requiredObjectives = level.objectives.filter((obj: any) => !obj.isOptional);
-  
-  return requiredObjectives.every(required => 
-    completedObjectives.some(completed => 
-      completed.type === required.type && completed.target === required.target
+
+  return requiredObjectives.every(required =>
+    completedObjectives.some(
+      completed => completed.type === required.type && completed.target === required.target
     )
   );
 };
@@ -133,23 +136,23 @@ const areAllObjectivesCompleted = (level: Level, completedObjectives: LevelObjec
 // Helper function to calculate style score based on combos and accuracy
 const calculateStyleScore = (currentCombo: number, maxCombo: number, accuracy: number): number => {
   let styleScore = 0;
-  
+
   // Base style points from max combo achieved
   styleScore += maxCombo * 50;
-  
+
   // Bonus for high accuracy
   if (accuracy >= 95) styleScore += 300;
   else if (accuracy >= 90) styleScore += 200;
   else if (accuracy >= 80) styleScore += 100;
-  
+
   // Bonus for perfect accuracy
   if (accuracy === 100) styleScore += 500;
-  
+
   // Bonus for large combos
   if (maxCombo >= 10) styleScore += 400;
   else if (maxCombo >= 7) styleScore += 200;
   else if (maxCombo >= 5) styleScore += 100;
-  
+
   return styleScore;
 };
 
@@ -159,10 +162,10 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
     // Load a specific level
     loadLevel: async (levelId: LevelID) => {
       set({ isLevelLoading: true, levelLoadError: null });
-      
+
       try {
         const result = await levelManager.loadLevel(levelId);
-        
+
         if (result.success && result.level) {
           set({
             currentLevel: result.level,
@@ -175,18 +178,18 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
             currentWave: result.level.enemyWaves.length > 0 ? result.level.enemyWaves[0] : null,
             levelCompleted: false,
             levelFailed: false,
-            failureReason: null
+            failureReason: null,
           });
         } else {
           set({
             isLevelLoading: false,
-            levelLoadError: result.error || 'Failed to load level'
+            levelLoadError: result.error || 'Failed to load level',
           });
         }
       } catch (error) {
         set({
           isLevelLoading: false,
-          levelLoadError: `Error loading level: ${error}`
+          levelLoadError: `Error loading level: ${error}`,
         });
       }
     },
@@ -206,7 +209,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         failureReason: null,
         showLevelTransition: false,
         showVictoryScreen: false,
-        showFailureScreen: false
+        showFailureScreen: false,
       });
 
       // Track analytics
@@ -214,7 +217,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
       if (state.currentLevel) {
         const { trackLevelStart } = require('../utils/analytics');
         trackLevelStart(
-          state.currentLevelId, 
+          state.currentLevelId,
           state.currentLevel.name,
           (state.levelStats[state.currentLevelId]?.attempts || 0) + 1
         );
@@ -235,11 +238,11 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
       set((state: LevelProgressionState) => {
         const newEnemiesRemaining = Math.max(0, state.enemiesRemaining - 1);
         const newScore = state.currentScore + points;
-        
+
         return {
           enemiesRemaining: newEnemiesRemaining,
           currentScore: newScore,
-          levelDuration: Date.now() - state.levelStartTime
+          levelDuration: Date.now() - state.levelStartTime,
         };
       });
 
@@ -255,7 +258,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
     // Track projectile fired
     projectileFired: () => {
       set((state: LevelProgressionState) => ({
-        shotsFired: state.shotsFired + 1
+        shotsFired: state.shotsFired + 1,
       }));
     },
 
@@ -263,14 +266,14 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
     projectileHit: () => {
       set((state: LevelProgressionState) => {
         const newCombo = state.currentCombo + 1;
-        
+
         // Update daily challenge progress for consecutive hits
         actions.updateDailyChallengeProgress('consecutive_hits', newCombo);
-        
+
         return {
           shotsHit: state.shotsHit + 1,
           currentCombo: newCombo,
-          maxCombo: Math.max(state.maxCombo, newCombo)
+          maxCombo: Math.max(state.maxCombo, newCombo),
         };
       });
     },
@@ -291,13 +294,13 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         const alreadyCompleted = state.objectivesCompleted.some(
           completed => completed.type === objectiveType
         );
-        
+
         if (alreadyCompleted) return state;
 
         const newCompleted = [...state.objectivesCompleted, objective];
-        
+
         return {
-          objectivesCompleted: newCompleted
+          objectivesCompleted: newCompleted,
         };
       });
 
@@ -311,8 +314,10 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
 
       // For eliminate_all_enemies objective, check if there are no enemies on screen
       // The actual enemy count will be checked by the game logic hook
-      const primaryObjective = state.currentLevel.objectives.find((obj: any) => obj.type === 'eliminate_all_enemies');
-      
+      const primaryObjective = state.currentLevel.objectives.find(
+        (obj: any) => obj.type === 'eliminate_all_enemies'
+      );
+
       // Check if all required objectives are completed
       if (areAllObjectivesCompleted(state.currentLevel, state.objectivesCompleted)) {
         actions.completeLevel();
@@ -336,7 +341,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
               return;
             }
             break;
-          
+
           case 'missed_shots':
             const missedShots = state.shotsFired - state.shotsHit;
             if (missedShots >= failureCondition.threshold) {
@@ -344,7 +349,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
               return;
             }
             break;
-            
+
           // Add more failure condition checks here
         }
       }
@@ -357,11 +362,11 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
 
       const completionTime = Date.now() - state.levelStartTime;
       const accuracy = calculateAccuracy(state.shotsHit, state.shotsFired);
-      
+
       set({
         levelCompleted: true,
         levelDuration: completionTime,
-        showVictoryScreen: true
+        showVictoryScreen: true,
       });
 
       // Calculate style score (basic implementation - can be enhanced later)
@@ -388,7 +393,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         integrationManager.onLevelCompleted(state.currentLevelId, {
           score: state.currentScore,
           duration: completionTime,
-          accuracy: accuracy
+          accuracy: accuracy,
         });
       } catch (error) {
         console.error('Failed to integrate level completion:', error);
@@ -398,7 +403,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
       try {
         const { useMetaProgressionStore } = await import('./metaProgressionStore');
         const metaActions = useMetaProgressionStore.getState().actions;
-        
+
         // Record level completion for mastery tracking
         metaActions.recordLevelCompletion(
           state.currentLevelId,
@@ -406,37 +411,39 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
           accuracy,
           styleScore
         );
-        
+
         // Update general player stats
         metaActions.addPlaytime(completionTime);
         metaActions.addCoins(state.currentLevel?.rewards.coinsAwarded || 0);
-        
+
         // Add base completion XP
         metaActions.earnXP(100, {
           source: 'level_completion',
           baseXP: 100,
-          bonusMultipliers: []
+          bonusMultipliers: [],
         });
-        
+
         // Update daily challenge progress
         actions.updateDailyChallengeProgress('complete_levels', 1);
-        
+
         if (accuracy === 100) {
           actions.updateDailyChallengeProgress('perfect_levels', 1);
         }
-        
+
         if (accuracy >= 80) {
           actions.updateDailyChallengeProgress('achieve_accuracy', accuracy);
         }
-        
+
         // Check for speed completion challenges
         if (state.currentLevel?.rewards.masteryThresholds) {
           const timeThreshold = state.currentLevel.rewards.masteryThresholds.goldTimeThreshold;
           if (completionTime <= timeThreshold) {
-            actions.updateDailyChallengeProgress('speed_completion', Math.floor(completionTime / 1000));
+            actions.updateDailyChallengeProgress(
+              'speed_completion',
+              Math.floor(completionTime / 1000)
+            );
           }
         }
-        
       } catch (error) {
         console.error('Failed to record mastery progress:', error);
       }
@@ -456,12 +463,12 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
     // Fail the current level
     failLevel: (reason: string) => {
       const state = get();
-      
+
       set({
         levelFailed: true,
         failureReason: reason,
         levelDuration: Date.now() - state.levelStartTime,
-        showFailureScreen: true
+        showFailureScreen: true,
       });
 
       // Record attempt in LevelManager
@@ -500,7 +507,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
     updateCombo: (combo: number) => {
       set((state: LevelProgressionState) => ({
         currentCombo: combo,
-        maxCombo: Math.max(state.maxCombo, combo)
+        maxCombo: Math.max(state.maxCombo, combo),
       }));
     },
 
@@ -516,7 +523,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         levelStartTime: Date.now(),
         levelDuration: 0,
         enemiesRemaining: state.currentLevel?.totalEnemyCount || 0,
-        objectivesCompleted: []
+        objectivesCompleted: [],
       });
     },
 
@@ -528,7 +535,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
           set({
             unlockedLevels: Array.from(progress.unlockedLevels),
             completedLevels: Array.from(progress.completedLevels),
-            levelStats: progress.levelStats
+            levelStats: progress.levelStats,
           });
         }
       } catch (error) {
@@ -544,7 +551,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
           const { useMetaProgressionStore } = await import('./metaProgressionStore');
           const metaActions = useMetaProgressionStore.getState().actions;
           const challenges = useMetaProgressionStore.getState().dailyChallenges;
-          
+
           // Find challenges that match this type and update progress
           challenges.forEach(challenge => {
             if (challenge.objective.type === challengeType) {
@@ -576,7 +583,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         try {
           const { mysteryBalloonManager } = await import('../systems/MysteryBalloonManager');
           const { useMetaProgressionStore } = await import('./metaProgressionStore');
-          
+
           const reward = mysteryBalloonManager.onMysteryBalloonPopped(balloonId);
           if (reward) {
             const metaActions = useMetaProgressionStore.getState().actions;
@@ -587,7 +594,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         }
       }, 0);
     },
-    
+
     // Full reset for new game
     resetForNewGame: () => {
       set({
@@ -596,19 +603,19 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         currentLevelId: 1,
         isLevelLoading: false,
         levelLoadError: null,
-        
+
         // Reset progress tracking
         enemiesRemaining: 0,
         totalEnemies: 0,
         objectivesCompleted: [],
         currentWave: null,
         waveIndex: 0,
-        
+
         // Reset victory/failure state
         levelCompleted: false,
         levelFailed: false,
         failureReason: null,
-        
+
         // Reset timing & statistics
         levelStartTime: 0,
         levelDuration: 0,
@@ -617,15 +624,15 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         shotsHit: 0,
         currentCombo: 0,
         maxCombo: 0,
-        
+
         // Reset UI state
         showLevelTransition: false,
         showVictoryScreen: false,
         showFailureScreen: false,
-        
+
         // Keep player progress (unlocked levels, etc.)
       });
-    }
+    },
   };
 
   return {
@@ -634,17 +641,17 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
     currentLevelId: 1,
     isLevelLoading: false,
     levelLoadError: null,
-    
+
     enemiesRemaining: 0,
     totalEnemies: 0,
     objectivesCompleted: [],
     currentWave: null,
     waveIndex: 0,
-    
+
     levelCompleted: false,
     levelFailed: false,
     failureReason: null,
-    
+
     levelStartTime: 0,
     levelDuration: 0,
     currentScore: 0,
@@ -652,16 +659,16 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
     shotsHit: 0,
     currentCombo: 0,
     maxCombo: 0,
-    
+
     unlockedLevels: [1],
     completedLevels: [],
     levelStats: {},
-    
+
     showLevelTransition: false,
     showVictoryScreen: false,
     showFailureScreen: false,
-    
-    actions
+
+    actions,
   };
 };
 
@@ -671,16 +678,14 @@ export const useLevelProgressionStore = create<LevelProgressionStore>()(
 );
 
 // Selectors for specific parts of the state
-export const useLevelProgressionActions = () => 
-  useLevelProgressionStore(state => state.actions);
+export const useLevelProgressionActions = () => useLevelProgressionStore(state => state.actions);
 
-export const useCurrentLevel = () => 
-  useLevelProgressionStore(state => state.currentLevel);
+export const useCurrentLevel = () => useLevelProgressionStore(state => state.currentLevel);
 
 // DEPRECATED: These composite selectors cause infinite re-render loops
 // Use individual selectors below instead
 
-// export const useLevelProgress = () => 
+// export const useLevelProgress = () =>
 //   useLevelProgressionStore(state => ({
 //     enemiesRemaining: state.enemiesRemaining,
 //     totalEnemies: state.totalEnemies,
@@ -729,9 +734,12 @@ export const useIsLevelLoading = () => useLevelProgressionStore(state => state.i
 export const useFailureReason = () => useLevelProgressionStore(state => state.failureReason);
 
 // Individual selectors for level UI
-export const useShowLevelTransition = () => useLevelProgressionStore(state => state.showLevelTransition);
-export const useShowVictoryScreen = () => useLevelProgressionStore(state => state.showVictoryScreen);
-export const useShowFailureScreen = () => useLevelProgressionStore(state => state.showFailureScreen);
+export const useShowLevelTransition = () =>
+  useLevelProgressionStore(state => state.showLevelTransition);
+export const useShowVictoryScreen = () =>
+  useLevelProgressionStore(state => state.showVictoryScreen);
+export const useShowFailureScreen = () =>
+  useLevelProgressionStore(state => state.showFailureScreen);
 
 // Individual selectors for player progress
 export const useUnlockedLevels = () => useLevelProgressionStore(state => state.unlockedLevels);

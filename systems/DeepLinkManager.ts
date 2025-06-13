@@ -49,7 +49,7 @@ class DeepLinkManager {
       }
 
       // Handle deep links when app is already running
-      this.linkingListener = Linking.addEventListener('url', (event) => {
+      this.linkingListener = Linking.addEventListener('url', event => {
         this.handleDeepLink(event.url);
       });
     } catch (error) {
@@ -61,7 +61,7 @@ class DeepLinkManager {
     try {
       const parsedUrl = Linking.parse(url);
       const deepLinkData = this.parseDeepLinkData(parsedUrl);
-      
+
       if (deepLinkData) {
         this.pendingDeepLink = deepLinkData;
         this.processDeepLink(deepLinkData);
@@ -73,7 +73,7 @@ class DeepLinkManager {
 
   private parseDeepLinkData(parsedUrl: any): DeepLinkData | null {
     const { queryParams } = parsedUrl;
-    
+
     if (!queryParams) return null;
 
     // Track deep link usage
@@ -202,7 +202,7 @@ class DeepLinkManager {
     // Navigate to specific challenge
     // This would integrate with your navigation system
     console.log(`Navigating to challenge: ${data.challengeId}`);
-    
+
     // Track challenge deep link
     trackDeepLinkUsage({
       type: 'challenge',
@@ -216,7 +216,7 @@ class DeepLinkManager {
 
     // Show achievement details or navigate to achievements screen
     console.log(`Showing achievement: ${data.achievementId}`);
-    
+
     // Track achievement deep link
     trackDeepLinkUsage({
       type: 'achievement',
@@ -230,7 +230,7 @@ class DeepLinkManager {
 
     // Navigate to specific level (if unlocked)
     console.log(`Navigating to level: ${data.levelId}`);
-    
+
     // Track level deep link
     trackDeepLinkUsage({
       type: 'level',
@@ -242,7 +242,7 @@ class DeepLinkManager {
   private async handleGeneral(data: DeepLinkData) {
     // Handle general marketing campaigns
     console.log('General deep link processed:', data);
-    
+
     // Track marketing campaign
     trackDeepLinkUsage({
       type: 'marketing',
@@ -255,7 +255,7 @@ class DeepLinkManager {
 
   private awardReferralBonus(referrerId: string) {
     const socialStore = useSocialStore.getState();
-    
+
     // Award bonus to current player (referee)
     socialStore.awardReferralBonus('referee', {
       coins: 100,
@@ -329,7 +329,7 @@ class DeepLinkManager {
     const socialStore = useSocialStore.getState();
     const shareCount = socialStore.shareCount;
     const referralCount = socialStore.successfulReferrals?.length || 0;
-    
+
     // Simple viral coefficient: successful referrals / total shares
     return shareCount > 0 ? referralCount / shareCount : 0;
   }
