@@ -4,6 +4,9 @@
  * Easy to modify for balancing, A/B testing, and leveling system changes
  */
 
+// Note: Based on original game video analysis, projectiles travel in straight lines
+// No arc physics needed - removed PROJECTILE_PHYSICS constant
+
 // =============================================================================
 // CORE ENTITY SIZES & DIMENSIONS
 // =============================================================================
@@ -18,7 +21,7 @@ export const ENTITY_CONFIG = {
 
   // Enemy Balloons - Core sizing system for leveling
   BALLOON: {
-    BASE_SIZE: 30,
+    BASE_SIZE: 58, // ▲ Increased by 30% (45 * 1.3) for easier targeting and more casual feel
     // Size multipliers for split levels (easily configurable for leveling system)
     SIZE_MULTIPLIERS: {
       LEVEL_1: 0.7,  // Smallest balloons (70% of base)
@@ -42,40 +45,64 @@ export const ENTITY_CONFIG = {
   // Projectiles
   PROJECTILE: {
     SIZE: 10,
-    SPEED: 300, // pixels per second
+    SPEED: 700, // ▲ Increased for better responsiveness (600 * 1.17)
   },
 } as const;
 
 // =============================================================================
-// BALLOON PHYSICS SYSTEM
+// PHYSICS SYSTEM - Original DOS Game Authentic Physics
 // =============================================================================
-export const BALLOON_PHYSICS = {
-  // Core physics constants
-  GRAVITY_MULTIPLIER: 0.4,        // Balloons have 40% of normal gravity
-  AIR_RESISTANCE: 0.995,          // Air resistance factor (0.5% drag per frame)
-  MIN_BOUNCE_VELOCITY: 280,       // Minimum velocity to maintain balloon bounce
+export const PHYSICS = {
+  GRAVITY_PX_S2: 500,               // ▼ Lighter gravity for floaty balloon feel like original
+  AIR_RESISTANCE: 1.0,              // No air resistance - perfect velocity retention
+  BOUNCE: {
+    FLOOR: 0.95,                    // Consistent bounce like original
+    WALL: 0.9,                      // Slight energy loss on walls
+    CEIL: 0.85,                     // More energy loss on ceiling
+  },
+  MIN_BOUNCE_VELOCITY: 0,           // No minimum - balloons bounce forever until hit
+  MIN_HORIZONTAL_VELOCITY: 100,     // ▼ Reduced to allow more varied movement patterns
+  MAX_VELOCITY: 400,                // ▼ Lower cap for more controlled physics
+  PROJECTILE: {
+    INIT_SPEED: 900,                // ▼ Snappy projectile speed like original
+    GRAVITY_MULT: 0,                // ▲ No gravity on projectiles - straight line trajectory
+    REMOVE_ON_DESCENT: false,       // ▲ Projectiles continue until off-screen
+  },
+} as const;
 
-  // Bounce coefficients per surface
-  BOUNCE_COEFFICIENTS: {
-    WALLS: 0.9,     // 90% energy retained on wall bounce (10% loss)
-    CEILING: 0.8,   // 80% energy retained on ceiling bounce (20% loss)
-    FLOOR: 1.4,     // 140% energy GAIN on floor bounce (super-bouncy trampoline)
+// Game Physics System - Hyper-casual optimized with authentic elements
+export const GAME_PHYSICS = {
+  // Core physics - Based on original game but optimized for mobile
+  GRAVITY_PX_S2: PHYSICS.GRAVITY_PX_S2,           // Keep lighter gravity (500px/s²)
+  AIR_RESISTANCE: PHYSICS.AIR_RESISTANCE,         // No air resistance (1.0)
+  MIN_BOUNCE_VELOCITY: PHYSICS.MIN_BOUNCE_VELOCITY,
+  MIN_HORIZONTAL_VELOCITY: PHYSICS.MIN_HORIZONTAL_VELOCITY,
+
+  // Bounce coefficients - Optimized for satisfying mobile gameplay
+  BOUNCE: {
+    WALL: PHYSICS.BOUNCE.WALL,      // 90% energy retention
+    CEIL: PHYSICS.BOUNCE.CEIL,      // 85% energy retention
+    FLOOR: PHYSICS.BOUNCE.FLOOR,    // 95% energy retention (consistent bouncing)
   },
 
-  // Initial spawn velocities
+  // Spawn velocities - Predictable patterns with mobile-friendly tweaks
   SPAWN_VELOCITY: {
-    HORIZONTAL_RANGE: 200,     // Random horizontal velocity ±100
-    VERTICAL_BASE: 20,         // Base downward velocity
-    VERTICAL_RANDOM: 50,       // Additional random downward velocity
+    HORIZONTAL_BASE: 120,      // ▼ Slightly slower for easier tracking on mobile
+    HORIZONTAL_VARIATION: 30,  // ▼ Less variation for consistency
+    VERTICAL_BASE: 40,         // ▼ Gentler initial drop
+    VERTICAL_RANDOM: 5,        // ▼ Minimal randomness
   },
 
-  // Enemy splitting physics
+  // Enemy splitting - Satisfying without being overwhelming
   SPLIT: {
-    HORIZONTAL_VELOCITY: 150,  // How fast split enemies move apart
-    VERTICAL_VELOCITY: 200,    // How fast split enemies bounce up
-    OFFSET_DISTANCE: 10,       // Pixel distance to offset split enemies
+    HORIZONTAL_VELOCITY: 250,  // ▼ Reduced for mobile screens
+    VERTICAL_VELOCITY: 150,    // ▼ More manageable split bounce
+    OFFSET_DISTANCE: 8,        // ▼ Smaller offset for mobile
   },
 } as const;
+
+// Legacy alias for backward compatibility (will be removed in cleanup)
+export const BALLOON_PHYSICS = GAME_PHYSICS;
 
 // =============================================================================
 // PLAYER INPUT & MOVEMENT
@@ -119,8 +146,24 @@ export const SCORING_CONFIG = {
 // ENEMY TYPES & BEHAVIOR
 // =============================================================================
 export const ENEMY_CONFIG = {
-  // Base movement speeds
-  BASE_SPEED: 50,
+  // Original DOS game speeds by balloon size (in pixels per second)
+  SPEED_BY_SIZE: {
+    SMALL: 80,    // Size level 1 - fastest
+    MEDIUM: 64,   // Size level 2 - moderate
+    LARGE: 50,    // Size level 3 - slowest
+  },
+  
+  // Original game spawn positions (percentage from top)
+  SPAWN_Y_POSITIONS: [0.285, 0.375, 0.385], // 28.5%, 37.5%, 38.5% from top
+  
+  // Wave patterns from original game
+  WAVE_PATTERNS: {
+    TWO_SMALL: { positions: [0.2, 0.8], count: 2 },
+    THREE_SMALL_WIDE: { positions: [0.15, 0.5, 0.85], count: 3 },
+    PIPES: { positions: [0.25, 0.5, 0.75], count: 3 },
+    CRAZY: { positions: [0.1, 0.3, 0.5, 0.7, 0.9], count: 5 },
+    ENTRAP: { positions: [0.1, 0.9], count: 2 },
+  },
   
   // Enemy type unlock levels
   TYPE_UNLOCK_LEVELS: {
@@ -136,7 +179,7 @@ export const ENEMY_CONFIG = {
     STRONG: 0.2,  // 20% chance when unlocked
   },
   
-  // Speed multipliers by type
+  // Speed multipliers by type (not used in original-style physics)
   TYPE_SPEED_MULTIPLIERS: {
     BASIC: 1.0,   // Normal speed
     FAST: 1.5,    // 50% faster
@@ -299,7 +342,7 @@ export interface LevelConfigOverrides {
 export const createLevelConfig = (overrides: LevelConfigOverrides = {}) => {
   const baseConfig = {
     ENTITY_CONFIG,
-    BALLOON_PHYSICS,
+    BALLOON_PHYSICS: GAME_PHYSICS, // Use game physics as base
     INPUT_CONFIG,
     SCORING_CONFIG,
     ENEMY_CONFIG,
@@ -309,14 +352,14 @@ export const createLevelConfig = (overrides: LevelConfigOverrides = {}) => {
 
   // Apply physics overrides
   const modifiedBalloonPhysics = {
-    ...BALLOON_PHYSICS,
-    GRAVITY_MULTIPLIER: BALLOON_PHYSICS.GRAVITY_MULTIPLIER * (overrides.gravityMultiplier || 1.0),
-    AIR_RESISTANCE: BALLOON_PHYSICS.AIR_RESISTANCE * (overrides.airResistanceMultiplier || 1.0),
-    BOUNCE_COEFFICIENTS: {
-      ...BALLOON_PHYSICS.BOUNCE_COEFFICIENTS,
-      WALLS: BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.WALLS * (overrides.bounceEnergyMultiplier || 1.0),
-      CEILING: BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.CEILING * (overrides.bounceEnergyMultiplier || 1.0),
-      FLOOR: BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.FLOOR * (overrides.bounceEnergyMultiplier || 1.0),
+    ...GAME_PHYSICS,
+    GRAVITY_PX_S2: GAME_PHYSICS.GRAVITY_PX_S2 * (overrides.gravityMultiplier || 1.0),
+    AIR_RESISTANCE: GAME_PHYSICS.AIR_RESISTANCE * (overrides.airResistanceMultiplier || 1.0),
+    BOUNCE: {
+      ...GAME_PHYSICS.BOUNCE,
+      WALL: GAME_PHYSICS.BOUNCE.WALL * (overrides.bounceEnergyMultiplier || 1.0),
+      CEIL: GAME_PHYSICS.BOUNCE.CEIL * (overrides.bounceEnergyMultiplier || 1.0),
+      FLOOR: GAME_PHYSICS.BOUNCE.FLOOR * (overrides.bounceEnergyMultiplier || 1.0),
     }
   };
 
@@ -336,7 +379,11 @@ export const createLevelConfig = (overrides: LevelConfigOverrides = {}) => {
   // Apply enemy behavior overrides
   const modifiedEnemyConfig = {
     ...ENEMY_CONFIG,
-    BASE_SPEED: ENEMY_CONFIG.BASE_SPEED * (overrides.enemySpeedMultiplier || 1.0)
+    SPEED_BY_SIZE: {
+      SMALL: ENEMY_CONFIG.SPEED_BY_SIZE.SMALL * (overrides.enemySpeedMultiplier || 1.0),
+      MEDIUM: ENEMY_CONFIG.SPEED_BY_SIZE.MEDIUM * (overrides.enemySpeedMultiplier || 1.0),
+      LARGE: ENEMY_CONFIG.SPEED_BY_SIZE.LARGE * (overrides.enemySpeedMultiplier || 1.0),
+    }
   };
 
   return {
@@ -374,12 +421,12 @@ export const applyEnvironmentalModifiers = (environment: any): Partial<LevelConf
 
   if (environment?.gravity) {
     // Directly use the gravity value instead of complex calculation
-    overrides.gravityMultiplier = environment.gravity / 500; // 500 is base gravity from GAME_CONFIG.GRAVITY
+    overrides.gravityMultiplier = environment.gravity / PHYSICS.GRAVITY_PX_S2;
   }
 
   if (environment?.airResistance) {
     // Convert percentage air resistance to resistance factor (0.5% = 0.995)
-    overrides.airResistanceMultiplier = (1.0 - environment.airResistance / 100) / BALLOON_PHYSICS.AIR_RESISTANCE;
+    overrides.airResistanceMultiplier = (1.0 - environment.airResistance / 100) / GAME_PHYSICS.AIR_RESISTANCE;
   }
 
   if (environment?.windForce) {
@@ -441,14 +488,21 @@ export const getSpawnInterval = (level: number): number => {
 };
 
 /**
- * Get enemy speed for type and level
+ * Get enemy speed based on balloon size (matches original DOS game)
  */
-export const getEnemySpeed = (type: 'basic' | 'fast' | 'strong'): number => {
-  const baseSpeed = ENEMY_CONFIG.BASE_SPEED;
-  const multiplier = type === 'fast' ? ENEMY_CONFIG.TYPE_SPEED_MULTIPLIERS.FAST :
-                    type === 'strong' ? ENEMY_CONFIG.TYPE_SPEED_MULTIPLIERS.STRONG :
-                    ENEMY_CONFIG.TYPE_SPEED_MULTIPLIERS.BASIC;
-  return baseSpeed * multiplier;
+export const getEnemySpeedBySize = (sizeLevel: 1 | 2 | 3): number => {
+  return sizeLevel === 1 ? ENEMY_CONFIG.SPEED_BY_SIZE.SMALL :
+         sizeLevel === 2 ? ENEMY_CONFIG.SPEED_BY_SIZE.MEDIUM :
+         ENEMY_CONFIG.SPEED_BY_SIZE.LARGE;
+};
+
+/**
+ * Get spawn Y position from original game patterns
+ */
+export const getSpawnYPosition = (index: number, gameAreaHeight: number): number => {
+  const positions = ENEMY_CONFIG.SPAWN_Y_POSITIONS;
+  const positionIndex = index % positions.length;
+  return gameAreaHeight * positions[positionIndex];
 };
 
 // =============================================================================
@@ -468,17 +522,17 @@ export const GAME_CONFIG = {
   ENEMY_BASE_SIZE: ENTITY_CONFIG.BALLOON.BASE_SIZE,
   PROJECTILE_SIZE: ENTITY_CONFIG.PROJECTILE.SIZE,
   PROJECTILE_SPEED: ENTITY_CONFIG.PROJECTILE.SPEED,
-  ENEMY_BASE_SPEED: ENEMY_CONFIG.BASE_SPEED,
+  ENEMY_BASE_SPEED: ENEMY_CONFIG.SPEED_BY_SIZE.MEDIUM, // Use medium speed as base
   PETE_MOVE_THROTTLE_MS: INPUT_CONFIG.MOVE_THROTTLE_MS,
   
   // Physics constants
-  GRAVITY: 500, // Keep original gravity, balloon physics uses multiplier
-  BOUNCE_DAMPING: 0.8,
-  MIN_BOUNCE_VELOCITY: 50,
+  GRAVITY: PHYSICS.GRAVITY_PX_S2, // Updated to match original game physics (500 px/s²)
+  BOUNCE_DAMPING: 1.0,            // No damping - perfect bouncing
+  MIN_BOUNCE_VELOCITY: 0,         // No minimum - balloons bounce forever!
   
   // Enemy splitting (legacy)
-  SPLIT_HORIZONTAL_VELOCITY: BALLOON_PHYSICS.SPLIT.HORIZONTAL_VELOCITY,
-  SPLIT_VERTICAL_VELOCITY: BALLOON_PHYSICS.SPLIT.VERTICAL_VELOCITY,
+  SPLIT_HORIZONTAL_VELOCITY: GAME_PHYSICS.SPLIT.HORIZONTAL_VELOCITY,
+  SPLIT_VERTICAL_VELOCITY: GAME_PHYSICS.SPLIT.VERTICAL_VELOCITY,
   
   // Scoring (legacy format)
   SCORE_MULTIPLIER: {

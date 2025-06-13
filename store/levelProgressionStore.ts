@@ -98,6 +98,13 @@ interface LevelProgressionActions {
   
   // Player Progress Management
   refreshPlayerProgress: () => Promise<void>;
+  
+  // Daily Challenge Integration
+  updateDailyChallengeProgress: (challengeType: string, value: number) => void;
+  
+  // Mystery Balloon Integration
+  onBalloonSpawned: () => void;
+  onMysteryBalloonPopped: (balloonId: string) => void;
 }
 
 interface LevelProgressionStore extends LevelProgressionState {
@@ -118,6 +125,29 @@ const areAllObjectivesCompleted = (level: Level, completedObjectives: LevelObjec
       completed.type === required.type && completed.target === required.target
     )
   );
+};
+
+// Helper function to calculate style score based on combos and accuracy
+const calculateStyleScore = (currentCombo: number, maxCombo: number, accuracy: number): number => {
+  let styleScore = 0;
+  
+  // Base style points from max combo achieved
+  styleScore += maxCombo * 50;
+  
+  // Bonus for high accuracy
+  if (accuracy >= 95) styleScore += 300;
+  else if (accuracy >= 90) styleScore += 200;
+  else if (accuracy >= 80) styleScore += 100;
+  
+  // Bonus for perfect accuracy
+  if (accuracy === 100) styleScore += 500;
+  
+  // Bonus for large combos
+  if (maxCombo >= 10) styleScore += 400;
+  else if (maxCombo >= 7) styleScore += 200;
+  else if (maxCombo >= 5) styleScore += 100;
+  
+  return styleScore;
 };
 
 // Create the store
@@ -210,6 +240,12 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         };
       });
 
+      // Notify mystery balloon manager about balloon spawn
+      actions.onBalloonSpawned();
+
+      // Update daily challenge progress for balloon pops
+      actions.updateDailyChallengeProgress('pop_balloons', 1);
+
       // Victory conditions will be checked by the game loop
     },
 
@@ -222,11 +258,18 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
 
     // Track projectile hit
     projectileHit: () => {
-      set((state: LevelProgressionState) => ({
-        shotsHit: state.shotsHit + 1,
-        currentCombo: state.currentCombo + 1,
-        maxCombo: Math.max(state.maxCombo, state.currentCombo + 1)
-      }));
+      set((state: LevelProgressionState) => {
+        const newCombo = state.currentCombo + 1;
+        
+        // Update daily challenge progress for consecutive hits
+        actions.updateDailyChallengeProgress('consecutive_hits', newCombo);
+        
+        return {
+          shotsHit: state.shotsHit + 1,
+          currentCombo: newCombo,
+          maxCombo: Math.max(state.maxCombo, newCombo)
+        };
+      });
     },
 
     // Track projectile miss
@@ -309,17 +352,23 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
       const state = get();
       if (!state.currentLevel || state.levelCompleted) return;
 
+      const completionTime = Date.now() - state.levelStartTime;
+      const accuracy = calculateAccuracy(state.shotsHit, state.shotsFired);
+      
       set({
         levelCompleted: true,
-        levelDuration: Date.now() - state.levelStartTime,
+        levelDuration: completionTime,
         showVictoryScreen: true
       });
+
+      // Calculate style score (basic implementation - can be enhanced later)
+      const styleScore = calculateStyleScore(state.currentCombo, state.maxCombo, accuracy);
 
       // Calculate final stats
       const finalStats: Partial<LevelStats> = {
         bestScore: state.currentScore,
-        bestTime: state.levelDuration,
-        totalPlaytime: state.levelDuration,
+        bestTime: completionTime,
+        totalPlaytime: completionTime,
       };
 
       // Record completion in LevelManager
@@ -330,14 +379,73 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
         console.error('Failed to record level completion:', error);
       }
 
+      // Integrate with other systems through IntegrationManager
+      try {
+        const { integrationManager } = await import('../systems/IntegrationManager');
+        integrationManager.onLevelCompleted(state.currentLevelId, {
+          score: state.currentScore,
+          duration: completionTime,
+          accuracy: accuracy
+        });
+      } catch (error) {
+        console.error('Failed to integrate level completion:', error);
+      }
+
+      // Record mastery progress in meta progression store
+      try {
+        const { useMetaProgressionStore } = await import('./metaProgressionStore');
+        const metaActions = useMetaProgressionStore.getState().actions;
+        
+        // Record level completion for mastery tracking
+        metaActions.recordLevelCompletion(
+          state.currentLevelId,
+          completionTime,
+          accuracy,
+          styleScore
+        );
+        
+        // Update general player stats
+        metaActions.addPlaytime(completionTime);
+        metaActions.addCoins(state.currentLevel?.rewards.coinsAwarded || 0);
+        
+        // Add base completion XP
+        metaActions.earnXP(100, {
+          source: 'level_completion',
+          baseXP: 100,
+          bonusMultipliers: []
+        });
+        
+        // Update daily challenge progress
+        actions.updateDailyChallengeProgress('complete_levels', 1);
+        
+        if (accuracy === 100) {
+          actions.updateDailyChallengeProgress('perfect_levels', 1);
+        }
+        
+        if (accuracy >= 80) {
+          actions.updateDailyChallengeProgress('achieve_accuracy', accuracy);
+        }
+        
+        // Check for speed completion challenges
+        if (state.currentLevel?.rewards.masteryThresholds) {
+          const timeThreshold = state.currentLevel.rewards.masteryThresholds.goldTimeThreshold;
+          if (completionTime <= timeThreshold) {
+            actions.updateDailyChallengeProgress('speed_completion', Math.floor(completionTime / 1000));
+          }
+        }
+        
+      } catch (error) {
+        console.error('Failed to record mastery progress:', error);
+      }
+
       // Track analytics
       const { trackLevelComplete } = require('../utils/analytics');
       trackLevelComplete(
         state.currentLevelId,
         state.currentLevel?.name || `Level ${state.currentLevelId}`,
         state.currentScore,
-        state.levelDuration,
-        calculateAccuracy(state.shotsHit, state.shotsFired),
+        completionTime,
+        accuracy,
         (state.levelStats[state.currentLevelId]?.attempts || 0) + 1
       );
     },
@@ -423,6 +531,58 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
       } catch (error) {
         console.error('Failed to refresh player progress:', error);
       }
+    },
+
+    // Update daily challenge progress
+    updateDailyChallengeProgress: (challengeType: string, value: number) => {
+      // This is a fire-and-forget operation to avoid blocking game flow
+      setTimeout(async () => {
+        try {
+          const { useMetaProgressionStore } = await import('./metaProgressionStore');
+          const metaActions = useMetaProgressionStore.getState().actions;
+          const challenges = useMetaProgressionStore.getState().dailyChallenges;
+          
+          // Find challenges that match this type and update progress
+          challenges.forEach(challenge => {
+            if (challenge.objective.type === challengeType) {
+              metaActions.updateChallengeProgress(challenge.id, value);
+            }
+          });
+        } catch (error) {
+          console.warn('Failed to update daily challenge progress:', error);
+        }
+      }, 0);
+    },
+
+    // Notify mystery balloon manager about balloon spawns
+    onBalloonSpawned: () => {
+      try {
+        // Import dynamically to avoid circular dependencies
+        setTimeout(async () => {
+          const { mysteryBalloonManager } = await import('../systems/MysteryBalloonManager');
+          mysteryBalloonManager.onBalloonSpawned();
+        }, 0);
+      } catch (error) {
+        console.warn('Failed to notify mystery balloon manager:', error);
+      }
+    },
+
+    // Handle mystery balloon being popped
+    onMysteryBalloonPopped: (balloonId: string) => {
+      setTimeout(async () => {
+        try {
+          const { mysteryBalloonManager } = await import('../systems/MysteryBalloonManager');
+          const { useMetaProgressionStore } = await import('./metaProgressionStore');
+          
+          const reward = mysteryBalloonManager.onMysteryBalloonPopped(balloonId);
+          if (reward) {
+            const metaActions = useMetaProgressionStore.getState().actions;
+            metaActions.processMysteryReward(reward);
+          }
+        } catch (error) {
+          console.error('Failed to process mystery balloon reward:', error);
+        }
+      }, 0);
     }
   };
 

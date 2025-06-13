@@ -1,6 +1,7 @@
 import { GameObject } from '@/utils/gameEngine';
 import { GAME_CONFIG } from '@/constants/GameConfig';
 import { GameObjectPools } from '@/utils/ObjectPool';
+import { nanoid } from 'nanoid/non-secure';
 
 export interface CollisionEvent {
   type: 'projectile-enemy' | 'enemy-pete';
@@ -153,7 +154,7 @@ export class CollisionSystem {
 
     // Create two smaller enemies using object pool
     const enemy1 = objectPools.acquireEnemy();
-    enemy1.id = `${enemy.id}-split1-${Date.now()}-${Math.random()}`;
+    enemy1.id = `${enemy.id}-split1-${nanoid(8)}`;
     enemy1.x = enemy.x - newWidth / 4;
     enemy1.y = enemy.y;
     enemy1.width = newWidth;
@@ -164,7 +165,7 @@ export class CollisionSystem {
     enemy1.sizeLevel = newSizeLevel;
 
     const enemy2 = objectPools.acquireEnemy();
-    enemy2.id = `${enemy.id}-split2-${Date.now()}-${Math.random()}`;
+    enemy2.id = `${enemy.id}-split2-${nanoid(8)}`;
     enemy2.x = enemy.x + enemy.width - newWidth * 0.75;
     enemy2.y = enemy.y;
     enemy2.width = newWidth;

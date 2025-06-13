@@ -17,11 +17,15 @@ import {
 } from '@/store/levelProgressionStore';
 import { 
   GAME_CONFIG, 
-  BALLOON_PHYSICS, 
+  GAME_PHYSICS, 
   getBalloonSize, 
   getBalloonPoints,
+  getEnemySpeedBySize,
+  getSpawnYPosition,
   ENTITY_CONFIG,
   UI_CONFIG,
+  ENEMY_CONFIG,
+  PHYSICS,
   createLevelConfig,
   levelBalanceToConfigOverrides,
   applyEnvironmentalModifiers
@@ -29,6 +33,12 @@ import {
 import { GameObject } from '@/utils/gameEngine';
 import { nanoid } from 'nanoid/non-secure';
 import { EnemyWave, EnemySpawnDefinition } from '@/types/LevelTypes';
+import { mysteryBalloonManager, MysteryBalloonInstance } from '@/systems/MysteryBalloonManager';
+import { useMetaProgressionActions } from '@/store/metaProgressionStore';
+import { trackBalloonPopped, trackMysteryBalloonPopped } from '@/utils/analytics';
+import { CollisionSystem } from '@/systems/CollisionSystem';
+import { GameObjectPools } from '@/utils/ObjectPool';
+import { integrationManager } from '@/systems/IntegrationManager';
 
 interface Enemy {
   id: string;
@@ -51,6 +61,15 @@ interface Projectile extends GameObject {
   velocityY: number;
 }
 
+interface MysteryBalloonGameObject {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  mysteryBalloon: MysteryBalloonInstance;
+}
+
 export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: number) => {
   const isPlaying = useIsPlaying();
   const gameOver = useGameOver();
@@ -59,6 +78,9 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
   // Level progression state and actions
   const currentLevel = useCurrentLevel();
   const levelActions = useLevelProgressionActions();
+  
+  // Meta progression actions for mystery rewards
+  const metaActions = useMetaProgressionActions();
   const enemiesRemaining = useEnemiesRemaining();
   const totalEnemies = useTotalEnemies();
   const currentScore = useCurrentScore();
@@ -81,10 +103,30 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
     }
   }, []);
 
+  // Initialize meta progression system once
+  const hasInitializedMeta = useRef(false);
+  useEffect(() => {
+    if (!hasInitializedMeta.current) {
+      hasInitializedMeta.current = true;
+      metaActions.initialize();
+    }
+  }, []);
+
+  // Initialize object pools
+  const objectPools = useRef<GameObjectPools>(GameObjectPools.getInstance());
+  
   // Start level when it's loaded and game is playing
   useEffect(() => {
     if (currentLevel && isPlaying && !levelCompleted && !levelFailed && levelStartTime === 0) {
       console.log('Starting level:', currentLevel.id);
+      
+      // Reset mystery balloon manager for new level
+      mysteryBalloonManager.resetSession();
+      mysteryBalloonManager.setCurrentLevel(currentLevel.id);
+      
+      // Start session tracking
+      metaActions.startSession();
+      
       levelActions.startLevel();
     }
   }, [currentLevel, isPlaying, levelCompleted, levelFailed, levelStartTime]);
@@ -106,6 +148,7 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
   const petePosition = useRef(screenWidth / 2 - GAME_CONFIG.PETE_SIZE / 2);
   const enemies = useRef<Enemy[]>([]);
   const projectiles = useRef<Projectile[]>([]);
+  const mysteryBalloons = useRef<MysteryBalloonGameObject[]>([]);
   const gameAreaHeightRef = useRef(gameAreaHeight);
   
   // Level-specific configuration
@@ -164,6 +207,9 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
     // Track projectile fired for level progression
     levelActionsRef.current.projectileFired();
     
+    // Track for meta progression
+    metaActions.recordShotFired();
+    
     const config = levelConfig.current;
     const projectile: Projectile = {
       id: nanoid(),
@@ -179,62 +225,88 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
     // Don't force update here - let the game loop handle visual updates
   }, []);
   
-  // Spawn enemy from wave definition  
-  const spawnEnemyFromWave = useCallback((enemyDef: EnemySpawnDefinition, wave: EnemyWave) => {
+  // Spawn enemy from wave definition with original game patterns
+  const spawnEnemyFromWave = useCallback((enemyDef: EnemySpawnDefinition, wave: EnemyWave, spawnIndex: number) => {
     const config = levelConfig.current;
     const size = getBalloonSize(enemyDef.sizeLevel);
     
-    // Calculate spawn position based on pattern
+    // Use original game spawn patterns
     let spawnX: number;
+    let spawnY: number;
+    
+    // Get Y position from original game's fixed spawn heights
+    spawnY = getSpawnYPosition(spawnIndex, gameAreaHeightRef.current);
+    
+    // Calculate X position based on wave pattern
     switch (wave.spawnPattern) {
-      case 'left_to_right':
-        spawnX = (Math.random() * 0.8 + 0.1) * screenWidth; // 10-90% across screen
+      case 'two_small':
+        // Classic pattern: enemies at 20% and 80% of screen width
+        spawnX = spawnIndex % 2 === 0 ? screenWidth * 0.2 : screenWidth * 0.8;
         break;
-      case 'center_out':
-        spawnX = screenWidth / 2 + (Math.random() - 0.5) * screenWidth * 0.6;
+      case 'three_small_wide':
+        // Wide spread: 15%, 50%, 85%
+        const positions = [0.15, 0.5, 0.85];
+        spawnX = screenWidth * positions[spawnIndex % 3];
         break;
-      case 'corners_first':
-        spawnX = Math.random() < 0.5 ? Math.random() * screenWidth * 0.2 : screenWidth * 0.8 + Math.random() * screenWidth * 0.2;
+      case 'pipes':
+        // Vertical columns: 25%, 50%, 75%
+        const pipePositions = [0.25, 0.5, 0.75];
+        spawnX = screenWidth * pipePositions[spawnIndex % 3];
         break;
-      case 'random':
+      case 'crazy':
+        // Many positions: 10%, 30%, 50%, 70%, 90%
+        const crazyPositions = [0.1, 0.3, 0.5, 0.7, 0.9];
+        spawnX = screenWidth * crazyPositions[spawnIndex % 5];
+        break;
+      case 'entrap':
+        // Corners only: 10% and 90%
+        spawnX = spawnIndex % 2 === 0 ? screenWidth * 0.1 : screenWidth * 0.9;
+        break;
       default:
-        spawnX = Math.random() * (screenWidth - size);
+        // Default to original left_to_right pattern
+        spawnX = (spawnIndex * 0.15 + 0.1) * screenWidth;
         break;
     }
     
-    // Apply wave modifiers
-    const baseSpeed = config.ENEMY_CONFIG.BASE_SPEED;
-    const waveSpeedMultiplier = 1.0 + wave.speedBonus;
-    const enemySpeed = baseSpeed * enemyDef.movementSpeed * waveSpeedMultiplier;
+    // Get speed based on balloon size (original game logic)
+    const enemySpeed = getEnemySpeedBySize(enemyDef.sizeLevel);
     
     const enemy: Enemy = {
       id: nanoid(),
       x: Math.max(0, Math.min(screenWidth - size, spawnX)),
-      y: -size,
+      y: spawnY,
       size,
       width: size,
       height: size,
       type: enemyDef.type,
       sizeLevel: enemyDef.sizeLevel,
-      velocityX: (Math.random() - 0.5) * config.BALLOON_PHYSICS.SPAWN_VELOCITY.HORIZONTAL_RANGE,
-      velocityY: Math.random() * config.BALLOON_PHYSICS.SPAWN_VELOCITY.VERTICAL_RANDOM + config.BALLOON_PHYSICS.SPAWN_VELOCITY.VERTICAL_BASE,
+      velocityX: 0, // Will be set below
+      velocityY: config.BALLOON_PHYSICS.SPAWN_VELOCITY.VERTICAL_BASE,
     };
     
-    // Apply movement type modifiers
-    switch (enemyDef.movementType) {
-      case 'physics_heavy':
-        enemy.velocityY *= 1.3; // Fall faster
-        break;
-      case 'physics_floaty':
-        enemy.velocityY *= 0.7; // Fall slower
-        break;
-      case 'pattern_homing':
-        // Will be handled in update loop
-        break;
+    // Set horizontal velocity based on spawn position
+    // Enemies spawned on left move right, on right move left, center can go either way
+    if (spawnX < screenWidth * 0.3) {
+      enemy.velocityX = config.BALLOON_PHYSICS.SPAWN_VELOCITY.HORIZONTAL_BASE;
+    } else if (spawnX > screenWidth * 0.7) {
+      enemy.velocityX = -config.BALLOON_PHYSICS.SPAWN_VELOCITY.HORIZONTAL_BASE;
+    } else {
+      // Center spawns go either direction
+      enemy.velocityX = (Math.random() < 0.5 ? 1 : -1) * config.BALLOON_PHYSICS.SPAWN_VELOCITY.HORIZONTAL_BASE;
+    }
+    
+    // Add small variation to make it less robotic
+    enemy.velocityX += (Math.random() - 0.5) * config.BALLOON_PHYSICS.SPAWN_VELOCITY.HORIZONTAL_VARIATION;
+    
+    // Ensure minimum horizontal velocity
+    if (Math.abs(enemy.velocityX) < config.BALLOON_PHYSICS.MIN_HORIZONTAL_VELOCITY) {
+      enemy.velocityX = enemy.velocityX >= 0 ? config.BALLOON_PHYSICS.MIN_HORIZONTAL_VELOCITY : -config.BALLOON_PHYSICS.MIN_HORIZONTAL_VELOCITY;
     }
     
     enemies.current.push(enemy);
-    // Don't force update here - let the game loop handle visual updates
+    
+    // Notify mystery balloon manager of enemy spawn
+    mysteryBalloonManager.onBalloonSpawned();
   }, []);
   
   // Update wave management
@@ -296,7 +368,7 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
         const spawnedForThisType = waveData.spawnedCountPerEnemy[enemyIndex] || 0;
         
         if (spawnTimer >= spawnInterval && spawnedForThisType < enemyDef.count) {
-          spawnEnemyFromWave(enemyDef, wave);
+          spawnEnemyFromWave(enemyDef, wave, spawnedForThisType);
           waveData.spawnedCountPerEnemy[enemyIndex] = spawnedForThisType + 1;
           waveSpawnTimers.current.set(enemyKey, 0); // Reset timer for this enemy type
           console.log(`Spawned enemy ${spawnedForThisType + 1}/${enemyDef.count} of type ${enemyIndex} from wave ${waveKey}`);
@@ -305,6 +377,36 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
         }
       });
     });
+  }, []);
+  
+  // Update mystery balloons
+  const updateMysteryBalloons = useCallback((deltaTime: number) => {
+    if (!currentLevelRef.current) return;
+    
+    // Update current level in mystery balloon manager
+    mysteryBalloonManager.setCurrentLevel(currentLevelRef.current.id);
+    
+    // Get active mystery balloons from manager
+    const activeMysteryBalloons = mysteryBalloonManager.getActiveMysteryBalloons();
+    
+    // Convert to game objects with screen coordinates
+    mysteryBalloons.current = activeMysteryBalloons.map(mysteryBalloon => {
+      const size = ENTITY_CONFIG.BALLOON.BASE_SIZE * 1.2; // Mystery balloons are slightly larger
+      const screenX = mysteryBalloon.position.x * screenWidth;
+      const screenY = mysteryBalloon.position.y * gameAreaHeightRef.current;
+      
+      return {
+        id: mysteryBalloon.id,
+        x: screenX - size / 2,
+        y: screenY,
+        width: size,
+        height: size,
+        mysteryBalloon
+      };
+    });
+    
+    // Clean up old mystery balloons
+    mysteryBalloonManager.cleanupOldBalloons();
   }, []);
   
   // Game loop ref for managing animation frame
@@ -336,140 +438,189 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
       // Update enemy spawning from active waves
       updateEnemySpawning(currentDeltaTime * 1000); // Convert back to milliseconds for spawning
       
-      // Update projectiles
+      // Update mystery balloons
+      updateMysteryBalloons(currentDeltaTime);
+      
+      // Update projectiles with straight-line movement (no gravity - original game behavior)
       projectiles.current = projectiles.current.filter(p => {
         p.y += p.velocityY * currentDeltaTime;
-        return p.y > -p.size;
+        // Keep projectiles until they're well off screen
+        return p.y > -100;
       });
       
       // Update enemies with balloon physics
       enemies.current = enemies.current.filter(enemy => {
         // Use level-specific physics configuration
-        const balloonGravity = GAME_CONFIG.GRAVITY * config.BALLOON_PHYSICS.GRAVITY_MULTIPLIER;
+        const balloonGravity = config.BALLOON_PHYSICS.GRAVITY_PX_S2;
         const airResistance = config.BALLOON_PHYSICS.AIR_RESISTANCE;
         const minBounceVelocity = config.BALLOON_PHYSICS.MIN_BOUNCE_VELOCITY;
         
         // Apply lighter gravity (convert to pixels per frame)
         enemy.velocityY += balloonGravity * currentDeltaTime;
         
-        // Apply air resistance to both directions
-        enemy.velocityX *= airResistance;
-        enemy.velocityY *= airResistance;
+        // No air resistance - arcade physics with perfect velocity retention
         
         // Update position
         enemy.x += enemy.velocityX * currentDeltaTime;
         enemy.y += enemy.velocityY * currentDeltaTime;
         
-        // Bounce off walls with minimal energy loss
+        // Bounce off walls with level-specific physics
         if (enemy.x <= 0 || enemy.x >= screenWidth - enemy.size) {
-          enemy.velocityX *= -config.BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.WALLS;
+          enemy.velocityX *= -config.BALLOON_PHYSICS.BOUNCE.WALL;
           enemy.x = Math.max(0, Math.min(screenWidth - enemy.size, enemy.x));
         }
         
-        // Bounce off ceiling
+        // Bounce off ceiling with more energy loss
         if (enemy.y <= 0) {
-          enemy.velocityY *= -config.BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.CEILING;
+          enemy.velocityY *= -config.BALLOON_PHYSICS.BOUNCE.CEIL;
           enemy.y = 0;
         }
         
-        // Bounce off floor with super-bouncy trampoline effect
+        // Bounce off floor with level-specific physics
         if (enemy.y >= gameAreaHeightRef.current - enemy.size) {
-          // Super energetic trampoline floor - like original Pang physics with high energy return
-          enemy.velocityY = Math.max(-minBounceVelocity, enemy.velocityY * -config.BALLOON_PHYSICS.BOUNCE_COEFFICIENTS.FLOOR);
+          // Calculate bounce velocity using level-specific physics
+          const bounceVelocity = enemy.velocityY * -config.BALLOON_PHYSICS.BOUNCE.FLOOR;
+          // Only apply bounce if it's strong enough, otherwise stop bouncing
+          enemy.velocityY = Math.abs(bounceVelocity) >= minBounceVelocity ? bounceVelocity : 0;
           enemy.y = gameAreaHeightRef.current - enemy.size;
+        }
+        
+        // Enforce minimum horizontal velocity to prevent vertical-only movement
+        if (Math.abs(enemy.velocityX) < config.BALLOON_PHYSICS.MIN_HORIZONTAL_VELOCITY) {
+          const direction = enemy.velocityX >= 0 ? 1 : -1;
+          enemy.velocityX = direction * config.BALLOON_PHYSICS.MIN_HORIZONTAL_VELOCITY;
         }
         
         // Remove if somehow fallen off screen
         return enemy.y < gameAreaHeightRef.current + enemy.size;
       });
       
-      // Check collisions
-      const hitEnemyIds = new Set<string>();
-      const hitProjectileIds = new Set<string>();
+      // Check collisions using CollisionSystem
+      const hitMysteryBalloonIds = new Set<string>();
       const newEnemies: Enemy[] = [];
       let enemiesEliminatedThisFrame = 0;
       
-      // Find all collisions first
-      projectiles.current.forEach(projectile => {
-        if (hitProjectileIds.has(projectile.id)) return;
-        
-        enemies.current.forEach(enemy => {
-          if (hitEnemyIds.has(enemy.id) || hitProjectileIds.has(projectile.id)) return;
+      // Convert current game objects to GameObject format for collision system
+      const projectileObjects: GameObject[] = projectiles.current.map(p => ({
+        id: p.id,
+        x: p.x,
+        y: p.y,
+        width: p.width,
+        height: p.height,
+        velocityX: p.velocityX,
+        velocityY: p.velocityY
+      }));
+      
+      const enemyObjects: GameObject[] = enemies.current.map(e => ({
+        id: e.id,
+        x: e.x,
+        y: e.y,
+        width: e.width,
+        height: e.height,
+        velocityX: e.velocityX,
+        velocityY: e.velocityY,
+        type: e.type,
+        sizeLevel: e.sizeLevel
+      }));
+      
+      // Pete object for collision detection
+      const peteObject: GameObject = {
+        id: 'pete',
+        x: petePosition.current,
+        y: gameAreaHeightRef.current - ENTITY_CONFIG.PETE.SIZE - UI_CONFIG.LAYOUT.BOTTOM_PADDING,
+        width: ENTITY_CONFIG.PETE.SIZE,
+        height: ENTITY_CONFIG.PETE.SIZE,
+        velocityX: 0,
+        velocityY: 0
+      };
+      
+      // Process collisions
+      const collisionResult = CollisionSystem.processCollisions(
+        projectileObjects,
+        enemyObjects,
+        peteObject,
+        objectPools.current
+      );
+      
+      // Handle collision results
+      if (collisionResult.shouldGameEnd) {
+        actions.setGameOver(true);
+        return;
+      }
+      
+      // Process each collision event
+      collisionResult.events.forEach(event => {
+        if (event.type === 'projectile-enemy') {
+          const enemy = enemies.current.find(e => e.id === event.enemy.id);
+          if (!enemy) return;
           
-          // Create compatible objects for collision detection
-          const projectileObj: GameObject = {
-            id: projectile.id,
-            x: projectile.x,
-            y: projectile.y,
-            width: projectile.width,
-            height: projectile.height
-          };
-          const enemyObj: GameObject = {
-            id: enemy.id,
-            x: enemy.x,
-            y: enemy.y,
-            width: enemy.width,
-            height: enemy.height
-          };
+          // Track projectile hit for level progression
+          levelActionsRef.current.projectileHit();
           
-          if (checkCollision(projectileObj, enemyObj)) {
-            // Mark both as hit
-            hitEnemyIds.add(enemy.id);
-            hitProjectileIds.add(projectile.id);
+          // Track for meta progression
+          metaActions.recordShotHit();
+          
+          // Update score based on enemy size
+          const points = getBalloonPoints(enemy.sizeLevel as 1 | 2 | 3);
+          
+          // Integrate with combo system and achievements through IntegrationManager
+          const enemyTypeForCombo = enemy.sizeLevel === 1 ? 'small' : enemy.sizeLevel === 2 ? 'medium' : 'large';
+          const comboResult = integrationManager.onProjectileHit(enemyTypeForCombo, 0.85); // Default accuracy
+          
+          // Apply combo multiplier to score
+          const finalPoints = Math.round(points * comboResult.scoreMultiplier);
+          actions.updateScore(finalPoints);
+          
+          // Track balloon popped analytics
+          trackBalloonPopped(
+            enemy.sizeLevel,
+            finalPoints,
+            currentCombo,
+            currentLevelRef.current?.id
+          );
+          
+          // Split enemy if not smallest size, otherwise it's eliminated
+          if (enemy.sizeLevel > 1) {
+            const newSize = enemy.sizeLevel - 1;
+            const size = getBalloonSize(newSize as 1 | 2 | 3);
             
-            // Track projectile hit for level progression
-            levelActionsRef.current.projectileHit();
+            // Create split enemies based on level configuration
+            const splitBehavior = currentLevelRef.current?.enemyWaves
+              .flatMap(wave => wave.enemies)
+              .find(def => def.type === enemy.type)?.splitBehavior;
             
-            // Update score based on enemy size
-            const points = getBalloonPoints(enemy.sizeLevel as 1 | 2 | 3);
-            actions.updateScore(points);
+            const splitCount = splitBehavior?.splitInto || 2;
+            const childSizeReduction = splitBehavior?.childSizeReduction || 0.7;
+            const childSpeedBonus = splitBehavior?.childSpeedBonus || 1.1;
             
-            // Track balloon popped analytics
-            const { trackBalloonPopped } = require('../utils/analytics');
-            trackBalloonPopped(
-              enemy.sizeLevel,
-              points,
-              currentCombo,
-              currentLevelRef.current?.id
-            );
-            
-            // Split enemy if not smallest size, otherwise it's eliminated
-            if (enemy.sizeLevel > 1) {
-              const newSize = enemy.sizeLevel - 1;
-              const size = getBalloonSize(newSize as 1 | 2 | 3);
-              
-              // Create split enemies based on level configuration
-              const splitBehavior = currentLevelRef.current?.enemyWaves
-                .flatMap(wave => wave.enemies)
-                .find(def => def.type === enemy.type)?.splitBehavior;
-              
-              const splitCount = splitBehavior?.splitInto || 2;
-              const childSizeReduction = splitBehavior?.childSizeReduction || 0.7;
-              const childSpeedBonus = splitBehavior?.childSpeedBonus || 1.1;
-              
-              // Create smaller enemies
-              for (let i = 0; i < splitCount; i++) {
-                const angle = (Math.PI * 2 * i) / splitCount;
-                const splitEnemy: Enemy = {
-                  id: nanoid(),
-                  x: enemy.x + Math.cos(angle) * config.BALLOON_PHYSICS.SPLIT.OFFSET_DISTANCE,
-                  y: enemy.y,
-                  size: size * childSizeReduction,
-                  width: size * childSizeReduction,
-                  height: size * childSizeReduction,
-                  type: enemy.type,
-                  sizeLevel: newSize,
-                  velocityX: Math.cos(angle) * config.BALLOON_PHYSICS.SPLIT.HORIZONTAL_VELOCITY * childSpeedBonus,
-                  velocityY: -config.BALLOON_PHYSICS.SPLIT.VERTICAL_VELOCITY * childSpeedBonus,
-                };
-                newEnemies.push(splitEnemy);
-              }
-            } else {
-              // Enemy completely eliminated
-              enemiesEliminatedThisFrame++;
+            // Create smaller enemies
+            for (let i = 0; i < splitCount; i++) {
+              const angle = (Math.PI * 2 * i) / splitCount;
+              const splitEnemy: Enemy = {
+                id: nanoid(),
+                x: enemy.x + Math.cos(angle) * config.BALLOON_PHYSICS.SPLIT.OFFSET_DISTANCE,
+                y: enemy.y,
+                size: size * childSizeReduction,
+                width: size * childSizeReduction,
+                height: size * childSizeReduction,
+                type: enemy.type,
+                sizeLevel: newSize,
+                velocityX: Math.cos(angle) * config.BALLOON_PHYSICS.SPLIT.HORIZONTAL_VELOCITY * childSpeedBonus,
+                velocityY: -config.BALLOON_PHYSICS.SPLIT.VERTICAL_VELOCITY * childSpeedBonus,
+              };
+              newEnemies.push(splitEnemy);
             }
+          } else {
+            // Enemy completely eliminated
+            enemiesEliminatedThisFrame++;
+            
+            // Track balloon pop for meta progression
+            metaActions.recordBalloonPop();
+            
+            // Update daily challenge progress (balloon_pop challenge type)
+            metaActions.updateChallengeProgress('daily_balloons', 1);
           }
-        });
+        }
       });
       
       // Track eliminated enemies for level progression
@@ -481,12 +632,57 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
       
       // Keep enemies that weren't hit and add new split enemies
       enemies.current = [
-        ...enemies.current.filter(enemy => !hitEnemyIds.has(enemy.id)),
+        ...enemies.current.filter(enemy => !collisionResult.hitEnemyIds.has(enemy.id)),
         ...newEnemies
       ];
       
-      // Keep projectiles that didn't hit anything
-      projectiles.current = projectiles.current.filter(projectile => !hitProjectileIds.has(projectile.id));
+      // Remove hit projectiles 
+      projectiles.current = projectiles.current.filter(p => !collisionResult.hitProjectileIds.has(p.id));
+      
+      // Check collisions with mystery balloons
+      const hitMysteryProjectileIds = new Set<string>();
+      projectiles.current.forEach(projectile => {
+        mysteryBalloons.current.forEach(mysteryBalloon => {
+          if (hitMysteryBalloonIds.has(mysteryBalloon.id) || hitMysteryProjectileIds.has(projectile.id)) return;
+          
+          // Create compatible objects for collision detection
+          const projectileObj: GameObject = {
+            id: projectile.id,
+            x: projectile.x,
+            y: projectile.y,
+            width: projectile.width,
+            height: projectile.height
+          };
+          
+          if (CollisionSystem.checkCollision(projectileObj, mysteryBalloon)) {
+            // Mark both as hit
+            hitMysteryBalloonIds.add(mysteryBalloon.id);
+            hitMysteryProjectileIds.add(projectile.id);
+            
+            // Handle mystery balloon pop
+            const reward = mysteryBalloonManager.onMysteryBalloonPopped(mysteryBalloon.mysteryBalloon.id);
+            if (reward) {
+              // Process reward through meta progression system
+              metaActions.processMysteryReward(reward);
+              
+              // Integrate with achievement and viral tracking systems
+              integrationManager.onMysteryBalloonPopped(reward.type, Number(reward.value));
+              
+              // Track analytics
+              trackMysteryBalloonPopped(
+                reward.type,
+                reward.rarity,
+                reward.value,
+                currentLevelRef.current?.id
+              );
+            }
+          }
+        });
+      });
+      
+      // Remove popped mystery balloons and hit projectiles
+      mysteryBalloons.current = mysteryBalloons.current.filter(balloon => !hitMysteryBalloonIds.has(balloon.id));
+      projectiles.current = projectiles.current.filter(p => !hitMysteryProjectileIds.has(p.id));
       
       // Check for missed projectiles (projectiles that hit the ground without hitting enemies)
       const missedProjectiles = projectiles.current.filter(p => p.y <= -p.size);
@@ -564,18 +760,10 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
     petePosition,
     enemies: enemies.current,
     projectiles: projectiles.current,
+    mysteryBalloons: mysteryBalloons.current,
     gameAreaHeightRef,
     updatePetePosition,
     shootProjectile,
   };
 };
 
-// Simple AABB collision detection
-function checkCollision(a: GameObject, b: GameObject): boolean {
-  return (
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y
-  );
-}

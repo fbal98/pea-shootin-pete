@@ -10,6 +10,7 @@ interface HyperCasualMenuScreenProps {
   onStartGame: () => void;
   onSettings: () => void;
   onAbout: () => void;
+  onWorldMap?: () => void;
   highScore?: number;
 }
 
@@ -17,6 +18,7 @@ export const HyperCasualMenuScreen: React.FC<HyperCasualMenuScreenProps> = ({
   onStartGame,
   onSettings,
   onAbout,
+  onWorldMap,
   highScore = 0 
 }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -159,6 +161,37 @@ export const HyperCasualMenuScreen: React.FC<HyperCasualMenuScreenProps> = ({
               </View>
             </Animated.View>
           </TouchableOpacity>
+
+          {/* Secondary navigation buttons */}
+          <View style={styles.secondaryNavigation}>
+            {onWorldMap && (
+              <TouchableOpacity 
+                style={styles.secondaryButton} 
+                onPress={onWorldMap}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryButtonText}>🗺️ WORLD MAP</Text>
+              </TouchableOpacity>
+            )}
+            
+            <View style={styles.secondaryButtonRow}>
+              <TouchableOpacity 
+                style={[styles.secondaryButton, styles.smallButton]} 
+                onPress={() => {/* TODO: Add customization navigation */}}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryButtonText}>🎨 CUSTOMIZE</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.secondaryButton, styles.smallButton]} 
+                onPress={() => {/* TODO: Add social navigation */}}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.secondaryButtonText}>👥 SOCIAL</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </Animated.View>
       </LinearGradient>
     </View>
@@ -252,5 +285,33 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: UI_COLORS.menuText,
     letterSpacing: 2,
+  },
+  secondaryNavigation: {
+    alignItems: 'center',
+    marginTop: 20,
+    gap: 12,
+  },
+  secondaryButtonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  secondaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: UI_COLORS.menuTextLight,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  smallButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  secondaryButtonText: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: UI_COLORS.menuTextLight,
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
 });

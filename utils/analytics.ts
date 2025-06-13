@@ -29,18 +29,47 @@ export type AnalyticsEventType =
   | 'projectile_fired'
   | 'combo_achieved'
   | 'retry_level'
+  | 'mystery_balloon_popped'
   
-  // Monetization events (for future ad integration)
+  // Social and viral events
+  | 'social_share'
+  | 'viral_referral'
+  | 'deep_link_used'
+  | 'friend_invited'
+  | 'challenge_shared'
+  
+  // Monetization events
+  | 'purchase_initiated'
+  | 'purchase_completed'
+  | 'purchase_failed'
+  | 'currency_earned'
+  | 'currency_spent'
   | 'ad_shown'
   | 'ad_clicked'
   | 'ad_completed'
   | 'ad_failed'
   
+  // Special events and FOMO
+  | 'special_event_joined'
+  | 'special_event_completed'
+  | 'flash_sale_viewed'
+  | 'flash_sale_purchased'
+  | 'event_participation'
+  
   // Progression events
   | 'level_unlocked'
   | 'achievement_unlocked'
+  | 'micro_achievement_progress'
+  | 'combo_milestone'
   | 'high_score_achieved'
+  | 'skin_equipped'
+  | 'customization_changed'
   | 'ab_test_assigned'
+  
+  // World map and navigation
+  | 'world_map_opened'
+  | 'node_selected'
+  | 'theme_unlocked'
   
   // Performance events
   | 'crash_reported'
@@ -281,6 +310,22 @@ export class AnalyticsManager {
     });
   }
 
+  public trackMysteryBalloonPopped(
+    rewardType: string,
+    rarity: string,
+    value: string | number,
+    levelId?: number
+  ): void {
+    this.track('mystery_balloon_popped', {
+      level: levelId,
+      custom_properties: {
+        reward_type: rewardType,
+        reward_rarity: rarity,
+        reward_value: value,
+      },
+    });
+  }
+
   /**
    * Flush events to analytics service
    */
@@ -434,3 +479,136 @@ export const trackGameOver = (finalScore: number, highScore: number, levelsCompl
 
 export const trackBalloonPopped = (balloonSize: number, points: number, combo?: number, levelId?: number) => 
   analytics.trackBalloonPopped(balloonSize, points, combo, levelId);
+
+export const trackMysteryBalloonPopped = (rewardType: string, rarity: string, value: string | number, levelId?: number) => 
+  analytics.trackMysteryBalloonPopped(rewardType, rarity, value, levelId);
+
+// Social and viral tracking
+export const trackSocialShare = (data: {
+  platform: string;
+  contentType: string;
+  level?: number;
+  score?: number;
+  achievement?: string;
+}) => analytics.track('social_share', { custom_properties: data });
+
+export const trackViralReferral = (data: {
+  referrerId: string;
+  newUserId: string;
+  campaign?: string;
+  medium?: string;
+  source?: string;
+  bonusAwarded?: boolean;
+  bonusType?: string;
+  bonusAmount?: number;
+  timestamp: number;
+}) => analytics.track('viral_referral', { custom_properties: data });
+
+export const trackDeepLinkUsage = (data: {
+  url?: string;
+  type?: string;
+  challengeId?: string;
+  achievementId?: string;
+  levelId?: number;
+  queryParams?: any;
+  timestamp: number;
+}) => analytics.track('deep_link_used', { custom_properties: data });
+
+// Monetization tracking
+export const trackPurchase = (data: {
+  itemId: string;
+  itemName: string;
+  category: string;
+  price: { currency: string; amount: number };
+  currency: string;
+  amount: number;
+  timestamp: number;
+}) => analytics.track('purchase_completed', { custom_properties: data });
+
+export const trackCurrencyEarned = (data: {
+  currency: string;
+  amount: number;
+  reason: string;
+  newBalance: number;
+  metadata?: any;
+}) => analytics.track('currency_earned', { custom_properties: data });
+
+export const trackCurrencySpent = (data: {
+  currency: string;
+  amount: number;
+  reason: string;
+  newBalance: number;
+  metadata?: any;
+}) => analytics.track('currency_spent', { custom_properties: data });
+
+// Special events tracking
+export const trackSpecialEvent = (data: {
+  eventId: string;
+  eventName: string;
+  eventType: string;
+  action: string;
+  timestamp: number;
+}) => analytics.track('special_event_joined', { custom_properties: data });
+
+export const trackEventParticipation = (data: {
+  eventId: string;
+  eventName: string;
+  playerId: string;
+  action: string;
+  objectiveId?: string;
+  timestamp: number;
+}) => analytics.track('event_participation', { custom_properties: data });
+
+// Achievement tracking
+export const trackAchievementUnlocked = (data: {
+  achievementId: string;
+  achievementName: string;
+  category: string;
+  rarity: string;
+  difficulty: number;
+  timeToComplete: number;
+  timestamp: number;
+}) => analytics.track('achievement_unlocked', { custom_properties: data });
+
+export const trackMicroProgress = (data: {
+  achievementId: string;
+  progress: number;
+  target: number;
+  category: string;
+  timestamp: number;
+}) => analytics.track('micro_achievement_progress', { custom_properties: data });
+
+// Combo tracking
+export const trackComboEvent = (data: {
+  comboCount: number;
+  multiplier: number;
+  comboType: string;
+  accuracy?: number;
+  timing?: string;
+  action?: string;
+  reason?: string;
+  timestamp: number;
+}) => analytics.track('combo_achieved', { custom_properties: data });
+
+// Viral metrics tracking
+export const trackViralMetrics = (data: {
+  totalShares: number;
+  successfulReferrals: number;
+  viralCoefficient: number;
+  shareConversionRate: number;
+  platformBreakdown: Record<string, number>;
+  conversionByPlatform: Record<string, number>;
+  averageTimeToConversion: number;
+  retentionAfterReferral: number;
+}) => analytics.track('viral_referral', { custom_properties: data });
+
+export const trackShareConversion = (data: {
+  shareId: string;
+  platform: string;
+  contentType?: string;
+  userId: string;
+  referredUserId?: string;
+  timestamp: number;
+  event: string;
+  conversionTime?: number;
+}) => analytics.track('social_share', { custom_properties: data });

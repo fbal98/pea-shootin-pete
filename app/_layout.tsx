@@ -6,7 +6,6 @@ import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { ArcadeColors } from '@/constants/ArcadeColors';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -24,7 +23,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
-        <GestureHandlerRootView style={{ flex: 1, backgroundColor: ArcadeColors.deepBlack }}>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <Slot />
             <StatusBar style="light" />

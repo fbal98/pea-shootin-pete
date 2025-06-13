@@ -35,80 +35,65 @@
   
   "enemyWaves": [
     {
-      "id": "wave_1_warmup",
-      "startTime": 1.0,
-      "duration": 25.0,
+      "id": "wave_1_three_wide",
+      "startTime": 0.5,
+      "duration": 1.0,
       "enemies": [
         {
           "type": "basic",
-          "count": 4,
+          "count": 3,
           "sizeLevel": 3,
-          "spawnInterval": 2.5,
+          "spawnInterval": 0.2,
           "movementType": "physics_normal",
           "movementSpeed": 1.0,
           "splitBehavior": {
             "enabled": true,
             "minSizeToSplit": 2,
             "splitInto": 2,
-            "childSizeReduction": 0.7,
-            "childSpeedBonus": 1.2
+            "childSizeReduction": 1.0,
+            "childSpeedBonus": 1.0
           }
         }
       ],
-      "spawnPattern": "left_to_right",
+      "spawnPattern": "three_small_wide",
       "speedBonus": 0.0,
-      "sizeVariation": 0.15
+      "sizeVariation": 0.0
     },
     {
-      "id": "wave_2_challenge",
-      "startTime": 30.0,
-      "duration": 30.0,
+      "id": "wave_2_pipes",
+      "startTime": 15.0,
+      "duration": 1.0,
       "enemies": [
         {
-          "type": "fast",
+          "type": "basic",
           "count": 2,
           "sizeLevel": 2,
-          "spawnInterval": 5.0,
+          "spawnInterval": 0.3,
           "movementType": "physics_normal",
-          "movementSpeed": 1.3,
+          "movementSpeed": 1.0,
           "splitBehavior": {
             "enabled": true,
             "minSizeToSplit": 1,
             "splitInto": 2,
-            "childSizeReduction": 0.6,
-            "childSpeedBonus": 1.4
-          }
-        },
-        {
-          "type": "basic",
-          "count": 2,
-          "sizeLevel": 3,
-          "spawnInterval": 8.0,
-          "movementType": "physics_floaty",
-          "movementSpeed": 0.9,
-          "splitBehavior": {
-            "enabled": true,
-            "minSizeToSplit": 2,
-            "splitInto": 2,
-            "childSizeReduction": 0.7,
-            "childSpeedBonus": 1.1
+            "childSizeReduction": 1.0,
+            "childSpeedBonus": 1.0
           }
         }
       ],
-      "spawnPattern": "corners_first",
-      "speedBonus": 0.1,
-      "sizeVariation": 0.2
+      "spawnPattern": "pipes",
+      "speedBonus": 0.0,
+      "sizeVariation": 0.0
     }
   ],
   
   "totalEnemyCount": 8,
   
   "environment": {
-    "gravity": 40.0,
-    "airResistance": 0.5,
-    "wallBounceMultiplier": 0.95,
-    "floorBounceMultiplier": 1.5,
-    "ceilingBounceMultiplier": 0.85,
+    "gravity": 500.0,
+    "airResistance": 0.0,
+    "wallBounceMultiplier": 1.0,
+    "floorBounceMultiplier": 1.0,
+    "ceilingBounceMultiplier": 1.0,
     "screenShake": {
       "intensity": 2.0,
       "onBalloonPop": 1.0,
@@ -153,10 +138,10 @@
   
   "balance": {
     "enemySpeedMultiplier": 1.0,
-    "spawnRateMultiplier": 0.9,
+    "spawnRateMultiplier": 1.0,
     "balloonSizeMultiplier": 1.0,
     "gravityMultiplier": 1.0,
-    "bounceEnergyMultiplier": 1.1,
+    "bounceEnergyMultiplier": 1.0,
     "peteSpeedMultiplier": 1.0,
     "projectileSpeedMultiplier": 1.0,
     "targetFailRate": 0.15
@@ -169,7 +154,13 @@
     "unlocksNextLevel": true,
     "coinsAwarded": 15,
     "unlocksPowerup": null,
-    "unlocksAchievement": "combo_master"
+    "unlocksAchievement": "combo_master",
+    "masteryThresholds": {
+      "goldTimeThreshold": 45000,
+      "goldAccuracyThreshold": 85,
+      "goldStyleThreshold": 800,
+      "perfectCompletionMultiplier": 2.0
+    }
   },
   
   "metadata": {

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,6 +15,11 @@ import { HyperCasualPete } from '@/components/game/HyperCasualPete';
 import { HyperCasualEnemy } from '@/components/game/HyperCasualEnemy';
 import { HyperCasualProjectile } from '@/components/game/HyperCasualProjectile';
 import { HyperCasualHUD } from '@/components/ui/HyperCasualHUD';
+import { MysteryBalloon } from '@/components/game/MysteryBalloon';
+import { ProgressionHUD } from '@/components/ui/ProgressionHUD';
+import { MysteryRewardDisplay } from '@/components/ui/MysteryRewardDisplay';
+import { CelebrationManager, AchievementCelebration, LevelVictoryCelebration, ComboStreakCelebration } from '@/components/ui/CelebrationSystem';
+import { VictoryModal } from '@/components/ui/VictoryModal';
 
 // Hooks
 import { useHyperCasualGameLogic } from '@/hooks/useHyperCasualGameLogic';
@@ -28,12 +33,23 @@ import {
   useGameActions,
   useIsPlaying,
 } from '@/store/gameStore';
+import {
+  useShowVictoryScreen,
+  useCurrentScore,
+  useLevelProgressionActions,
+  useCurrentLevel,
+} from '@/store/levelProgressionStore';
 
 // Constants
 import { GAME_CONFIG, INPUT_CONFIG } from '@/constants/GameConfig';
 import { UI_COLORS } from '@/constants/HyperCasualColors';
 
-export const HyperCasualGameScreen: React.FC = () => {
+interface HyperCasualGameScreenProps {
+  onBackToMenu?: () => void;
+  onWorldMap?: () => void;
+}
+
+export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ onBackToMenu, onWorldMap }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const gameAreaHeight = screenHeight - insets.top - insets.bottom;
@@ -44,12 +60,27 @@ export const HyperCasualGameScreen: React.FC = () => {
   const gameOver = useGameOver();
   const isPlaying = useIsPlaying();
   const actions = useGameActions();
+  
+  // Level progression state
+  const showVictoryScreen = useShowVictoryScreen();
+  const currentLevelScore = useCurrentScore();
+  const currentLevel = useCurrentLevel();
+  const levelActions = useLevelProgressionActions();
+  
+  // Mystery reward display state
+  const [mysteryRewards, setMysteryRewards] = useState<Array<{
+    id: string;
+    reward: any;
+    x: number;
+    y: number;
+  }>>([]);
 
   // Game logic hook
   const {
     petePosition,
     enemies,
     projectiles,
+    mysteryBalloons,
     gameAreaHeightRef,
     updatePetePosition,
     shootProjectile,
@@ -82,94 +113,156 @@ export const HyperCasualGameScreen: React.FC = () => {
 
   const handleBackToMenu = useCallback(() => {
     actions.setIsPlaying(false);
-  }, [actions]);
+    onBackToMenu?.();
+  }, [actions, onBackToMenu]);
+
+  const handleContinue = useCallback(async () => {
+    // Hide victory screen and proceed to next level
+    levelActions.showVictory(false);
+    await levelActions.proceedToNextLevel();
+  }, [levelActions]);
+
+  const handleVictoryBackToMenu = useCallback(() => {
+    levelActions.showVictory(false);
+    handleBackToMenu();
+  }, [levelActions, handleBackToMenu]);
 
   // Calculate positions
   const peteY = gameAreaHeight - GAME_CONFIG.PETE_SIZE - GAME_CONFIG.BOTTOM_PADDING;
 
   return (
-    <View style={styles.container}>
-      {/* Gradient background with floating shapes */}
-      <HyperCasualBackground level={level} isPlaying={isPlaying} />
+    <CelebrationManager>
+      <View style={styles.container}>
+        {/* Gradient background with floating shapes */}
+        <HyperCasualBackground level={level} isPlaying={isPlaying} />
 
-      {/* Game area */}
-      <View
-        style={[styles.gameArea, { paddingTop: insets.top }]}
-        onStartShouldSetResponder={() => true}
-        onResponderGrant={handleTouchStart}
-        onResponderMove={handleTouchMove}
-        onResponderRelease={handleTouchEnd}
-      >
-        {/* Score display */}
-        <HyperCasualHUD score={score} />
+        {/* Game area */}
+        <View
+          style={[styles.gameArea, { paddingTop: insets.top }]}
+          onStartShouldSetResponder={() => true}
+          onResponderGrant={handleTouchStart}
+          onResponderMove={handleTouchMove}
+          onResponderRelease={handleTouchEnd}
+        >
+          {/* Score display */}
+          <HyperCasualHUD score={score} />
 
-        {/* Game entities */}
-        {isPlaying && !gameOver && (
-          <>
-            {/* Pete */}
-            <HyperCasualPete
-              x={petePosition.current}
-              y={peteY}
-              size={GAME_CONFIG.PETE_SIZE}
-              level={level}
+          {/* Game entities */}
+          {isPlaying && !gameOver && (
+            <>
+              {/* Pete */}
+              <HyperCasualPete
+                x={petePosition.current}
+                y={peteY}
+                size={GAME_CONFIG.PETE_SIZE}
+                level={level}
+              />
+
+              {/* Enemies */}
+              {enemies.map(enemy => (
+                <HyperCasualEnemy
+                  key={enemy.id}
+                  x={enemy.x}
+                  y={enemy.y}
+                  size={enemy.size}
+                  type={enemy.type}
+                  sizeLevel={enemy.sizeLevel}
+                  level={level}
+                />
+              ))}
+
+              {/* Projectiles */}
+              {projectiles.map(projectile => (
+                <HyperCasualProjectile
+                  key={projectile.id}
+                  x={projectile.x}
+                  y={projectile.y}
+                  size={GAME_CONFIG.PROJECTILE_SIZE}
+                  level={level}
+                />
+              ))}
+
+              {/* Mystery Balloons */}
+              {mysteryBalloons.map(mysteryBalloon => (
+                <MysteryBalloon
+                  key={mysteryBalloon.id}
+                  x={mysteryBalloon.x}
+                  y={mysteryBalloon.y}
+                  size={mysteryBalloon.width}
+                  level={level}
+                  mysteryBalloon={mysteryBalloon.mysteryBalloon}
+                  onPopped={(balloonId, reward) => {
+                    // Show reward celebration
+                    setMysteryRewards(prev => [...prev, {
+                      id: `reward_${Date.now()}`,
+                      reward,
+                      x: mysteryBalloon.x + mysteryBalloon.width / 2,
+                      y: mysteryBalloon.y + mysteryBalloon.width / 2
+                    }]);
+                  }}
+                />
+              ))}
+            </>
+          )}
+
+          {/* Game Over overlay */}
+          {gameOver && (
+            <View style={styles.gameOverOverlay}>
+              <LinearGradient
+                colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.98)']}
+                style={styles.gameOverContainer}
+              >
+                <Text style={styles.gameOverTitle}>game over</Text>
+                <Text style={styles.finalScore}>{score}</Text>
+                
+                <TouchableOpacity
+                  style={styles.restartButton}
+                  onPress={handleRestart}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.restartText}>PLAY AGAIN</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.menuButton}
+                  onPress={handleBackToMenu}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.menuText}>MENU</Text>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+          )}
+          
+          {/* Real-time Progression HUD */}
+          <ProgressionHUD level={level} isPlaying={isPlaying && !gameOver} />
+          
+          {/* Mystery Reward Celebrations */}
+          {mysteryRewards.map(mysteryReward => (
+            <MysteryRewardDisplay
+              key={mysteryReward.id}
+              reward={mysteryReward.reward}
+              x={mysteryReward.x}
+              y={mysteryReward.y}
+              onComplete={() => {
+                setMysteryRewards(prev => prev.filter(r => r.id !== mysteryReward.id));
+              }}
             />
-
-            {/* Enemies */}
-            {enemies.map(enemy => (
-              <HyperCasualEnemy
-                key={enemy.id}
-                x={enemy.x}
-                y={enemy.y}
-                size={enemy.size}
-                type={enemy.type}
-                sizeLevel={enemy.sizeLevel}
-                level={level}
-              />
-            ))}
-
-            {/* Projectiles */}
-            {projectiles.map(projectile => (
-              <HyperCasualProjectile
-                key={projectile.id}
-                x={projectile.x}
-                y={projectile.y}
-                size={GAME_CONFIG.PROJECTILE_SIZE}
-                level={level}
-              />
-            ))}
-          </>
-        )}
-
-        {/* Game Over overlay */}
-        {gameOver && (
-          <View style={styles.gameOverOverlay}>
-            <LinearGradient
-              colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.98)']}
-              style={styles.gameOverContainer}
-            >
-              <Text style={styles.gameOverTitle}>game over</Text>
-              <Text style={styles.finalScore}>{score}</Text>
-              
-              <TouchableOpacity
-                style={styles.restartButton}
-                onPress={handleRestart}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.restartText}>PLAY AGAIN</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.menuButton}
-                onPress={handleBackToMenu}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.menuText}>MENU</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </View>
-        )}
+          ))}
+          
+          {/* Victory Modal */}
+          <VictoryModal
+            level={currentLevel?.id || 1}
+            score={currentLevelScore}
+            starsEarned={3} // TODO: Calculate actual stars based on performance
+            isVisible={showVictoryScreen}
+            onContinue={handleContinue}
+            onBackToMenu={handleVictoryBackToMenu}
+            onWorldMap={onWorldMap}
+          />
+        </View>
       </View>
-    </View>
+    </CelebrationManager>
   );
 };
 

@@ -8,7 +8,7 @@ export interface GameObject {
   height: number;
   velocityX?: number;
   velocityY?: number;
-  type?: 'basic' | 'fast' | 'strong';
+  type?: 'basic' | 'fast' | 'strong' | 'bouncer' | 'splitter' | 'ghost';
   sizeLevel?: number; // 1 = smallest, 2 = medium, 3 = large
 }
 
@@ -54,10 +54,14 @@ export const isOutOfBounds = (
   );
 };
 
-// Constants for bouncing physics
-export const GRAVITY = 500; // pixels per second squared
-export const BOUNCE_DAMPING = 0.8; // energy lost on bounce
-export const MIN_BOUNCE_VELOCITY = 50; // minimum velocity to keep bouncing
+// Physics configuration interface for bouncing
+export interface PhysicsConfig {
+  GRAVITY: number;
+  BOUNCE_COEFFICIENTS: { WALLS: number; FLOOR: number; CEILING: number };
+  MIN_BOUNCE_VELOCITY: number;
+  MIN_HORIZONTAL_VELOCITY: number;
+  MAX_VELOCITY?: number;
+}
 
 // Constants for enemy splitting
 export const SPLIT_HORIZONTAL_VELOCITY = 150; // horizontal velocity when enemy splits
@@ -74,8 +78,8 @@ export const updateBouncingEnemy = (
 ): GameObject => {
   let newEnemy = { ...enemy };
 
-  // Apply gravity
-  newEnemy.velocityY = (newEnemy.velocityY || 0) + GRAVITY * deltaTime;
+  // Apply gravity (using hardcoded value for legacy function)
+  newEnemy.velocityY = (newEnemy.velocityY || 0) + 500 * deltaTime;
 
   // Update position
   newEnemy.x += (newEnemy.velocityX || 0) * deltaTime;
@@ -91,7 +95,7 @@ export const updateBouncingEnemy = (
       deltaY: newEnemy.y - enemy.y,
       oldVelocityY: enemy.velocityY || 0,
       newVelocityY: newEnemy.velocityY,
-      gravityApplied: GRAVITY * deltaTime,
+      gravityApplied: 500 * deltaTime,
       deltaTime,
       gameAreaBottom,
       willBounce: newEnemy.y + newEnemy.height > gameAreaBottom,
@@ -101,11 +105,11 @@ export const updateBouncingEnemy = (
   // Bounce off floor
   if (newEnemy.y + newEnemy.height > gameAreaBottom) {
     newEnemy.y = gameAreaBottom - newEnemy.height;
-    newEnemy.velocityY = -Math.abs(newEnemy.velocityY || 0) * BOUNCE_DAMPING;
+    newEnemy.velocityY = -Math.abs(newEnemy.velocityY || 0) * 0.8;
 
     // Stop tiny bounces
-    if (Math.abs(newEnemy.velocityY || 0) < MIN_BOUNCE_VELOCITY) {
-      newEnemy.velocityY = -MIN_BOUNCE_VELOCITY;
+    if (Math.abs(newEnemy.velocityY || 0) < 50) {
+      newEnemy.velocityY = -50;
     }
   }
 
@@ -131,40 +135,52 @@ export const updateBouncingEnemy = (
 export const updateBouncingEnemyInPlace = (
   enemy: GameObject,
   deltaTime: number,
-  screenWidth: number,
-  gameAreaBottom: number
+  screenDimensions: { width: number; bottom: number },
+  physics: PhysicsConfig
 ): void => {
   // Apply gravity
-  enemy.velocityY = (enemy.velocityY || 0) + GRAVITY * deltaTime;
+  enemy.velocityY = (enemy.velocityY || 0) + physics.GRAVITY * deltaTime;
 
   // Update position
   enemy.x += (enemy.velocityX || 0) * deltaTime;
   enemy.y += (enemy.velocityY || 0) * deltaTime;
 
   // Bounce off floor
-  if (enemy.y + enemy.height > gameAreaBottom) {
-    enemy.y = gameAreaBottom - enemy.height;
-    enemy.velocityY = -Math.abs(enemy.velocityY || 0) * BOUNCE_DAMPING;
-
-    // Stop tiny bounces
-    if (Math.abs(enemy.velocityY || 0) < MIN_BOUNCE_VELOCITY) {
-      enemy.velocityY = -MIN_BOUNCE_VELOCITY;
-    }
+  if (enemy.y + enemy.height > screenDimensions.bottom) {
+    enemy.y = screenDimensions.bottom - enemy.height;
+    enemy.velocityY = -Math.abs(enemy.velocityY || 0) * physics.BOUNCE_COEFFICIENTS.FLOOR;
   }
 
   // Bounce off walls
   if (enemy.x <= 0) {
     enemy.x = 0;
-    enemy.velocityX = Math.abs(enemy.velocityX || 0);
-  } else if (enemy.x + enemy.width >= screenWidth) {
-    enemy.x = screenWidth - enemy.width;
-    enemy.velocityX = -Math.abs(enemy.velocityX || 0);
+    enemy.velocityX = Math.abs(enemy.velocityX || 0) * physics.BOUNCE_COEFFICIENTS.WALLS;
+  } else if (enemy.x + enemy.width >= screenDimensions.width) {
+    enemy.x = screenDimensions.width - enemy.width;
+    enemy.velocityX = -Math.abs(enemy.velocityX || 0) * physics.BOUNCE_COEFFICIENTS.WALLS;
   }
 
   // Bounce off ceiling
   if (enemy.y <= 0) {
     enemy.y = 0;
-    enemy.velocityY = Math.abs(enemy.velocityY || 0);
+    enemy.velocityY = Math.abs(enemy.velocityY || 0) * physics.BOUNCE_COEFFICIENTS.CEILING;
+  }
+
+  // Enforce minimum horizontal velocity to ensure perpetual side-to-side movement
+  if (Math.abs(enemy.velocityX || 0) < physics.MIN_HORIZONTAL_VELOCITY) {
+    const direction = (enemy.velocityX || 0) >= 0 ? 1 : -1;
+    enemy.velocityX = direction * physics.MIN_HORIZONTAL_VELOCITY;
+  }
+  
+  // Cap maximum velocity to prevent runaway speeds
+  if (physics.MAX_VELOCITY) {
+    const maxVel = physics.MAX_VELOCITY;
+    if (Math.abs(enemy.velocityX || 0) > maxVel) {
+      enemy.velocityX = Math.sign(enemy.velocityX || 0) * maxVel;
+    }
+    if (Math.abs(enemy.velocityY || 0) > maxVel) {
+      enemy.velocityY = Math.sign(enemy.velocityY || 0) * maxVel;
+    }
   }
 };
 

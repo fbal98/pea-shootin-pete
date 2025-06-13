@@ -146,7 +146,12 @@ export type SpawnPattern =
   | 'left_to_right'                   // Sequential from left
   | 'center_out'                      // From center outward
   | 'corners_first'                   // Prioritize corners
-  | 'wave_formation';                 // Coordinated wave pattern
+  | 'wave_formation'                  // Coordinated wave pattern
+  | 'two_small'                       // Original: enemies at 20% and 80%
+  | 'three_small_wide'                // Original: wide spread at 15%, 50%, 85%
+  | 'pipes'                           // Original: vertical columns at 25%, 50%, 75%
+  | 'crazy'                           // Original: many positions 10%, 30%, 50%, 70%, 90%
+  | 'entrap';                         // Original: corners only at 10% and 90%
 
 // ===== ENVIRONMENT & MODIFIERS =====
 
@@ -254,6 +259,25 @@ export interface LevelRewards {
   // Currency (future)
   coinsAwarded: number;
   gemsAwarded?: number;
+  
+  // 3-Star Mastery Thresholds
+  masteryThresholds: MasteryThresholds;
+}
+
+// ===== 3-STAR MASTERY SYSTEM =====
+
+export interface MasteryThresholds {
+  // Time-based mastery (1 star for completing under this time)
+  goldTimeThreshold: number;          // Milliseconds for gold time star
+  
+  // Accuracy-based mastery (1 star for achieving this accuracy)
+  goldAccuracyThreshold: number;      // Percentage (0-100) for gold accuracy star
+  
+  // Style-based mastery (1 star for achieving this style score)
+  goldStyleThreshold: number;         // Style points for gold style star
+  
+  // Perfect completion bonus
+  perfectCompletionMultiplier: number; // Score multiplier for 3-star completion
 }
 
 // ===== SPECIAL ABILITIES =====

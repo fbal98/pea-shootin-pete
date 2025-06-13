@@ -15,12 +15,16 @@ npm run ios             # Run on iOS simulator
 npm run android         # Run on Android emulator  
 npm run web             # Run in web browser
 
-# Code Quality
+# Code Quality (ALWAYS run before committing)
 npm run lint            # Run ESLint
 npm run lint:fix        # Fix ESLint issues automatically
 npm run format          # Format code with Prettier
 npm run type-check      # TypeScript type checking (npx tsc --noEmit)
 npm run validate        # Run all checks (type-check + lint + format:check)
+
+# Testing & Debugging
+expo doctor             # Check for common development issues
+npx expo install --fix  # Fix dependency issues
 
 # Project Management
 npm run reset-project   # Reset to fresh project state
@@ -36,43 +40,107 @@ npm run reset-project   # Reset to fresh project state
 - State-based screen switching with smooth transitions
 - Minimal navigation buttons in corners for settings/about access
 
-### Level Progression Game Architecture
+### Current Project Architecture
 ```
-screens/HyperCasualGameScreen.tsx  # Main game with level progression UI
-├── levels/                        # Level configuration system
-│   ├── level_001.json            # Tutorial level (5 enemies, basic mechanics)
-│   ├── level_002.json            # Progressive difficulty level
-│   ├── levels_index.json         # Master level index and metadata
-│   └── README.md                 # Level creation documentation
-├── systems/
-│   └── LevelManager.ts           # Core level loading and progression management
-├── hooks/
-│   ├── useHyperCasualGameLogic.ts # Wave-based enemy spawning and level physics
-│   └── useHyperCasualInput.ts     # Smooth swipe controls for Pete
-├── store/
-│   ├── gameStore.ts              # Basic game state (score, lives, etc.)
-│   └── levelProgressionStore.ts  # Level state, objectives, victory conditions
-├── components/
-│   ├── game/                     # Level-aware visual game components
-│   │   ├── HyperCasualPete.tsx   # Pete with theme-based coloring
-│   │   ├── HyperCasualEnemy.tsx  # Enemies with type differentiation
-│   │   ├── HyperCasualProjectile.tsx # Projectiles with level physics
-│   │   └── HyperCasualBackground.tsx # Theme-based backgrounds
-│   └── ui/
-│       ├── LevelHUD.tsx          # Level progress, objectives, combo display
-│       └── LevelTransition.tsx   # Level start/victory/failure screens
-├── constants/
-│   ├── GameConfig.ts             # Level-configurable game parameters
-│   └── HyperCasualColors.ts      # Theme-based color schemes
-├── types/
-│   └── LevelTypes.ts             # Comprehensive level configuration types
-├── utils/
-│   └── analytics.ts              # Level progression analytics tracking
-└── screens/
-    ├── HyperCasualMenuScreen.tsx # Main menu with level selection
-    ├── HyperCasualGameScreen.tsx # Level-based game screen
-    ├── HyperCasualSettingsScreen.tsx # Settings integration
-    └── HyperCasualAboutScreen.tsx # About screen
+app/
+├── index.tsx                     # Main entry point with screen routing
+├── _layout.tsx                   # Root layout configuration
+└── +not-found.tsx               # 404 handling
+
+screens/                          # All game screens
+├── HyperCasualGameScreen.tsx    # Main game with level progression UI
+├── HyperCasualMenuScreen.tsx    # Main menu with level selection
+├── HyperCasualSettingsScreen.tsx # Settings integration
+├── HyperCasualAboutScreen.tsx   # About screen
+├── GameScreenMinimal.tsx        # Minimal game screen variant
+├── PeteCustomizationScreen.tsx  # Character customization
+└── WorldMapScreen.tsx           # Level selection map
+
+components/
+├── game/                        # Core game visual components
+│   ├── HyperCasualPete.tsx     # Pete with theme-based coloring
+│   ├── HyperCasualEnemy.tsx    # Enemies with type differentiation
+│   ├── HyperCasualProjectile.tsx # Projectiles with level physics
+│   ├── HyperCasualBackground.tsx # Theme-based backgrounds
+│   └── MysteryBalloon.tsx      # Special mystery balloon mechanic
+├── ui/                         # UI components and HUD elements
+│   ├── LevelHUD.tsx           # Level progress, objectives, combo display
+│   ├── LevelTransition.tsx    # Level start/victory/failure screens
+│   ├── HyperCasualHUD.tsx     # Main game HUD
+│   ├── CelebrationSystem.tsx  # Victory celebrations and rewards
+│   ├── ProgressionHUD.tsx     # Meta-progression display
+│   ├── TutorialOverlay.tsx    # Tutorial system
+│   ├── VictoryModal.tsx       # Level completion modal
+│   ├── DailyChallengesDisplay.tsx # Daily challenges UI
+│   ├── LevelMasteryDisplay.tsx # Level mastery indicators
+│   └── MysteryRewardDisplay.tsx # Mystery reward system
+├── social/                     # Social features
+│   ├── FriendsListScreen.tsx  # Friends list management
+│   └── SocialSharingModal.tsx # Social sharing functionality
+└── [Standard Expo components]  # ThemedText, ThemedView, etc.
+
+systems/                        # Core game systems and managers
+├── LevelManager.ts            # Core level loading and progression management
+├── CollisionSystem.ts         # Optimized collision detection
+├── ComboSystem.ts             # Combo mechanics and scoring
+├── TutorialManager.ts         # Tutorial progression system
+├── CelebrationSystem.ts       # Victory celebrations
+├── MysteryBalloonManager.ts   # Mystery balloon mechanics
+├── DailyChallengeManager.ts   # Daily challenges system
+├── SocialManager.ts           # Social features management
+├── IAPManager.ts              # In-app purchase system
+├── IntegrationManager.ts      # Cross-system integration
+├── MicroAchievementSystem.ts  # Micro-achievements
+├── SpecialEventsManager.ts    # Special events handling
+├── DeepLinkManager.ts         # Deep linking system
+└── ViralTrackingManager.ts    # Viral growth tracking
+
+store/                          # State management (Zustand)
+├── gameStore.ts               # Basic game state (score, lives, etc.)
+├── levelProgressionStore.ts   # Level state, objectives, victory conditions
+├── metaProgressionStore.ts    # Long-term player progression
+├── economyStore.ts            # In-game economy and purchases
+├── socialStore.ts             # Social features state
+└── celebrationStore.ts        # Celebration system state
+
+hooks/                          # Custom React hooks
+├── useHyperCasualGameLogic.ts # Wave-based enemy spawning and level physics
+├── useHyperCasualInput.ts     # Smooth swipe controls for Pete
+├── useCelebrationManager.ts   # Celebration system integration
+└── useTutorialIntegration.ts  # Tutorial system hooks
+
+levels/                         # Level configuration system
+├── level_001.json            # Tutorial level (5 enemies, basic mechanics)
+├── level_002.json            # Progressive difficulty level
+├── levels_index.json         # Master level index and metadata
+└── README.md                 # Level creation documentation
+
+types/                          # TypeScript type definitions
+├── LevelTypes.ts             # Comprehensive level configuration types
+├── MetaProgressionTypes.ts   # Meta-progression type definitions
+├── SocialTypes.ts            # Social features types
+└── TutorialTypes.ts          # Tutorial system types
+
+constants/                      # Configuration and constants
+├── GameConfig.ts             # Level-configurable game parameters
+├── HyperCasualColors.ts      # Theme-based color schemes
+└── Colors.ts                 # Standard Expo color definitions
+
+utils/                          # Utility functions and helpers
+├── analytics.ts              # Level progression analytics tracking
+├── gameEngine.ts             # Core game engine utilities
+├── ObjectPool.ts             # Performance optimization
+├── PerformanceMonitor.ts     # Performance tracking
+└── errorLogger.ts            # Error logging and reporting
+
+testing/                        # Testing and development tools
+├── GameTester.ts             # Game testing utilities
+├── analyzeGame.js            # Game analysis tools
+├── iosTestSession.js         # iOS testing helpers
+└── runGameTests.ts           # Test runner
+
+ios/                           # iOS-specific build files
+└── [Standard iOS project structure]
 ```
 
 ### Critical Architecture Patterns
@@ -92,19 +160,30 @@ screens/HyperCasualGameScreen.tsx  # Main game with level progression UI
 - **Level-based color schemes**: 5 rotating palettes that change per level
 - **Persistent progression**: Level unlocking and completion tracking
 
-#### Advanced Balloon Physics System
-- **Level-configurable physics**: Gravity, air resistance, and bounce can be modified per level
-- **Light gravity**: 40% of normal gravity for floaty balloon feel
-- **Air resistance**: 0.5% resistance for realistic balloon movement
-- **Enhanced bouncing**: Energetic bounces with trampoline floor
-  - Walls: 10% energy loss
-  - Floor: 40% energy GAIN (super-bouncy trampoline effect)
-  - Ceiling: 20% energy loss
+#### Authentic DOS Game Physics System ⭐ CORE GAME PHILOSOPHY ⭐
+**CRITICAL**: We ALWAYS want precise, predictable physics with enemies spawning at specific heights and bouncing in consistent patterns. This is based on analysis of the original 1994 DOS game.
+
+- **Fixed spawn positions**: Enemies spawn at exactly 3 Y positions: 28.5%, 37.5%, 38.5% from top
+- **Predictable X patterns**: 
+  - `TWO_SMALL`: 20% and 80% screen width
+  - `THREE_SMALL_WIDE`: 15%, 50%, 85% screen width  
+  - `PIPES`: 25%, 50%, 75% screen width
+  - `CRAZY`: 10%, 30%, 50%, 70%, 90% screen width
+  - `ENTRAP`: 10% and 90% screen width
+- **Size-based speeds**: Small=80px/s, Medium=64px/s, Large=50px/s (from original game analysis)
+- **Lighter gravity**: 500px/s² (vs normal 800px/s²) for authentic floaty balloon feel
+- **No air resistance**: Perfect velocity retention for arcade physics
+- **Consistent bounces**: Floor=95%, Wall=90%, Ceiling=85% energy retention
+- **Straight-line projectiles**: 900px/s speed with NO gravity (matches original)
 - **Smart splitting**: Enemies split based on level configuration (size, count, behavior)
 
-#### Dual State Management Strategy
+#### Multi-Store State Management Strategy
 - **Game Store** (`store/gameStore.ts`): Basic game state (score, lives, UI state)
 - **Level Progression Store** (`store/levelProgressionStore.ts`): Level state, objectives, victory tracking
+- **Meta-Progression Store** (`store/metaProgressionStore.ts`): Long-term player advancement and unlocks
+- **Economy Store** (`store/economyStore.ts`): In-game currency, purchases, and monetization
+- **Social Store** (`store/socialStore.ts`): Friends, leaderboards, and social features
+- **Celebration Store** (`store/celebrationStore.ts`): Victory celebrations and reward states
 - **LevelManager**: Singleton for level loading, validation, and player progress
 - **High-frequency data in refs**: Position data stored in `useRef` to avoid React re-render overhead
 - **Analytics integration**: Real-time event tracking with offline queuing
@@ -116,16 +195,29 @@ screens/HyperCasualGameScreen.tsx  # Main game with level progression UI
 - **Responsive feedback**: Level-aware visual and haptic responses
 
 ### Key Game Systems
-1. **Level Progression**: Data-driven level loading with JSON configuration
-2. **Wave Management**: Timed enemy spawning with configurable patterns
-3. **Victory Conditions**: Flexible objective system (eliminate all, score, time, combo)
-4. **Balloon Physics**: Level-configurable physics with enhanced bouncing
-5. **Analytics Tracking**: Comprehensive event tracking for publishing compliance
-6. **Theme System**: Level-based color schemes and visual customization
-7. **Player Progress**: Level unlocking, completion tracking, and statistics
-8. **Collision Detection**: Optimized system with enemy splitting mechanics
-9. **UI Transitions**: Professional level start/victory/failure screens
-10. **Remote Configuration**: Hot-reloadable level parameters for live updates
+1. **Authentic Physics**: Original 1994 DOS game physics with fixed spawn positions and predictable patterns
+2. **Level Progression**: Data-driven level loading with JSON configuration
+3. **Wave Management**: Original game wave patterns (TWO_SMALL, THREE_SMALL_WIDE, PIPES, etc.)
+4. **Victory Conditions**: Flexible objective system (eliminate all, score, time, combo)
+5. **Size-Based Movement**: Enemy speed determined by balloon size (Small=80, Medium=64, Large=50)
+6. **Analytics Tracking**: Comprehensive event tracking for publishing compliance
+7. **Theme System**: Level-based color schemes and visual customization
+8. **Player Progress**: Level unlocking, completion tracking, and statistics
+9. **Collision Detection**: Optimized system with enemy splitting mechanics
+10. **UI Transitions**: Professional level start/victory/failure screens
+11. **Remote Configuration**: Hot-reloadable level parameters for live updates
+12. **Meta-Progression**: Long-term player advancement beyond individual levels
+13. **Social Features**: Friends lists, leaderboards, and social sharing
+14. **Tutorial System**: Contextual onboarding and progressive skill introduction
+15. **Celebration System**: Dynamic victory celebrations and reward presentations
+16. **Mystery Balloons**: Special balloon mechanics with surprise rewards
+17. **Daily Challenges**: Time-limited objectives for player retention
+18. **Combo System**: Consecutive hit mechanics with multiplier rewards
+19. **In-App Purchases**: Monetization through character customization and power-ups
+20. **Performance Monitoring**: Real-time FPS tracking and optimization tools
+21. **Error Handling**: Comprehensive error logging and crash reporting
+22. **Deep Linking**: URL-based navigation for marketing and user acquisition
+23. **Viral Tracking**: Social sharing and referral system analytics
 
 ## Important Technical Details
 
@@ -176,13 +268,14 @@ LevelConfigOverrides # Level-specific parameter modifications
 - Level 2 (medium): 85% of base size = 25.5px  
 - Level 3 (largest): 100% of base size = 30px
 
-**Balloon Physics:**
-- Gravity multiplier: 40% (lighter than normal physics)
-- Air resistance: 0.5% per frame (99.5% retention)
+**Original DOS Game Physics (AUTHENTIC):**
+- Gravity: 500px/s² (lighter than normal for floaty feel)
+- Air resistance: None (1.0 = perfect velocity retention)
 - Wall bounce: 90% energy retained
-- Floor bounce: 140% energy GAIN (super-bouncy trampoline)
-- Ceiling bounce: 80% energy retained
-- Minimum bounce velocity: 280px/s
+- Floor bounce: 95% energy retained (consistent bouncing)
+- Ceiling bounce: 85% energy retained
+- Enemy speeds by size: Small=80px/s, Medium=64px/s, Large=50px/s
+- Projectile speed: 900px/s with no gravity (straight lines)
 
 **Touch Input:**
 - Movement smoothing: 20% interpolation factor
@@ -252,11 +345,16 @@ The game uses 5 rotating color schemes that change per level:
 
 ## Recent Improvements
 
-### Level Progression System Implementation (Latest - January 2025)
+### Original DOS Game Physics Implementation (Latest - January 2025) ⭐ MAJOR ACHIEVEMENT ⭐
+- **Authentic physics system**: Reverse-engineered 1994 DOS game physics through binary analysis
+- **Fixed spawn positions**: Enemies spawn at exact Y positions (28.5%, 37.5%, 38.5%) like original
+- **Original wave patterns**: TWO_SMALL, THREE_SMALL_WIDE, PIPES, CRAZY, ENTRAP with precise X positions
+- **Size-based speeds**: Small=80px/s, Medium=64px/s, Large=50px/s (extracted from original game data)
+- **Predictable physics**: 500px/s² gravity, no air resistance, consistent bounce patterns
+- **Straight-line projectiles**: 900px/s with no gravity, matching original game behavior
 - **Complete level system**: Data-driven JSON configuration with comprehensive TypeScript types
 - **LevelManager singleton**: Handles loading, validation, player progress, and remote config
 - **Dual state management**: Separated basic game state from level progression state
-- **Wave-based enemy spawning**: Configurable enemy patterns with timing and positioning
 - **Victory condition system**: Flexible objectives with "eliminate all enemies" implementation
 - **Analytics integration**: Full event tracking for publishing checklist compliance
 - **UI transitions**: Professional level start/victory/failure screens with animations
@@ -330,6 +428,8 @@ The following files are **obsolete** after the hyper-casual transformation and c
 **Note**: These files are kept for reference but are no longer used in the active hyper-casual game.
 
 ## Development Notes
+- **⭐ PHYSICS-FIRST ⭐**: Maintain precise, predictable physics with fixed spawn positions matching original DOS game
+- **Original game fidelity**: All physics changes must preserve the authentic arcade feel
 - **Level-driven development**: All new features should integrate with the level progression system
 - **Data-driven design**: Use JSON configuration for game behavior instead of hardcoding
 - **Mobile-first**: Design for touch controls and mobile performance with level-specific optimization
@@ -337,6 +437,7 @@ The following files are **obsolete** after the hyper-casual transformation and c
 - **Remote config ready**: Design features to support hot-reloadable configuration
 - **Publishing ready**: Follows 2025 hyper-casual and app store best practices
 - **Type-safe**: Comprehensive TypeScript coverage for level system and analytics
+- **ALWAYS run code quality checks**: Use `npm run validate` before any commit to prevent issues
 
 ## Level Development Best Practices
 - **Start with JSON**: Define levels in `levels/level_XXX.json` using the established schema
