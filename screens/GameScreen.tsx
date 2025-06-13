@@ -1,480 +1,343 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Platform, Animated } from 'react-native';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { View, StyleSheet, useWindowDimensions, Text, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+
+// Components
+import { GameBackground } from '@/components/game/GameBackground';
 import { Pete } from '@/components/game/Pete';
 import { Enemy } from '@/components/game/Enemy';
 import { Projectile } from '@/components/game/Projectile';
-import { Starfield } from '@/components/game/Starfield';
-import { GameErrorBoundary } from '@/components/GameErrorBoundary';
-import { DebugFPSCounter } from '@/components/DebugFPSCounter';
+import { GameHUD } from '@/components/ui/GameHUD';
+import { MysteryBalloon } from '@/components/game/MysteryBalloon';
+import { ProgressionHUD } from '@/components/ui/ProgressionHUD';
+import { MysteryRewardDisplay } from '@/components/ui/MysteryRewardDisplay';
+import {
+  CelebrationManager,
+  AchievementCelebration,
+  LevelVictoryCelebration,
+  ComboStreakCelebration,
+} from '@/components/ui/CelebrationSystem';
+import { VictoryModal } from '@/components/ui/VictoryModal';
+
+// Hooks
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { useGameInput } from '@/hooks/useGameInput';
-import { GAME_CONFIG } from '@/constants/GameConfig';
-import { ArcadeContainer } from '@/components/arcade/ArcadeContainer';
-import { ArcadeButton } from '@/components/arcade/ArcadeButton';
-import { ArcadeText } from '@/components/arcade/ArcadeText';
-import { ArcadeColors } from '@/constants/ArcadeColors';
-import { useGameActions } from '@/store/gameStore';
-import { CRTFrame } from '@/components/ui/CRTFrame';
-import { EnhancedGameHUD } from '@/components/ui/EnhancedGameHUD';
 
-export const GameScreen: React.FC = () => {
-  // Use our custom hooks for clean separation of concerns
+// Store
+import { useGameOver, useScore, useLevel, useGameActions, useIsPlaying } from '@/store/gameStore';
+import {
+  useShowVictoryScreen,
+  useCurrentScore,
+  useLevelProgressionActions,
+  useCurrentLevel,
+  useShotsFired,
+  useShotsHit,
+} from '@/store/levelProgressionStore';
+
+// Constants
+import { GAME_CONFIG, INPUT_CONFIG } from '@/constants/GameConfig';
+import { UI_COLORS } from '@/constants/GameColors';
+
+interface GameScreenProps {
+  onBackToMenu?: () => void;
+  onWorldMap?: () => void;
+}
+
+export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap }) => {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const gameAreaHeight = screenHeight - insets.top - insets.bottom;
+
+  // Game state
+  const score = useScore();
+  const level = useLevel();
+  const gameOver = useGameOver();
+  const isPlaying = useIsPlaying();
+  const actions = useGameActions();
+
+  // Level progression state
+  const showVictoryScreen = useShowVictoryScreen();
+  const currentLevelScore = useCurrentScore();
+  const currentLevel = useCurrentLevel();
+  const levelActions = useLevelProgressionActions();
+  const shotsFired = useShotsFired();
+  const shotsHit = useShotsHit();
+
+  // Calculate accuracy
+  const accuracy = shotsFired > 0 ? (shotsHit / shotsFired) * 100 : 0;
+
+  // Mystery reward display state
+  const [mysteryRewards, setMysteryRewards] = useState<
+    Array<{
+      id: string;
+      reward: any;
+      x: number;
+      y: number;
+    }>
+  >([]);
+
+  // Game logic hook
   const {
-    peteRef,
-    enemiesRef,
-    projectilesRef,
-    uiState,
-    shootProjectile,
+    petePosition,
+    enemies,
+    projectiles,
+    mysteryBalloons,
+    gameAreaHeightRef,
     updatePetePosition,
-    resetGame,
-    GAME_AREA_TOP,
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT,
-    GAME_AREA_BOTTOM,
-    deltaTimeRef,
-    renderTickRef,
-    renderTrigger,
-  } = useGameLogic();
+    shootProjectile,
+  } = useGameLogic(screenWidth, gameAreaHeight);
 
-  const { handleTouch, handleTouchMove, rippleAnim, rippleOpacity, ripplePosition } = useGameInput(
-    SCREEN_WIDTH,
+  // Update game area height ref
+  useEffect(() => {
+    gameAreaHeightRef.current = gameAreaHeight;
+  }, [gameAreaHeight, gameAreaHeightRef]);
+
+  // Game input handling
+  const { handleTouchStart, handleTouchMove, handleTouchEnd, updateSmoothing } = useGameInput(
+    screenWidth,
     shootProjectile,
     updatePetePosition
   );
 
-  const actions = useGameActions();
-  const gameOverScale = useRef(new Animated.Value(0)).current;
-  const gameOverOpacity = useRef(new Animated.Value(0)).current;
-
-  // Calculate enhanced HUD props
-  const isInDanger = enemiesRef.current.some((enemy: any) => 
-    enemy.y > SCREEN_HEIGHT * 0.7
-  );
-  const currentCombo = uiState.score > 0 ? Math.min(Math.floor(uiState.score / 50) + 1, 10) : 1;
-  const specialCharge = Math.min((uiState.score % 200) * 0.5, 100);
-  const scoreInLevel = uiState.score % 100;
-  const nextLevelScore = 100;
-
-  // Auto-start the game when component mounts
+  // Smooth movement update loop
   useEffect(() => {
-    if (!uiState.isPlaying && !uiState.gameOver) {
-      if (__DEV__) {
-        console.log('GameScreen: Auto-starting game');
-      }
-      resetGame();
-    }
-  }, []); // Only run once on mount
+    const interval = setInterval(updateSmoothing, INPUT_CONFIG.SMOOTHING_UPDATE_INTERVAL);
+    return () => clearInterval(interval);
+  }, [updateSmoothing]);
 
+  // Game starts when isPlaying is set to true by parent component
 
-  // Animate game over screen
-  useEffect(() => {
-    if (uiState.gameOver) {
-      Animated.parallel([
-        Animated.spring(gameOverScale, {
-          toValue: 1,
-          tension: 40,
-          friction: 5,
-          useNativeDriver: true,
-        }),
-        Animated.timing(gameOverOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      gameOverScale.setValue(0);
-      gameOverOpacity.setValue(0);
-    }
-  }, [uiState.gameOver]);
+  const handleRestart = useCallback(async () => {
+    // First, reset game store state (this will hide game over screen)
+    actions.resetGame();
+    
+    // Reset level progression state completely
+    levelActions.resetForNewGame();
+    
+    // Wait a tiny bit for state to settle, then load level 1
+    setTimeout(async () => {
+      await levelActions.loadLevel(1);
+    }, 100);
+  }, [actions, levelActions]);
 
-  // Render game header with arcade styling
-  const renderHeader = () => (
-    <View
-      style={[
-        styles.header,
-        {
-          paddingTop: GAME_CONFIG.SAFE_AREA_PADDING,
-          height: GAME_CONFIG.HEADER_HEIGHT,
-        },
-      ]}
-    >
-      <View style={styles.scoreContainer}>
-        <ArcadeText size="small" color="yellow" glow>
-          SCORE
-        </ArcadeText>
-        <Text style={styles.scoreValue}>{uiState.score.toString().padStart(6, '0')}</Text>
-      </View>
-      <View style={styles.levelContainer}>
-        <ArcadeText size="small" color="blue" glow>
-          LEVEL
-        </ArcadeText>
-        <Text style={styles.levelValue}>{uiState.level.toString().padStart(2, '0')}</Text>
-      </View>
-    </View>
-  );
+  const handleBackToMenu = useCallback(() => {
+    actions.setIsPlaying(false);
+    onBackToMenu?.();
+  }, [actions, onBackToMenu]);
 
-  // Render touch ripple effect
-  const renderRippleEffect = () => (
-    <Animated.View
-      style={[
-        styles.ripple,
-        {
-          left: ripplePosition.x - 25,
-          top: ripplePosition.y - 25,
-          opacity: rippleOpacity,
-          transform: [
-            {
-              scale: rippleAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.5, 2],
-              }),
-            },
-          ],
-        },
-      ]}
-    />
-  );
+  const handleContinue = useCallback(async () => {
+    // Hide victory screen and proceed to next level
+    levelActions.showVictory(false);
+    await levelActions.proceedToNextLevel();
+  }, [levelActions]);
 
-  // Render Pete character
-  const renderPete = () => (
-    <GameErrorBoundary
-      fallbackComponent={
-        <View
-          style={[
-            styles.errorPlaceholder,
-            {
-              left: peteRef.current.x,
-              top: peteRef.current.y,
-            },
-          ]}
-        >
-          <Text style={styles.errorText}>Pete Error</Text>
-        </View>
-      }
-    >
-      <Pete x={peteRef.current.x} y={peteRef.current.y} size={GAME_CONFIG.PETE_SIZE} />
-    </GameErrorBoundary>
-  );
+  const handleVictoryBackToMenu = useCallback(() => {
+    levelActions.showVictory(false);
+    handleBackToMenu();
+  }, [levelActions, handleBackToMenu]);
 
-  // Render all enemies
-  const renderEnemies = () =>
-    enemiesRef.current.map((enemy: any) => (
-      <GameErrorBoundary
-        key={enemy.id}
-        fallbackComponent={
-          <View
-            style={[
-              styles.errorPlaceholder,
-              {
-                left: enemy.x,
-                top: enemy.y,
-                width: enemy.width,
-                height: enemy.height,
-              },
-            ]}
-          >
-            <Text style={styles.errorText}>Enemy Error</Text>
-          </View>
-        }
-      >
-        <Enemy
-          x={enemy.x}
-          y={enemy.y}
-          size={enemy.width}
-          type={enemy.type}
-          sizeLevel={enemy.sizeLevel}
-        />
-      </GameErrorBoundary>
-    ));
+  // Calculate positions
+  const peteY = gameAreaHeight - GAME_CONFIG.PETE_SIZE - GAME_CONFIG.BOTTOM_PADDING;
 
-  // Render all projectiles
-  const renderProjectiles = () =>
-    projectilesRef.current.map((projectile: any) => (
-      <GameErrorBoundary
-        key={projectile.id}
-        fallbackComponent={
-          <View
-            style={[
-              styles.errorPlaceholder,
-              {
-                left: projectile.x,
-                top: projectile.y,
-                width: GAME_CONFIG.PROJECTILE_SIZE,
-                height: GAME_CONFIG.PROJECTILE_SIZE,
-              },
-            ]}
-          >
-            <Text style={styles.errorText}>P</Text>
-          </View>
-        }
-      >
-        <Projectile x={projectile.x} y={projectile.y} size={GAME_CONFIG.PROJECTILE_SIZE} />
-      </GameErrorBoundary>
-    ));
-
-  // Render game over overlay with arcade styling
-  const renderGameOverOverlay = () => {
-    if (!uiState.gameOver) return null;
-
-    const handlePlayAgain = () => {
-      resetGame();
-    };
-
-    const handleBackToMenu = () => {
-      actions.setIsPlaying(false);
-      actions.resetGame();
-    };
-
-    return (
-      <ArcadeContainer variant="overlay" showBorder>
-        <Animated.View
-          style={[
-            styles.gameOverContent,
-            {
-              transform: [{ scale: gameOverScale }],
-              opacity: gameOverOpacity,
-            },
-          ]}
-        >
-          <ArcadeText size="xlarge" color="pink" glow style={styles.gameOverTitle}>
-            GAME OVER
-          </ArcadeText>
-
-          <View style={styles.finalScoreContainer}>
-            <ArcadeText size="medium" color="yellow" glow>
-              FINAL SCORE
-            </ArcadeText>
-            <Text style={styles.finalScoreValue}>{uiState.score.toString().padStart(6, '0')}</Text>
-          </View>
-
-          <View style={styles.finalLevelContainer}>
-            <ArcadeText size="small" color="blue" glow>
-              LEVEL REACHED: {uiState.level}
-            </ArcadeText>
-          </View>
-
-          <View style={styles.gameOverButtons}>
-            <ArcadeButton
-              text="PLAY AGAIN"
-              onPress={handlePlayAgain}
-              variant="primary"
-              size="medium"
-            />
-            <ArcadeButton
-              text="MAIN MENU"
-              onPress={handleBackToMenu}
-              variant="secondary"
-              size="medium"
-            />
-          </View>
-        </Animated.View>
-      </ArcadeContainer>
-    );
-  };
-
-  // Main render method
   return (
-    <GameErrorBoundary onRetry={resetGame}>
-      <CRTFrame showScanlines={true} intensity={1}>
-        {/* Enhanced HUD overlay */}
-        <EnhancedGameHUD
-          score={uiState.score}
-          level={uiState.level}
-          lives={uiState.lives}
-          combo={currentCombo}
-          specialCharge={specialCharge}
-          scoreInLevel={scoreInLevel}
-          nextLevelScore={nextLevelScore}
-          isInDanger={isInDanger}
-        />
+    <CelebrationManager>
+      <View style={styles.container}>
+        {/* Gradient background with floating shapes */}
+        <GameBackground level={level} isPlaying={isPlaying} />
+
+        {/* Game area */}
         <View
-          style={styles.gameArea}
+          style={[styles.gameArea, { paddingTop: insets.top }]}
           onStartShouldSetResponder={() => true}
-          onMoveShouldSetResponder={() => true}
-          onResponderGrant={handleTouch}
+          onResponderGrant={handleTouchStart}
           onResponderMove={handleTouchMove}
-          accessible={true}
-          accessibilityLabel={`Game area - Score: ${uiState.score}, Level: ${uiState.level}. Touch to shoot and move Pete`}
-          accessibilityRole="button"
-          accessibilityHint="Touch anywhere to move Pete and shoot peas at enemies"
-          accessibilityState={{ disabled: uiState.gameOver }}
+          onResponderRelease={handleTouchEnd}
         >
-          {/* Background starfield */}
-          <GameErrorBoundary>
-            <Starfield
-              isPlaying={uiState.isPlaying && !uiState.gameOver}
-            />
-          </GameErrorBoundary>
+          {/* Score display */}
+          <GameHUD score={score} />
 
+          {/* Game entities */}
+          {isPlaying && !gameOver && (
+            <>
+              {/* Pete */}
+              <Pete x={petePosition.current} y={peteY} size={GAME_CONFIG.PETE_SIZE} level={level} />
 
-          {/* Touch ripple effect */}
-          {renderRippleEffect()}
+              {/* Enemies */}
+              {enemies.map(enemy => (
+                <Enemy
+                  key={enemy.id}
+                  x={enemy.x}
+                  y={enemy.y}
+                  size={enemy.size}
+                  type={enemy.type}
+                  sizeLevel={enemy.sizeLevel}
+                  level={level}
+                />
+              ))}
 
-          {/* Game objects */}
-          {renderPete()}
-          {renderEnemies()}
-          {renderProjectiles()}
+              {/* Projectiles */}
+              {projectiles.map(projectile => (
+                <Projectile
+                  key={projectile.id}
+                  x={projectile.x}
+                  y={projectile.y}
+                  size={GAME_CONFIG.PROJECTILE_SIZE}
+                  level={level}
+                />
+              ))}
 
-          {/* Game over overlay */}
-          {renderGameOverOverlay()}
+              {/* Mystery Balloons */}
+              {mysteryBalloons.map(mysteryBalloon => (
+                <MysteryBalloon
+                  key={mysteryBalloon.id}
+                  x={mysteryBalloon.x}
+                  y={mysteryBalloon.y}
+                  size={mysteryBalloon.width}
+                  level={level}
+                  mysteryBalloon={mysteryBalloon.mysteryBalloon}
+                  onPopped={(balloonId, reward) => {
+                    // Show reward celebration
+                    setMysteryRewards(prev => [
+                      ...prev,
+                      {
+                        id: `reward_${Date.now()}`,
+                        reward,
+                        x: mysteryBalloon.x + mysteryBalloon.width / 2,
+                        y: mysteryBalloon.y + mysteryBalloon.width / 2,
+                      },
+                    ]);
+                  }}
+                />
+              ))}
+            </>
+          )}
 
-          {/* Debug FPS Counter (only in development) */}
-          <DebugFPSCounter visible={__DEV__} position="top-right" />
+          {/* Game Over overlay */}
+          {gameOver && (
+            <View style={styles.gameOverOverlay}>
+              <LinearGradient
+                colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.98)']}
+                style={styles.gameOverContainer}
+              >
+                <Text style={styles.gameOverTitle}>game over</Text>
+                <Text style={styles.finalScore}>{score}</Text>
 
-          {/* Debug enemy info */}
-          {__DEV__ && (
-            <View style={styles.debugInfo}>
-              <Text style={styles.debugText}>Enemies: {enemiesRef.current.length}</Text>
-              <Text style={styles.debugText}>
-                Pete X: {Math.round(peteRef.current.x)}, Y: {Math.round(peteRef.current.y)}
-              </Text>
-              <Text style={styles.debugText}>
-                Screen: {Math.round(SCREEN_WIDTH)}x{Math.round(SCREEN_HEIGHT)}
-              </Text>
-              <Text style={styles.debugText}>Game Area Bottom: {Math.round(GAME_AREA_BOTTOM)}</Text>
-              {enemiesRef.current.length > 0 && (
-                <Text style={styles.debugText}>
-                  First enemy Y: {Math.round(enemiesRef.current[0].y)}
-                </Text>
-              )}
+                <TouchableOpacity
+                  style={styles.restartButton}
+                  onPress={handleRestart}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.restartText}>PLAY AGAIN</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.menuButton}
+                  onPress={handleBackToMenu}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.menuText}>MENU</Text>
+                </TouchableOpacity>
+              </LinearGradient>
             </View>
           )}
+
+          {/* Real-time Progression HUD */}
+          <ProgressionHUD level={level} isPlaying={isPlaying && !gameOver} />
+
+          {/* Mystery Reward Celebrations */}
+          {mysteryRewards.map(mysteryReward => (
+            <MysteryRewardDisplay
+              key={mysteryReward.id}
+              reward={mysteryReward.reward}
+              x={mysteryReward.x}
+              y={mysteryReward.y}
+              onComplete={() => {
+                setMysteryRewards(prev => prev.filter(r => r.id !== mysteryReward.id));
+              }}
+            />
+          ))}
+
+          {/* Victory Modal */}
+          <VictoryModal
+            level={currentLevel?.id || 1}
+            score={currentLevelScore}
+            starsEarned={3} // TODO: Calculate actual stars based on performance
+            isVisible={showVictoryScreen}
+            onContinue={handleContinue}
+            onBackToMenu={handleVictoryBackToMenu}
+            onWorldMap={onWorldMap}
+            time={4.25} // TODO: Add actual level time tracking
+            accuracy={accuracy}
+          />
         </View>
-      </CRTFrame>
-    </GameErrorBoundary>
+      </View>
+    </CelebrationManager>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   gameArea: {
     flex: 1,
-    backgroundColor: ArcadeColors.deepBlack,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-    backgroundColor: ArcadeColors.deepBlack,
-    borderBottomWidth: 3,
-    borderBottomColor: ArcadeColors.electricBlue,
-    ...Platform.select({
-      ios: {
-        shadowColor: ArcadeColors.blueGlow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
-  },
-  scoreContainer: {
-    alignItems: 'center',
-  },
-  levelContainer: {
-    alignItems: 'center',
-  },
-  scoreValue: {
-    color: ArcadeColors.yellow,
-    fontSize: 28,
-    fontWeight: '900',
-    fontFamily: Platform.OS === 'ios' ? 'Courier-Bold' : 'monospace',
-    letterSpacing: 2,
-    textShadowColor: ArcadeColors.yellowGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-  },
-  levelValue: {
-    color: ArcadeColors.electricBlue,
-    fontSize: 28,
-    fontWeight: '900',
-    fontFamily: Platform.OS === 'ios' ? 'Courier-Bold' : 'monospace',
-    letterSpacing: 2,
-    textShadowColor: ArcadeColors.blueGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
-  },
-  gameOverContent: {
-    alignItems: 'center',
-    padding: 40,
-  },
-  gameOverTitle: {
-    marginBottom: 30,
-  },
-  finalScoreContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  finalScoreValue: {
-    color: ArcadeColors.yellow,
-    fontSize: 48,
-    fontWeight: '900',
-    fontFamily: Platform.OS === 'ios' ? 'Courier-Bold' : 'monospace',
-    letterSpacing: 3,
-    marginTop: 10,
-    textShadowColor: ArcadeColors.yellowGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 15,
-  },
-  finalLevelContainer: {
-    marginBottom: 40,
-  },
-  gameOverButtons: {
-    alignItems: 'center',
-  },
-  ripple: {
+  gameOverOverlay: {
     position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(0, 255, 255, 0.3)',
-    borderWidth: 2,
-    borderColor: ArcadeColors.electricBlue,
-    pointerEvents: 'none',
-    ...Platform.select({
-      ios: {
-        shadowColor: ArcadeColors.blueGlow,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 10,
-      },
-    }),
-  },
-  errorPlaceholder: {
-    position: 'absolute',
-    backgroundColor: 'rgba(255, 0, 0, 0.5)',
-    borderRadius: 5,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 20,
-    minHeight: 20,
+    paddingHorizontal: 40,
   },
-  errorText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
+  gameOverContainer: {
+    paddingVertical: 60,
+    paddingHorizontal: 60,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  debugInfo: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: ArcadeColors.electricBlue,
-    maxWidth: 200,
+  gameOverTitle: {
+    fontSize: 28,
+    fontWeight: '300',
+    color: UI_COLORS.menuText,
+    marginBottom: 20,
   },
-  debugText: {
-    color: ArcadeColors.electricBlue,
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    textShadowColor: ArcadeColors.blueGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 3,
-    lineHeight: 14,
+  finalScore: {
+    fontSize: 64,
+    fontWeight: '600',
+    color: UI_COLORS.menuText,
+    marginBottom: 40,
+  },
+  restartButton: {
+    backgroundColor: UI_COLORS.tapToPlayBg,
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    marginBottom: 16,
+  },
+  restartText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: UI_COLORS.menuText,
+    letterSpacing: 2,
+  },
+  menuButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+  },
+  menuText: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: UI_COLORS.menuTextLight,
+    letterSpacing: 1,
   },
 });

@@ -27,7 +27,7 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
           useNativeDriver: true,
         }),
       ]).start();
-      
+
       prevScore.current = score;
     }
   }, [score, scoreScale]);
@@ -77,7 +77,7 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
       >
         {score.toLocaleString()}
       </Animated.Text>
-      
+
       {combo > 1 && (
         <Animated.View
           style={[

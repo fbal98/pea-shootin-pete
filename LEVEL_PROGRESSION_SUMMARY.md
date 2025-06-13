@@ -65,7 +65,7 @@ This document summarizes the comprehensive level progression system implemented 
 - **Analytics event triggering** for all level interactions
 - **UI state management** for transitions and HUD
 
-#### 4. Enhanced Game Logic (`hooks/useHyperCasualGameLogic.ts`)
+#### 4. Enhanced Game Logic (`hooks/useGameLogic.ts`)
 - **Wave-based enemy spawning** replacing random generation
 - **Level-specific physics** applied through configuration overrides
 - **Victory condition checking** integrated with collision detection

@@ -7,10 +7,10 @@ interface LevelSectionProps {
   nextLevelScore: number;
 }
 
-export const LevelSection: React.FC<LevelSectionProps> = ({ 
-  level, 
-  scoreInLevel, 
-  nextLevelScore 
+export const LevelSection: React.FC<LevelSectionProps> = ({
+  level,
+  scoreInLevel,
+  nextLevelScore,
 }) => {
   const levelScale = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -32,7 +32,7 @@ export const LevelSection: React.FC<LevelSectionProps> = ({
           useNativeDriver: true,
         }),
       ]).start();
-      
+
       prevLevel.current = level;
     }
   }, [level, levelScale]);
@@ -89,7 +89,7 @@ export const LevelSection: React.FC<LevelSectionProps> = ({
       >
         <Text style={styles.levelText}>LVL {level}</Text>
       </Animated.View>
-      
+
       <View style={styles.progressContainer}>
         <View style={styles.progressBar}>
           <Animated.View

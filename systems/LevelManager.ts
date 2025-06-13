@@ -1,6 +1,6 @@
 /**
  * LevelManager - Central system for managing level progression in Pea Shootin' Pete
- * 
+ *
  * This system handles:
  * - Loading and validating level configurations
  * - Level progression and unlocking
@@ -18,7 +18,7 @@ import {
   LevelLoadResult,
   RemoteLevelConfig,
   LevelMetadata,
-  LEVEL_JSON_SCHEMA
+  LEVEL_JSON_SCHEMA,
 } from '../types/LevelTypes';
 
 // Import level configurations
@@ -33,7 +33,7 @@ const STORAGE_KEYS = {
   LEVEL_PROGRESS: 'psp_level_progress',
   PLAYER_STATS: 'psp_player_stats',
   REMOTE_CONFIG: 'psp_remote_config',
-  ANALYTICS_CACHE: 'psp_analytics_cache'
+  ANALYTICS_CACHE: 'psp_analytics_cache',
 } as const;
 
 // Analytics event types
@@ -123,16 +123,16 @@ export class LevelManager {
     try {
       // Load player progress from storage
       await this.loadPlayerProgress();
-      
+
       // Load remote configuration
       await this.loadRemoteConfig();
-      
+
       // Preload essential levels (first 5 levels)
       await this.preloadLevels([1, 2, 3, 4, 5]);
-      
+
       // Process any cached analytics events
       await this.processCachedAnalytics();
-      
+
       this.initialized = true;
       console.log('LevelManager initialized successfully');
     } catch (error) {
@@ -150,7 +150,7 @@ export class LevelManager {
       if (this.levelCache[levelId]) {
         return {
           success: true,
-          level: this.levelCache[levelId]
+          level: this.levelCache[levelId],
         };
       }
 
@@ -159,7 +159,7 @@ export class LevelManager {
       if (!levelData) {
         return {
           success: false,
-          error: `Level ${levelId} not found`
+          error: `Level ${levelId} not found`,
         };
       }
 
@@ -168,24 +168,24 @@ export class LevelManager {
       if (!validation.isValid) {
         return {
           success: false,
-          error: `Level ${levelId} validation failed: ${validation.errors.join(', ')}`
+          error: `Level ${levelId} validation failed: ${validation.errors.join(', ')}`,
         };
       }
 
       // Apply remote config overrides
       const level = this.applyRemoteConfig(levelData as Level);
-      
+
       // Cache the level
       this.levelCache[levelId] = level;
 
       return {
         success: true,
-        level
+        level,
       };
     } catch (error) {
       return {
         success: false,
-        error: `Failed to load level ${levelId}: ${error}`
+        error: `Failed to load level ${levelId}: ${error}`,
       };
     }
   }
@@ -224,13 +224,18 @@ export class LevelManager {
       // Validate total enemy count matches waves
       if (levelData.totalEnemyCount) {
         const calculatedTotal = levelData.enemyWaves.reduce((total: number, wave: any) => {
-          return total + wave.enemies.reduce((waveTotal: number, enemy: any) => {
-            return waveTotal + enemy.count;
-          }, 0);
+          return (
+            total +
+            wave.enemies.reduce((waveTotal: number, enemy: any) => {
+              return waveTotal + enemy.count;
+            }, 0)
+          );
         }, 0);
 
         if (calculatedTotal !== levelData.totalEnemyCount) {
-          warnings.push(`Total enemy count (${levelData.totalEnemyCount}) doesn't match calculated total (${calculatedTotal})`);
+          warnings.push(
+            `Total enemy count (${levelData.totalEnemyCount}) doesn't match calculated total (${calculatedTotal})`
+          );
         }
       }
 
@@ -251,13 +256,13 @@ export class LevelManager {
       return {
         isValid: errors.length === 0,
         errors,
-        warnings
+        warnings,
       };
     } catch (error) {
       return {
         isValid: false,
         errors: [`Validation error: ${error}`],
-        warnings
+        warnings,
       };
     }
   }
@@ -265,16 +270,18 @@ export class LevelManager {
   /**
    * Get all available levels with their unlock status
    */
-  public async getAvailableLevels(): Promise<Array<{ level: Level; unlocked: boolean; completed: boolean }>> {
+  public async getAvailableLevels(): Promise<
+    Array<{ level: Level; unlocked: boolean; completed: boolean }>
+  > {
     const result: Array<{ level: Level; unlocked: boolean; completed: boolean }> = [];
-    
+
     for (const levelInfo of LevelsIndex.levels) {
       const loadResult = await this.loadLevel(levelInfo.id);
       if (loadResult.success && loadResult.level) {
         result.push({
           level: loadResult.level,
           unlocked: this.isLevelUnlocked(levelInfo.id),
-          completed: this.isLevelCompleted(levelInfo.id)
+          completed: this.isLevelCompleted(levelInfo.id),
         });
       }
     }
@@ -287,7 +294,7 @@ export class LevelManager {
    */
   public isLevelUnlocked(levelId: LevelID): boolean {
     if (!this.playerProgress) return levelId === 1; // First level always unlocked
-    
+
     // Check remote config for disabled levels
     if (this.remoteConfig && !this.remoteConfig.enabledLevels.includes(levelId)) {
       return false;
@@ -321,18 +328,19 @@ export class LevelManager {
       bestTime: 0,
       totalPlaytime: 0,
       lastPlayed: Date.now(),
-      averageRetries: 0
+      averageRetries: 0,
     };
 
     this.playerProgress.levelStats[levelId] = {
       ...currentStats,
       completions: currentStats.completions + 1,
       bestScore: Math.max(currentStats.bestScore, stats.bestScore || 0),
-      bestTime: stats.bestTime && (currentStats.bestTime === 0 || stats.bestTime < currentStats.bestTime) 
-        ? stats.bestTime 
-        : currentStats.bestTime,
+      bestTime:
+        stats.bestTime && (currentStats.bestTime === 0 || stats.bestTime < currentStats.bestTime)
+          ? stats.bestTime
+          : currentStats.bestTime,
       totalPlaytime: currentStats.totalPlaytime + (stats.totalPlaytime || 0),
-      lastPlayed: Date.now()
+      lastPlayed: Date.now(),
     };
 
     // Unlock next levels based on current level's rewards
@@ -356,15 +364,19 @@ export class LevelManager {
       data: {
         score: stats.bestScore || 0,
         time: stats.bestTime || 0,
-        attempts: currentStats.attempts + 1
-      }
+        attempts: currentStats.attempts + 1,
+      },
     });
   }
 
   /**
    * Record a level attempt (success or failure)
    */
-  public async recordLevelAttempt(levelId: LevelID, success: boolean, stats: Partial<LevelStats>): Promise<void> {
+  public async recordLevelAttempt(
+    levelId: LevelID,
+    success: boolean,
+    stats: Partial<LevelStats>
+  ): Promise<void> {
     if (!this.playerProgress) return;
 
     // Initialize or update level stats
@@ -375,7 +387,7 @@ export class LevelManager {
       bestTime: 0,
       totalPlaytime: 0,
       lastPlayed: Date.now(),
-      averageRetries: 0
+      averageRetries: 0,
     };
 
     currentStats.attempts += 1;
@@ -394,8 +406,8 @@ export class LevelManager {
       timestamp: Date.now(),
       data: {
         attempts: currentStats.attempts,
-        ...stats
-      }
+        ...stats,
+      },
     });
   }
 
@@ -422,11 +434,13 @@ export class LevelManager {
 
     // Apply global multipliers
     const modifiedLevel = { ...level };
-    
+
     modifiedLevel.balance = {
       ...level.balance,
-      enemySpeedMultiplier: level.balance.enemySpeedMultiplier * this.remoteConfig.globalSpeedMultiplier,
-      spawnRateMultiplier: level.balance.spawnRateMultiplier * this.remoteConfig.globalDifficultyMultiplier
+      enemySpeedMultiplier:
+        level.balance.enemySpeedMultiplier * this.remoteConfig.globalSpeedMultiplier,
+      spawnRateMultiplier:
+        level.balance.spawnRateMultiplier * this.remoteConfig.globalDifficultyMultiplier,
     };
 
     // Apply A/B test configurations if applicable
@@ -460,7 +474,7 @@ export class LevelManager {
   private processAnalyticsEvent(event: LevelAnalyticsEvent): void {
     // In a real implementation, this would send to Firebase Analytics, GameAnalytics, etc.
     console.log('Analytics Event:', event);
-    
+
     // For now, just log the event
     // TODO: Integrate with actual analytics service
   }
@@ -499,13 +513,13 @@ export class LevelManager {
   private async loadPlayerProgress(): Promise<void> {
     try {
       const progressData = await AsyncStorage.getItem(STORAGE_KEYS.LEVEL_PROGRESS);
-      
+
       if (progressData) {
         const parsed = JSON.parse(progressData);
         this.playerProgress = {
           ...parsed,
           completedLevels: new Set(parsed.completedLevels || []),
-          unlockedLevels: new Set(parsed.unlockedLevels || [1]) // Level 1 always unlocked
+          unlockedLevels: new Set(parsed.unlockedLevels || [1]), // Level 1 always unlocked
         };
       } else {
         // Initialize new player progress
@@ -516,7 +530,7 @@ export class LevelManager {
           levelStats: {},
           totalPlaytime: 0,
           totalScore: 0,
-          achievementsUnlocked: []
+          achievementsUnlocked: [],
         };
       }
     } catch (error) {
@@ -529,7 +543,7 @@ export class LevelManager {
         levelStats: {},
         totalPlaytime: 0,
         totalScore: 0,
-        achievementsUnlocked: []
+        achievementsUnlocked: [],
       };
     }
   }
@@ -544,7 +558,7 @@ export class LevelManager {
       const dataToSave = {
         ...this.playerProgress,
         completedLevels: Array.from(this.playerProgress.completedLevels),
-        unlockedLevels: Array.from(this.playerProgress.unlockedLevels)
+        unlockedLevels: Array.from(this.playerProgress.unlockedLevels),
       };
 
       await AsyncStorage.setItem(STORAGE_KEYS.LEVEL_PROGRESS, JSON.stringify(dataToSave));
@@ -565,7 +579,7 @@ export class LevelManager {
         globalDifficultyMultiplier: LevelsIndex.remoteConfig.globalDifficultyMultiplier,
         globalSpeedMultiplier: LevelsIndex.remoteConfig.globalSpeedMultiplier,
         testConfigs: {},
-        features: LevelsIndex.remoteConfig.features
+        features: LevelsIndex.remoteConfig.features,
       };
     } catch (error) {
       console.warn('Failed to load remote config, using defaults:', error);
@@ -579,8 +593,8 @@ export class LevelManager {
           powerupsEnabled: false,
           achievementsEnabled: true,
           leaderboardsEnabled: false,
-          dailyRewardsEnabled: false
-        }
+          dailyRewardsEnabled: false,
+        },
       };
     }
   }
@@ -600,7 +614,7 @@ export class LevelManager {
       STORAGE_KEYS.COMPLETED_LEVELS,
       STORAGE_KEYS.UNLOCKED_LEVELS,
       STORAGE_KEYS.LEVEL_PROGRESS,
-      STORAGE_KEYS.PLAYER_STATS
+      STORAGE_KEYS.PLAYER_STATS,
     ]);
 
     this.playerProgress = {
@@ -610,7 +624,7 @@ export class LevelManager {
       levelStats: {},
       totalPlaytime: 0,
       totalScore: 0,
-      achievementsUnlocked: []
+      achievementsUnlocked: [],
     };
   }
 

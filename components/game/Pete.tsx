@@ -1,15 +1,16 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { getColorScheme } from '@/constants/GameColors';
 
 interface PeteProps {
   x: number;
   y: number;
   size: number;
+  level: number;
 }
 
-export const Pete: React.FC<PeteProps> = ({ x, y, size }) => {
-  const eyeSize = size * 0.2; // Eyes scale with Pete's size
-  const eyeOffset = size * 0.25 - eyeSize / 2; // Center the eyes properly
+export const Pete: React.FC<PeteProps> = ({ x, y, size, level }) => {
+  const colorScheme = getColorScheme(level);
 
   return (
     <View
@@ -20,43 +21,16 @@ export const Pete: React.FC<PeteProps> = ({ x, y, size }) => {
           top: y,
           width: size,
           height: size,
+          backgroundColor: colorScheme.primary,
+          shadowColor: colorScheme.shadow,
         },
       ]}
-      accessible={true}
-      accessibilityRole="image"
-      accessibilityLabel="Pete, the main character"
-      accessibilityHint="Yellow character with antenna that shoots peas"
     >
-      {/* Eyes */}
-      <View
-        style={[
-          styles.eye,
-          {
-            left: eyeOffset,
-            width: eyeSize,
-            height: eyeSize,
-            borderRadius: eyeSize / 2,
-          },
-        ]}
-      />
-      <View
-        style={[
-          styles.eye,
-          {
-            right: eyeOffset,
-            width: eyeSize,
-            height: eyeSize,
-            borderRadius: eyeSize / 2,
-          },
-        ]}
-      />
-
-      {/* Mouth */}
-      <View style={styles.mouth} />
-
-      {/* Antenna */}
-      <View style={[styles.antennaStick, { height: size * 0.375 }]} />
-      <View style={[styles.antennaTop, { top: -(size * 0.5) }]} />
+      {/* Minimal eye representation - just a subtle indent */}
+      <View style={styles.faceContainer}>
+        <View style={styles.eye} />
+        <View style={styles.eye} />
+      </View>
     </View>
   );
 };
@@ -64,41 +38,24 @@ export const Pete: React.FC<PeteProps> = ({ x, y, size }) => {
 const styles = StyleSheet.create({
   pete: {
     position: 'absolute',
-    backgroundColor: '#FFD700',
     borderRadius: 50,
-    borderWidth: 2,
-    borderColor: '#FFA500',
-    overflow: 'visible',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  faceContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: '20%',
   },
   eye: {
-    position: 'absolute',
-    backgroundColor: '#000',
-    top: '30%',
-  },
-  mouth: {
-    position: 'absolute',
-    width: '50%',
-    height: 4,
-    backgroundColor: '#000',
-    borderRadius: 2,
-    bottom: '25%',
-    left: '25%',
-  },
-  antennaStick: {
-    position: 'absolute',
-    width: 2,
-    backgroundColor: '#333',
-    top: -15,
-    left: '50%',
-    marginLeft: -1,
-  },
-  antennaTop: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    backgroundColor: '#FF0000',
-    borderRadius: 4,
-    left: '50%',
-    marginLeft: -4,
+    width: '20%',
+    height: '20%',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 50,
+    marginHorizontal: '10%',
   },
 });

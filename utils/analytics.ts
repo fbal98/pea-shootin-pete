@@ -1,26 +1,26 @@
 /**
  * Analytics System for Pea Shootin' Pete
- * 
+ *
  * Comprehensive analytics tracking that supports:
  * - Level progression events (required by publishing checklist)
  * - Player behavior tracking
  * - Performance metrics
  * - Revenue optimization data
  * - A/B testing event tagging
- * 
+ *
  * Designed to integrate with Firebase Analytics, GameAnalytics, etc.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Event types based on publishing checklist requirements
-export type AnalyticsEventType = 
+export type AnalyticsEventType =
   // Core level progression events (CRITICAL for publishing)
   | 'level_start'
-  | 'level_complete' 
+  | 'level_complete'
   | 'level_failed'
   | 'game_over'
-  
+
   // Player behavior events
   | 'game_start'
   | 'session_start'
@@ -29,19 +29,48 @@ export type AnalyticsEventType =
   | 'projectile_fired'
   | 'combo_achieved'
   | 'retry_level'
-  
-  // Monetization events (for future ad integration)
+  | 'mystery_balloon_popped'
+
+  // Social and viral events
+  | 'social_share'
+  | 'viral_referral'
+  | 'deep_link_used'
+  | 'friend_invited'
+  | 'challenge_shared'
+
+  // Monetization events
+  | 'purchase_initiated'
+  | 'purchase_completed'
+  | 'purchase_failed'
+  | 'currency_earned'
+  | 'currency_spent'
   | 'ad_shown'
   | 'ad_clicked'
   | 'ad_completed'
   | 'ad_failed'
-  
+
+  // Special events and FOMO
+  | 'special_event_joined'
+  | 'special_event_completed'
+  | 'flash_sale_viewed'
+  | 'flash_sale_purchased'
+  | 'event_participation'
+
   // Progression events
   | 'level_unlocked'
   | 'achievement_unlocked'
+  | 'micro_achievement_progress'
+  | 'combo_milestone'
   | 'high_score_achieved'
+  | 'skin_equipped'
+  | 'customization_changed'
   | 'ab_test_assigned'
-  
+
+  // World map and navigation
+  | 'world_map_opened'
+  | 'node_selected'
+  | 'theme_unlocked'
+
   // Performance events
   | 'crash_reported'
   | 'performance_issue'
@@ -54,25 +83,25 @@ export interface AnalyticsEventData {
   timestamp: number;
   session_id: string;
   user_id?: string;
-  
+
   // Level-specific data
   level?: number;
   level_name?: string;
   level_duration?: number;
   level_attempts?: number;
-  
+
   // Score and performance data
   score?: number;
   high_score?: number;
   accuracy?: number;
   combo_count?: number;
   enemies_eliminated?: number;
-  
+
   // Failure/completion data
   failure_reason?: string;
   completion_time?: number;
   objectives_completed?: string[];
-  
+
   // Device and session data
   device_info?: {
     platform: string;
@@ -80,11 +109,11 @@ export interface AnalyticsEventData {
     app_version: string;
     device_model?: string;
   };
-  
+
   // A/B testing data
   ab_test_group?: string;
   ab_test_variant?: string;
-  
+
   // Custom properties
   custom_properties?: Record<string, any>;
 }
@@ -221,9 +250,9 @@ export class AnalyticsManager {
   }
 
   public trackLevelComplete(
-    levelId: number, 
-    levelName: string, 
-    score: number, 
+    levelId: number,
+    levelName: string,
+    score: number,
     duration: number,
     accuracy: number,
     attempts: number = 1
@@ -240,8 +269,8 @@ export class AnalyticsManager {
   }
 
   public trackLevelFailed(
-    levelId: number, 
-    levelName: string, 
+    levelId: number,
+    levelName: string,
     reason: string,
     score: number = 0,
     duration: number = 0,
@@ -281,6 +310,22 @@ export class AnalyticsManager {
     });
   }
 
+  public trackMysteryBalloonPopped(
+    rewardType: string,
+    rarity: string,
+    value: string | number,
+    levelId?: number
+  ): void {
+    this.track('mystery_balloon_popped', {
+      level: levelId,
+      custom_properties: {
+        reward_type: rewardType,
+        reward_rarity: rarity,
+        reward_value: value,
+      },
+    });
+  }
+
   /**
    * Flush events to analytics service
    */
@@ -293,7 +338,7 @@ export class AnalyticsManager {
     try {
       // In a real implementation, this would send to Firebase Analytics, etc.
       await this.sendEventsToService(eventsToSend);
-      
+
       if (this.config.debug) {
         console.log(`Flushed ${eventsToSend.length} analytics events`);
       }
@@ -302,7 +347,7 @@ export class AnalyticsManager {
       await AsyncStorage.removeItem(STORAGE_KEYS.EVENTS_QUEUE);
     } catch (error) {
       console.error('Failed to flush analytics events:', error);
-      
+
       // Re-add events to queue for retry
       this.eventQueue = [...eventsToSend, ...this.eventQueue];
       await this.saveQueueToStorage();
@@ -420,17 +465,170 @@ export class AnalyticsManager {
 export const analytics = AnalyticsManager.getInstance();
 
 // Convenience function exports
-export const trackLevelStart = (levelId: number, levelName: string, attempts?: number) => 
+export const trackLevelStart = (levelId: number, levelName: string, attempts?: number) =>
   analytics.trackLevelStart(levelId, levelName, attempts);
 
-export const trackLevelComplete = (levelId: number, levelName: string, score: number, duration: number, accuracy: number, attempts?: number) => 
-  analytics.trackLevelComplete(levelId, levelName, score, duration, accuracy, attempts);
+export const trackLevelComplete = (
+  levelId: number,
+  levelName: string,
+  score: number,
+  duration: number,
+  accuracy: number,
+  attempts?: number
+) => analytics.trackLevelComplete(levelId, levelName, score, duration, accuracy, attempts);
 
-export const trackLevelFailed = (levelId: number, levelName: string, reason: string, score?: number, duration?: number, attempts?: number) => 
-  analytics.trackLevelFailed(levelId, levelName, reason, score, duration, attempts);
+export const trackLevelFailed = (
+  levelId: number,
+  levelName: string,
+  reason: string,
+  score?: number,
+  duration?: number,
+  attempts?: number
+) => analytics.trackLevelFailed(levelId, levelName, reason, score, duration, attempts);
 
-export const trackGameOver = (finalScore: number, highScore: number, levelsCompleted: number) => 
+export const trackGameOver = (finalScore: number, highScore: number, levelsCompleted: number) =>
   analytics.trackGameOver(finalScore, highScore, levelsCompleted);
 
-export const trackBalloonPopped = (balloonSize: number, points: number, combo?: number, levelId?: number) => 
-  analytics.trackBalloonPopped(balloonSize, points, combo, levelId);
+export const trackBalloonPopped = (
+  balloonSize: number,
+  points: number,
+  combo?: number,
+  levelId?: number
+) => analytics.trackBalloonPopped(balloonSize, points, combo, levelId);
+
+export const trackMysteryBalloonPopped = (
+  rewardType: string,
+  rarity: string,
+  value: string | number,
+  levelId?: number
+) => analytics.trackMysteryBalloonPopped(rewardType, rarity, value, levelId);
+
+// Social and viral tracking
+export const trackSocialShare = (data: {
+  platform: string;
+  contentType: string;
+  level?: number;
+  score?: number;
+  achievement?: string;
+}) => analytics.track('social_share', { custom_properties: data });
+
+export const trackViralReferral = (data: {
+  referrerId: string;
+  newUserId: string;
+  campaign?: string;
+  medium?: string;
+  source?: string;
+  bonusAwarded?: boolean;
+  bonusType?: string;
+  bonusAmount?: number;
+  timestamp: number;
+}) => analytics.track('viral_referral', { custom_properties: data });
+
+export const trackDeepLinkUsage = (data: {
+  url?: string;
+  type?: string;
+  challengeId?: string;
+  achievementId?: string;
+  levelId?: number;
+  queryParams?: any;
+  timestamp: number;
+}) => analytics.track('deep_link_used', { custom_properties: data });
+
+// Monetization tracking
+export const trackPurchase = (data: {
+  itemId: string;
+  itemName: string;
+  category: string;
+  price: { currency: string; amount: number };
+  currency: string;
+  amount: number;
+  timestamp: number;
+}) => analytics.track('purchase_completed', { custom_properties: data });
+
+export const trackCurrencyEarned = (data: {
+  currency: string;
+  amount: number;
+  reason: string;
+  newBalance: number;
+  metadata?: any;
+}) => analytics.track('currency_earned', { custom_properties: data });
+
+export const trackCurrencySpent = (data: {
+  currency: string;
+  amount: number;
+  reason: string;
+  newBalance: number;
+  metadata?: any;
+}) => analytics.track('currency_spent', { custom_properties: data });
+
+// Special events tracking
+export const trackSpecialEvent = (data: {
+  eventId: string;
+  eventName: string;
+  eventType: string;
+  action: string;
+  timestamp: number;
+}) => analytics.track('special_event_joined', { custom_properties: data });
+
+export const trackEventParticipation = (data: {
+  eventId: string;
+  eventName: string;
+  playerId: string;
+  action: string;
+  objectiveId?: string;
+  timestamp: number;
+}) => analytics.track('event_participation', { custom_properties: data });
+
+// Achievement tracking
+export const trackAchievementUnlocked = (data: {
+  achievementId: string;
+  achievementName: string;
+  category: string;
+  rarity: string;
+  difficulty: number;
+  timeToComplete: number;
+  timestamp: number;
+}) => analytics.track('achievement_unlocked', { custom_properties: data });
+
+export const trackMicroProgress = (data: {
+  achievementId: string;
+  progress: number;
+  target: number;
+  category: string;
+  timestamp: number;
+}) => analytics.track('micro_achievement_progress', { custom_properties: data });
+
+// Combo tracking
+export const trackComboEvent = (data: {
+  comboCount: number;
+  multiplier: number;
+  comboType: string;
+  accuracy?: number;
+  timing?: string;
+  action?: string;
+  reason?: string;
+  timestamp: number;
+}) => analytics.track('combo_achieved', { custom_properties: data });
+
+// Viral metrics tracking
+export const trackViralMetrics = (data: {
+  totalShares: number;
+  successfulReferrals: number;
+  viralCoefficient: number;
+  shareConversionRate: number;
+  platformBreakdown: Record<string, number>;
+  conversionByPlatform: Record<string, number>;
+  averageTimeToConversion: number;
+  retentionAfterReferral: number;
+}) => analytics.track('viral_referral', { custom_properties: data });
+
+export const trackShareConversion = (data: {
+  shareId: string;
+  platform: string;
+  contentType?: string;
+  userId: string;
+  referredUserId?: string;
+  timestamp: number;
+  event: string;
+  conversionTime?: number;
+}) => analytics.track('social_share', { custom_properties: data });

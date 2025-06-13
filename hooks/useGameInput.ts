@@ -1,159 +1,100 @@
-import { useCallback, useRef, useState } from 'react';
-import { GestureResponderEvent, Animated, Easing } from 'react-native';
+import { useCallback, useRef } from 'react';
+import { GestureResponderEvent } from 'react-native';
 import { useGameOver } from '@/store/gameStore';
-import { GAME_CONFIG } from '@/constants/GameConfig';
-import { safeHapticFeedback, ErrorLogger } from '@/utils/errorLogger';
-import * as Haptics from 'expo-haptics';
-
-interface RipplePosition {
-  x: number;
-  y: number;
-}
+import { GAME_CONFIG, INPUT_CONFIG } from '@/constants/GameConfig';
+import { ErrorLogger } from '@/utils/errorLogger';
 
 export const useGameInput = (
   screenWidth: number,
   shootProjectile: () => void,
   updatePetePosition: (x: number) => void
 ) => {
-  // Get UI state
   const gameOver = useGameOver();
 
-  // Ripple effect state
-  const rippleAnim = useRef(new Animated.Value(0)).current;
-  const rippleOpacity = useRef(new Animated.Value(0)).current;
-  const [ripplePosition, setRipplePosition] = useState<RipplePosition>({ x: 0, y: 0 });
+  // Track touch state for smooth swipe controls
+  const touchStartX = useRef<number>(0);
+  const lastTouchX = useRef<number>(0);
+  const isTouching = useRef<boolean>(false);
 
-  // Throttling refs
-  const lastMoveTime = useRef<number>(0);
-  const lastHapticTime = useRef<number>(0);
+  // Smoothing for swipe movement
+  const targetPeteX = useRef<number>(screenWidth / 2 - GAME_CONFIG.PETE_SIZE / 2);
+  const currentPeteX = useRef<number>(screenWidth / 2 - GAME_CONFIG.PETE_SIZE / 2);
+  const smoothingFactor = INPUT_CONFIG.MOVEMENT_SMOOTHING;
 
-  // Show ripple effect at touch position
-  const showRippleEffect = useCallback(
-    (x: number, y: number) => {
-      try {
-        setRipplePosition({ x, y });
-
-        rippleAnim.setValue(0);
-        rippleOpacity.setValue(1);
-
-        Animated.parallel([
-          Animated.timing(rippleAnim, {
-            toValue: 1,
-            duration: GAME_CONFIG.RIPPLE_DURATION,
-            useNativeDriver: true,
-            easing: Easing.out(Easing.quad),
-          }),
-          Animated.timing(rippleOpacity, {
-            toValue: 0,
-            duration: GAME_CONFIG.RIPPLE_DURATION,
-            useNativeDriver: true,
-            easing: Easing.out(Easing.cubic),
-          }),
-        ]).start();
-      } catch (error) {
-        ErrorLogger.logAnimationError(
-          error instanceof Error ? error : new Error(String(error)),
-          'GameInput',
-          'ripple_effect'
-        );
-      }
-    },
-    [rippleAnim, rippleOpacity]
-  );
-
-  // Handle game touch (tap to shoot and move Pete)
-  const handleGameTouch = useCallback(
-    (x: number, y: number) => {
+  // Handle touch start
+  const handleTouchStart = useCallback(
+    (event: GestureResponderEvent) => {
       try {
         if (gameOver) return;
 
-        // Haptic feedback with throttling
-        const now = Date.now();
-        if (now - lastHapticTime.current >= GAME_CONFIG.HAPTIC_THROTTLE_MS) {
-          lastHapticTime.current = now;
-          safeHapticFeedback(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 'Touch');
-        }
+        const { locationX } = event.nativeEvent;
+        touchStartX.current = locationX;
+        lastTouchX.current = locationX;
+        isTouching.current = true;
 
-        // Show visual feedback
-        showRippleEffect(x, y);
-
-        // Move Pete to tap position (immediate response)
-        const newX = Math.max(
-          0,
-          Math.min(x - GAME_CONFIG.PETE_SIZE / 2, screenWidth - GAME_CONFIG.PETE_SIZE)
-        );
-
-        updatePetePosition(newX);
-
-        // Shoot projectile
+        // Shoot on tap
         shootProjectile();
       } catch (error) {
         ErrorLogger.logGameLogicError(
           error instanceof Error ? error : new Error(String(error)),
-          'handle_touch',
-          { x, y, screenWidth }
+          'touch_start',
+          { screenWidth }
         );
       }
     },
-    [gameOver, screenWidth, showRippleEffect, shootProjectile, updatePetePosition]
+    [gameOver, shootProjectile]
   );
 
-  // Handle touch events from React Native
-  const handleTouch = useCallback(
+  // Handle swipe movement
+  const handleTouchMove = useCallback(
     (event: GestureResponderEvent) => {
-      const { locationX, locationY } = event.nativeEvent;
-      handleGameTouch(locationX, locationY);
-    },
-    [handleGameTouch]
-  );
-
-  // Update Pete position with throttling (for drag movement)
-  const updatePetePositionThrottled = useCallback(
-    (x: number) => {
       try {
-        const now = Date.now();
-        if (now - lastMoveTime.current < GAME_CONFIG.PETE_MOVE_THROTTLE_MS) return;
-        lastMoveTime.current = now;
+        if (gameOver || !isTouching.current) return;
 
-        if (gameOver) return;
+        const { locationX } = event.nativeEvent;
+        const deltaX = locationX - lastTouchX.current;
+        lastTouchX.current = locationX;
 
-        const newX = Math.max(
+        // Update target position based on swipe delta
+        targetPeteX.current = Math.max(
           0,
-          Math.min(x - GAME_CONFIG.PETE_SIZE / 2, screenWidth - GAME_CONFIG.PETE_SIZE)
+          Math.min(targetPeteX.current + deltaX, screenWidth - GAME_CONFIG.PETE_SIZE)
         );
 
-        updatePetePosition(newX);
+        // Smooth interpolation to target
+        currentPeteX.current += (targetPeteX.current - currentPeteX.current) * smoothingFactor;
+        updatePetePosition(currentPeteX.current);
       } catch (error) {
         ErrorLogger.logGameLogicError(
           error instanceof Error ? error : new Error(String(error)),
-          'update_pete_position',
-          { x, screenWidth }
+          'touch_move',
+          { screenWidth }
         );
       }
     },
     [gameOver, screenWidth, updatePetePosition]
   );
 
-  // Handle drag movement (touch move)
-  const handleTouchMove = useCallback(
-    (event: GestureResponderEvent) => {
-      const { locationX } = event.nativeEvent;
-      updatePetePositionThrottled(locationX);
-    },
-    [updatePetePositionThrottled]
-  );
+  // Handle touch end
+  const handleTouchEnd = useCallback(() => {
+    isTouching.current = false;
+  }, []);
+
+  // Smooth animation frame update
+  const updateSmoothing = useCallback(() => {
+    if (
+      !isTouching.current &&
+      Math.abs(targetPeteX.current - currentPeteX.current) > INPUT_CONFIG.SMOOTHING_THRESHOLD
+    ) {
+      currentPeteX.current += (targetPeteX.current - currentPeteX.current) * smoothingFactor;
+      updatePetePosition(currentPeteX.current);
+    }
+  }, [updatePetePosition]);
 
   return {
-    // Touch handlers
-    handleTouch,
+    handleTouchStart,
     handleTouchMove,
-
-    // Ripple effect
-    rippleAnim,
-    rippleOpacity,
-    ripplePosition,
-
-    // Direct touch handler for custom usage
-    handleGameTouch,
+    handleTouchEnd,
+    updateSmoothing,
   };
 };

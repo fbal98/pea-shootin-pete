@@ -1,6 +1,7 @@
 import { GameObject } from '@/utils/gameEngine';
 import { GAME_CONFIG } from '@/constants/GameConfig';
 import { GameObjectPools } from '@/utils/ObjectPool';
+import { SpatialGrid, SpatialObject, getSpatialGrid } from './SpatialGrid';
 
 export interface CollisionEvent {
   type: 'projectile-enemy' | 'enemy-pete';
@@ -19,6 +20,16 @@ export interface CollisionResult {
 }
 
 export class CollisionSystem {
+  private static spatialGrid: SpatialGrid | null = null;
+  private static useSpatialOptimization = true;
+
+  /**
+   * Initialize spatial grid for optimized collision detection
+   */
+  static initializeSpatialGrid(screenWidth: number, screenHeight: number): void {
+    this.spatialGrid = getSpatialGrid(screenWidth, screenHeight);
+  }
+
   /**
    * Check AABB collision between two game objects
    */
@@ -32,7 +43,20 @@ export class CollisionSystem {
   }
 
   /**
-   * Process all collisions in the game and return results
+   * Convert GameObject to SpatialObject
+   */
+  private static toSpatialObject(obj: GameObject): SpatialObject {
+    return {
+      id: obj.id,
+      x: obj.x,
+      y: obj.y,
+      width: obj.width,
+      height: obj.height
+    };
+  }
+
+  /**
+   * Process all collisions in the game and return results (optimized with spatial partitioning)
    */
   static processCollisions(
     projectiles: GameObject[],
@@ -49,13 +73,77 @@ export class CollisionSystem {
       shouldGameEnd: false,
     };
 
-    // Check projectile-enemy collisions
-    this.processProjectileEnemyCollisions(projectiles, enemies, result, objectPools);
-
-    // Check enemy-pete collisions
-    this.processEnemyPeteCollisions(enemies, pete, result);
+    if (this.useSpatialOptimization && this.spatialGrid) {
+      // Use spatial partitioning for optimized collision detection
+      this.processCollisionsOptimized(projectiles, enemies, pete, result, objectPools);
+    } else {
+      // Fallback to brute force method
+      this.processProjectileEnemyCollisions(projectiles, enemies, result, objectPools);
+      this.processEnemyPeteCollisions(enemies, pete, result);
+    }
 
     return result;
+  }
+
+  /**
+   * Optimized collision processing using spatial partitioning
+   */
+  private static processCollisionsOptimized(
+    projectiles: GameObject[],
+    enemies: GameObject[],
+    pete: GameObject,
+    result: CollisionResult,
+    objectPools: GameObjectPools
+  ): void {
+    if (!this.spatialGrid) return;
+
+    // Clear and populate spatial grid
+    this.spatialGrid.clear();
+    
+    // Insert enemies into spatial grid
+    for (const enemy of enemies) {
+      this.spatialGrid.insertObject(this.toSpatialObject(enemy));
+    }
+
+    // Check projectile-enemy collisions using spatial optimization
+    for (const projectile of projectiles) {
+      if (result.hitProjectileIds.has(projectile.id)) continue;
+
+      const nearbyEnemies = this.spatialGrid.getNearbyObjects(this.toSpatialObject(projectile));
+      
+      for (const spatialEnemy of nearbyEnemies) {
+        // Find the actual enemy object
+        const enemy = enemies.find(e => e.id === spatialEnemy.id);
+        if (!enemy || result.hitEnemyIds.has(enemy.id)) continue;
+
+        if (this.checkCollision(projectile, enemy)) {
+          // Record collision event
+          result.events.push({
+            type: 'projectile-enemy',
+            projectile,
+            enemy,
+          });
+
+          // Mark objects as hit
+          result.hitProjectileIds.add(projectile.id);
+          result.hitEnemyIds.add(enemy.id);
+
+          // Calculate score
+          const points = this.calculateScore(enemy);
+          result.scoreIncrease += points;
+
+          // Handle enemy splitting
+          const splitEnemies = this.splitEnemy(enemy, objectPools);
+          result.splitEnemies.push(...splitEnemies);
+
+          // Only one collision per projectile
+          break;
+        }
+      }
+    }
+
+    // Check enemy-pete collisions (still brute force as Pete is single object)
+    this.processEnemyPeteCollisions(enemies, pete, result);
   }
 
   /**
@@ -151,9 +239,8 @@ export class CollisionSystem {
     const newWidth = GAME_CONFIG.ENEMY_BASE_SIZE * sizeMultiplier;
     const newHeight = GAME_CONFIG.ENEMY_BASE_SIZE * sizeMultiplier;
 
-    // Create two smaller enemies using object pool
-    const enemy1 = objectPools.acquireEnemy();
-    enemy1.id = `${enemy.id}-split1-${Date.now()}-${Math.random()}`;
+    // Create two smaller enemies using optimized object pool
+    const enemy1 = objectPools.acquireSplitEnemy(enemy.id, 1);
     enemy1.x = enemy.x - newWidth / 4;
     enemy1.y = enemy.y;
     enemy1.width = newWidth;
@@ -163,8 +250,7 @@ export class CollisionSystem {
     enemy1.type = enemy.type;
     enemy1.sizeLevel = newSizeLevel;
 
-    const enemy2 = objectPools.acquireEnemy();
-    enemy2.id = `${enemy.id}-split2-${Date.now()}-${Math.random()}`;
+    const enemy2 = objectPools.acquireSplitEnemy(enemy.id, 2);
     enemy2.x = enemy.x + enemy.width - newWidth * 0.75;
     enemy2.y = enemy.y;
     enemy2.width = newWidth;

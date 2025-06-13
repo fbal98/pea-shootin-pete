@@ -28,7 +28,7 @@ export const StatusSection: React.FC<StatusSectionProps> = ({ lives, specialChar
           useNativeDriver: true,
         }),
       ]).start();
-      
+
       prevLives.current = lives;
     }
   }, [lives, livesScale]);
@@ -89,10 +89,7 @@ export const StatusSection: React.FC<StatusSectionProps> = ({ lives, specialChar
             name="heart"
             size={16}
             color={i < lives ? '#FF4444' : 'rgba(255, 68, 68, 0.3)'}
-            style={[
-              styles.heart,
-              i < lives && styles.heartActive,
-            ]}
+            style={[styles.heart, i < lives && styles.heartActive]}
           />
         </Animated.View>
       );
@@ -104,11 +101,9 @@ export const StatusSection: React.FC<StatusSectionProps> = ({ lives, specialChar
     <View style={styles.container}>
       <View style={styles.livesContainer}>
         <Text style={styles.label}>LIVES</Text>
-        <View style={styles.heartsRow}>
-          {renderHearts()}
-        </View>
+        <View style={styles.heartsRow}>{renderHearts()}</View>
       </View>
-      
+
       <View style={styles.specialContainer}>
         <Text style={styles.label}>SPECIAL</Text>
         <View style={styles.specialMeter}>

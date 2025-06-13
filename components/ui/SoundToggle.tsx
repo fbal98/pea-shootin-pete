@@ -10,7 +10,7 @@ export const SoundToggle: React.FC = () => {
 
   const handleToggle = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     // Animation on toggle
     Animated.parallel([
       Animated.sequence([
@@ -42,19 +42,13 @@ export const SoundToggle: React.FC = () => {
 
   return (
     <TouchableOpacity
-      style={[
-        styles.container,
-        soundEnabled ? styles.enabled : styles.disabled,
-      ]}
+      style={[styles.container, soundEnabled ? styles.enabled : styles.disabled]}
       onPress={handleToggle}
       activeOpacity={0.7}
     >
       <Animated.View
         style={{
-          transform: [
-            { scale: scaleAnim },
-            { rotate: rotation },
-          ],
+          transform: [{ scale: scaleAnim }, { rotate: rotation }],
         }}
       >
         <Ionicons

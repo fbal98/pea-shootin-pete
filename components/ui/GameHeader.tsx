@@ -27,14 +27,10 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
     <View style={styles.container}>
       {/* Left side - Score */}
       <ScoreSection score={score} combo={combo} />
-      
+
       {/* Center - Level Progress */}
-      <LevelSection 
-        level={level} 
-        scoreInLevel={scoreInLevel} 
-        nextLevelScore={nextLevelScore} 
-      />
-      
+      <LevelSection level={level} scoreInLevel={scoreInLevel} nextLevelScore={nextLevelScore} />
+
       {/* Right side - Lives/Special */}
       <StatusSection lives={lives} specialCharge={specialCharge} />
     </View>

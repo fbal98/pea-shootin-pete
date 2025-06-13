@@ -11,12 +11,12 @@ interface MenuButtonProps {
   delay?: number;
 }
 
-export const MenuButton: React.FC<MenuButtonProps> = ({ 
-  icon, 
-  children, 
-  primary = false, 
+export const MenuButton: React.FC<MenuButtonProps> = ({
+  icon,
+  children,
+  primary = false,
   onPress,
-  delay = 0 
+  delay = 0,
 }) => {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
@@ -64,7 +64,7 @@ export const MenuButton: React.FC<MenuButtonProps> = ({
   const handlePress = () => {
     // Haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     // Press animation
     Animated.sequence([
       Animated.timing(scaleAnim, {
@@ -93,10 +93,7 @@ export const MenuButton: React.FC<MenuButtonProps> = ({
         styles.container,
         {
           opacity: opacityAnim,
-          transform: [
-            { translateY: slideAnim },
-            { scale: scaleAnim },
-          ],
+          transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
         },
       ]}
     >
@@ -110,12 +107,9 @@ export const MenuButton: React.FC<MenuButtonProps> = ({
           ]}
         />
       )}
-      
+
       <TouchableOpacity
-        style={[
-          styles.button,
-          primary ? styles.primaryButton : styles.secondaryButton,
-        ]}
+        style={[styles.button, primary ? styles.primaryButton : styles.secondaryButton]}
         onPress={handlePress}
         activeOpacity={0.8}
       >
@@ -125,12 +119,7 @@ export const MenuButton: React.FC<MenuButtonProps> = ({
           color={primary ? '#1a1a1a' : '#FFD700'}
           style={styles.icon}
         />
-        <Text
-          style={[
-            styles.text,
-            primary ? styles.primaryText : styles.secondaryText,
-          ]}
-        >
+        <Text style={[styles.text, primary ? styles.primaryText : styles.secondaryText]}>
           {children}
         </Text>
       </TouchableOpacity>

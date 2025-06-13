@@ -1,6 +1,6 @@
 /**
  * Level Transition UI Components
- * 
+ *
  * Handles all level transition states:
  * - Level start introduction
  * - Victory screen with level completion
@@ -8,67 +8,59 @@
  * - Next level transition
  */
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
-import { 
-  useLevelProgressionStore, 
-  useLevelProgressionActions, 
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, Animated, StyleSheet, Easing } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AnimatedBalloon } from './AnimatedBalloon';
+import { getColorScheme } from '@/constants/GameColors';
+import {
+  useLevelProgressionActions,
   useCurrentLevel,
-  useLevelCompleted,
-  useLevelFailed,
   useFailureReason,
   useShowLevelTransition,
   useShowVictoryScreen,
   useShowFailureScreen,
-  useEnemiesRemaining,
-  useTotalEnemies,
   useCurrentScore,
   useCurrentCombo,
   useShotsFired,
-  useShotsHit
+  useShotsHit,
 } from '@/store/levelProgressionStore';
 import { useGameActions } from '@/store/gameStore';
-import { UI_CONFIG, ANIMATION_CONFIG } from '@/constants/GameConfig';
+import { ANIMATION_CONFIG } from '@/constants/GameConfig';
 
 interface LevelTransitionProps {
   screenWidth: number;
   screenHeight: number;
 }
 
-export const LevelTransition: React.FC<LevelTransitionProps> = ({ 
-  screenWidth, 
-  screenHeight 
+export const LevelTransition: React.FC<LevelTransitionProps> = ({
+  screenWidth: _screenWidth,
+  screenHeight: _screenHeight,
 }) => {
   const currentLevel = useCurrentLevel();
   const levelActions = useLevelProgressionActions();
   const gameActions = useGameActions();
-  
-  // Individual level state selectors
-  const levelCompleted = useLevelCompleted();
-  const levelFailed = useLevelFailed();
-  const failureReason = useFailureReason();
-  
+
   // Individual level UI selectors
+  const failureReason = useFailureReason();
   const showLevelTransition = useShowLevelTransition();
   const showVictoryScreen = useShowVictoryScreen();
   const showFailureScreen = useShowFailureScreen();
-  
+
   // Individual level progress selectors
-  const enemiesRemaining = useEnemiesRemaining();
-  const totalEnemies = useTotalEnemies();
   const currentScore = useCurrentScore();
   const currentCombo = useCurrentCombo();
   const shotsFired = useShotsFired();
   const shotsHit = useShotsHit();
-  
+
   // Calculate accuracy
   const accuracy = shotsFired > 0 ? (shotsHit / shotsFired) * 100 : 0;
-  
+
   // Animation values
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const [slideAnim] = useState(new Animated.Value(50));
-  
+
   // Start entrance animation when component mounts
   useEffect(() => {
     if (showLevelTransition || showVictoryScreen || showFailureScreen) {
@@ -92,7 +84,7 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
       ]).start();
     }
   }, [showLevelTransition, showVictoryScreen, showFailureScreen]);
-  
+
   // Exit animation
   const animateExit = (callback: () => void) => {
     Animated.parallel([
@@ -108,7 +100,7 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
       }),
     ]).start(callback);
   };
-  
+
   // Handle level start
   const handleStartLevel = () => {
     animateExit(() => {
@@ -117,7 +109,7 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
       gameActions.setIsPlaying(true);
     });
   };
-  
+
   // Handle retry level
   const handleRetryLevel = () => {
     animateExit(() => {
@@ -126,7 +118,7 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
       gameActions.setIsPlaying(true);
     });
   };
-  
+
   // Handle next level
   const handleNextLevel = async () => {
     animateExit(async () => {
@@ -134,7 +126,7 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
       gameActions.setIsPlaying(true);
     });
   };
-  
+
   // Handle return to menu
   const handleReturnToMenu = () => {
     animateExit(() => {
@@ -144,63 +136,65 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
       // Navigation to menu would go here
     });
   };
-  
+
   if (!currentLevel) return null;
-  
+
   // Don't show anything if no UI state is active
   if (!showLevelTransition && !showVictoryScreen && !showFailureScreen) {
     return null;
   }
-  
+
   // Get theme colors from current level
   const primaryColor = currentLevel.theme.colorScheme.primary;
   const backgroundColor = 'rgba(0, 0, 0, 0.8)';
-  
+  const colorScheme = getColorScheme(currentLevel.id);
+
   return (
     <View style={[styles.overlay, { backgroundColor }]}>
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.container,
           {
             opacity: fadeAnim,
-            transform: [
-              { scale: scaleAnim },
-              { translateY: slideAnim }
-            ]
-          }
+            transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
+          },
         ]}
       >
-        {/* Level Start Transition */}
-        {showLevelTransition && (
-          <LevelStartScreen
-            level={currentLevel}
-            primaryColor={primaryColor}
-            onStart={handleStartLevel}
-          />
-        )}
-        
-        {/* Victory Screen */}
-        {showVictoryScreen && (
-          <VictoryScreen
-            level={currentLevel}
-            progress={{ currentScore, accuracy, currentCombo }}
-            primaryColor={primaryColor}
-            onNextLevel={handleNextLevel}
-            onReturnToMenu={handleReturnToMenu}
-          />
-        )}
-        
-        {/* Failure Screen */}
-        {showFailureScreen && (
-          <FailureScreen
-            level={currentLevel}
-            failureReason={failureReason}
-            progress={{ currentScore, accuracy, currentCombo }}
-            primaryColor={primaryColor}
-            onRetry={handleRetryLevel}
-            onReturnToMenu={handleReturnToMenu}
-          />
-        )}
+        <LinearGradient
+          colors={[colorScheme.background, colorScheme.backgroundGradient[1]]}
+          style={styles.container}
+        >
+          {/* Level Start Transition */}
+          {showLevelTransition && (
+            <LevelStartScreen
+              level={currentLevel}
+              primaryColor={primaryColor}
+              onStart={handleStartLevel}
+            />
+          )}
+
+          {/* Victory Screen */}
+          {showVictoryScreen && (
+            <VictoryScreen
+              level={currentLevel}
+              progress={{ currentScore, accuracy, currentCombo }}
+              primaryColor={primaryColor}
+              onNextLevel={handleNextLevel}
+              onReturnToMenu={handleReturnToMenu}
+            />
+          )}
+
+          {/* Failure Screen */}
+          {showFailureScreen && (
+            <FailureScreen
+              level={currentLevel}
+              failureReason={failureReason}
+              progress={{ currentScore, accuracy, currentCombo }}
+              primaryColor={primaryColor}
+              onRetry={handleRetryLevel}
+              onReturnToMenu={handleReturnToMenu}
+            />
+          )}
+        </LinearGradient>
       </Animated.View>
     </View>
   );
@@ -213,18 +207,12 @@ interface LevelStartScreenProps {
   onStart: () => void;
 }
 
-const LevelStartScreen: React.FC<LevelStartScreenProps> = ({
-  level,
-  primaryColor,
-  onStart
-}) => {
+const LevelStartScreen: React.FC<LevelStartScreenProps> = ({ level, primaryColor, onStart }) => {
   return (
     <View style={styles.screenContainer}>
-      <Text style={[styles.levelTitle, { color: primaryColor }]}>
-        Level {level.id}
-      </Text>
+      <Text style={[styles.levelTitle, { color: primaryColor }]}>Level {level.id}</Text>
       <Text style={styles.levelName}>{level.name}</Text>
-      
+
       <View style={styles.objectiveContainer}>
         <Text style={styles.objectiveTitle}>Objective:</Text>
         {level.objectives.map((objective: any, index: number) => (
@@ -233,14 +221,12 @@ const LevelStartScreen: React.FC<LevelStartScreenProps> = ({
           </Text>
         ))}
       </View>
-      
+
       <TouchableOpacity
         style={[styles.button, styles.startButton, { borderColor: primaryColor }]}
         onPress={onStart}
       >
-        <Text style={[styles.buttonText, { color: primaryColor }]}>
-          START LEVEL
-        </Text>
+        <Text style={[styles.buttonText, { color: primaryColor }]}>START LEVEL</Text>
       </TouchableOpacity>
     </View>
   );
@@ -260,42 +246,251 @@ const VictoryScreen: React.FC<VictoryScreenProps> = ({
   progress,
   primaryColor,
   onNextLevel,
-  onReturnToMenu
+  onReturnToMenu,
 }) => {
+  const [showConfetti, setShowConfetti] = useState(true);
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const scoreAnim = useRef(new Animated.Value(0)).current;
+  const confettiAnim = useRef(new Animated.Value(0)).current;
+  const starAnims = useRef([
+    new Animated.Value(0),
+    new Animated.Value(0),
+    new Animated.Value(0),
+  ]).current;
+  const statsAnim = useRef(new Animated.Value(0)).current;
+  const buttonsAnim = useRef(new Animated.Value(0)).current;
+
+  // Calculate stars based on performance
+  const calculateStars = () => {
+    if (progress.accuracy >= 100) return 3;
+    if (progress.accuracy >= 80) return 2;
+    return 1;
+  };
+
+  const starsEarned = calculateStars();
+  const colorScheme = getColorScheme(level.id);
+
+  // Calculate time from level duration (mock for now)
+  const levelTime = 4.25; // This should come from actual game time tracking
+
+  useEffect(() => {
+    // Add listener for score animation
+    const listener = scoreAnim.addListener(({ value }) => {
+      setAnimatedScore(Math.round(value));
+    });
+
+    // Start confetti animation
+    Animated.timing(confettiAnim, {
+      toValue: 1,
+      duration: 3000,
+      useNativeDriver: true,
+    }).start(() => setShowConfetti(false));
+
+    // Animate elements in sequence
+    Animated.sequence([
+      // Score counting animation
+      Animated.timing(scoreAnim, {
+        toValue: progress.currentScore,
+        duration: 1000,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }),
+      // Stars animation
+      Animated.stagger(
+        200,
+        starAnims.slice(0, starsEarned).map(anim =>
+          Animated.spring(anim, {
+            toValue: 1,
+            tension: 100,
+            friction: 5,
+            useNativeDriver: true,
+          })
+        )
+      ),
+      // Stats slide in
+      Animated.spring(statsAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      // Buttons fade in
+      Animated.timing(buttonsAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Cleanup listener
+    return () => {
+      scoreAnim.removeListener(listener);
+    };
+  }, [
+    scoreAnim,
+    confettiAnim,
+    starAnims,
+    starsEarned,
+    statsAnim,
+    buttonsAnim,
+    progress.currentScore,
+  ]);
+
   return (
     <View style={styles.screenContainer}>
-      <Text style={[styles.successTitle, { color: primaryColor }]}>
-        LEVEL COMPLETE!
-      </Text>
-      <Text style={styles.levelName}>{level.name}</Text>
-      
-      <View style={styles.statsContainer}>
-        <StatRow label="Score" value={progress.currentScore.toString()} />
-        <StatRow label="Accuracy" value={`${Math.round(progress.accuracy)}%`} />
-        {progress.currentCombo > 0 && (
-          <StatRow label="Best Combo" value={progress.currentCombo.toString()} />
-        )}
+      {/* Simple confetti effect */}
+      {showConfetti && (
+        <View style={styles.confettiContainer}>
+          {[...Array(20)].map((_, i) => (
+            <Animated.View
+              key={i}
+              style={[
+                styles.confettiParticle,
+                {
+                  left: Math.random() * 300,
+                  backgroundColor: [
+                    colorScheme.primary,
+                    colorScheme.secondary,
+                    '#FFD700',
+                    '#FF6B6B',
+                  ][Math.floor(Math.random() * 4)],
+                  transform: [
+                    {
+                      translateY: confettiAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-50, 400],
+                      }),
+                    },
+                    {
+                      rotate: confettiAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '720deg'],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+          ))}
+        </View>
+      )}
+
+      {/* Floating Balloons */}
+      <AnimatedBalloon x={80} y={100} size={60} color={colorScheme.primary} delay={0} />
+      <AnimatedBalloon x={240} y={80} size={50} color={colorScheme.secondary} delay={200} />
+      <AnimatedBalloon x={320} y={120} size={55} color={colorScheme.particle} delay={400} />
+
+      <Text style={[styles.successTitle, { color: primaryColor }]}>LEVEL COMPLETE!</Text>
+
+      {/* Stars Display */}
+      <View style={styles.starsContainer}>
+        {[0, 1, 2].map(index => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.star,
+              {
+                opacity: starAnims[index],
+                transform: [
+                  {
+                    scale: starAnims[index].interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.5, 1],
+                    }),
+                  },
+                  {
+                    rotate: starAnims[index].interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg'],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Text style={[styles.starIcon, { color: index < starsEarned ? '#FFD700' : '#DDD' }]}>
+              ⭐
+            </Text>
+          </Animated.View>
+        ))}
       </View>
-      
-      <View style={styles.buttonContainer}>
+
+      {/* Animated Score */}
+      <Text style={[styles.scoreDisplay, { color: primaryColor }]}>
+        {animatedScore.toLocaleString()}
+      </Text>
+
+      {/* Stats with icons */}
+      <Animated.View
+        style={[
+          styles.statsContainer,
+          {
+            opacity: statsAnim,
+            transform: [
+              {
+                translateY: statsAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [20, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <View style={styles.statRow}>
+          <Text style={styles.statIcon}>⏱️</Text>
+          <Text style={styles.statLabel}>Time</Text>
+          <Text style={styles.statValue}>{levelTime.toFixed(2)}s</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Text style={styles.statIcon}>🎯</Text>
+          <Text style={styles.statLabel}>Accuracy</Text>
+          <Text style={[styles.statValue, progress.accuracy === 100 && styles.perfectAccuracy]}>
+            {Math.round(progress.accuracy)}%
+          </Text>
+        </View>
+        {progress.currentCombo > 0 && (
+          <View style={styles.statRow}>
+            <Text style={styles.statIcon}>🔥</Text>
+            <Text style={styles.statLabel}>Best Combo</Text>
+            <Text style={styles.statValue}>{progress.currentCombo}x</Text>
+          </View>
+        )}
+      </Animated.View>
+
+      {/* Animated Buttons */}
+      <Animated.View
+        style={[
+          styles.buttonContainer,
+          {
+            opacity: buttonsAnim,
+            transform: [
+              {
+                translateY: buttonsAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [30, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
         <TouchableOpacity
           style={[styles.button, styles.primaryButton, { backgroundColor: primaryColor }]}
           onPress={onNextLevel}
+          activeOpacity={0.8}
         >
-          <Text style={[styles.buttonText, { color: 'white' }]}>
-            NEXT LEVEL
-          </Text>
+          <Text style={[styles.buttonText, { color: 'white' }]}>PLAY AGAIN</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
+          style={[styles.button, styles.secondaryButton, { borderColor: primaryColor }]}
           onPress={onReturnToMenu}
+          activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>
-            MENU
-          </Text>
+          <Text style={[styles.buttonText, { color: primaryColor }]}>MAIN MENU</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     </View>
   );
 };
@@ -316,41 +511,30 @@ const FailureScreen: React.FC<FailureScreenProps> = ({
   progress,
   primaryColor,
   onRetry,
-  onReturnToMenu
+  onReturnToMenu,
 }) => {
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.failureTitle}>
-        LEVEL FAILED
-      </Text>
+      <Text style={styles.failureTitle}>LEVEL FAILED</Text>
       <Text style={styles.levelName}>{level.name}</Text>
-      
-      {failureReason && (
-        <Text style={styles.failureReason}>{failureReason}</Text>
-      )}
-      
+
+      {failureReason && <Text style={styles.failureReason}>{failureReason}</Text>}
+
       <View style={styles.statsContainer}>
         <StatRow label="Score" value={progress.currentScore.toString()} />
         <StatRow label="Accuracy" value={`${Math.round(progress.accuracy)}%`} />
       </View>
-      
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={[styles.button, styles.primaryButton, { backgroundColor: primaryColor }]}
           onPress={onRetry}
         >
-          <Text style={[styles.buttonText, { color: 'white' }]}>
-            TRY AGAIN
-          </Text>
+          <Text style={[styles.buttonText, { color: 'white' }]}>TRY AGAIN</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
-          onPress={onReturnToMenu}
-        >
-          <Text style={styles.buttonText}>
-            MENU
-          </Text>
+
+        <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={onReturnToMenu}>
+          <Text style={styles.buttonText}>MENU</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -382,13 +566,18 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: 30,
     padding: 40,
     margin: 20,
-    minWidth: 300,
+    minWidth: 320,
     maxWidth: 400,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
   },
   screenContainer: {
     alignItems: 'center',
@@ -405,9 +594,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   successTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 32,
+    fontWeight: '700',
+    marginBottom: 20,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   failureTitle: {
     fontSize: 28,
@@ -438,35 +629,67 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontStyle: 'italic',
   },
+  starsContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    gap: 10,
+  },
+  star: {
+    marginHorizontal: 5,
+  },
+  starIcon: {
+    fontSize: 40,
+  },
+  scoreDisplay: {
+    fontSize: 64,
+    fontWeight: '700',
+    marginBottom: 30,
+  },
   statsContainer: {
     marginBottom: 30,
     width: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    borderRadius: 20,
+    padding: 20,
   },
   statRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 12,
     paddingHorizontal: 10,
+  },
+  statIcon: {
+    fontSize: 20,
+    marginRight: 10,
   },
   statLabel: {
     fontSize: 16,
     color: '#666',
+    flex: 1,
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#333',
+  },
+  perfectAccuracy: {
+    color: '#4CAF50',
   },
   buttonContainer: {
     width: '100%',
-    gap: 15,
+    gap: 12,
   },
   button: {
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 25,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 30,
     alignItems: 'center',
     borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   startButton: {
     backgroundColor: 'transparent',
@@ -475,12 +698,27 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   secondaryButton: {
-    backgroundColor: 'transparent',
-    borderColor: '#ddd',
+    backgroundColor: 'white',
   },
   buttonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  confettiContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'none',
+  },
+  confettiParticle: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    top: -20,
   },
 });

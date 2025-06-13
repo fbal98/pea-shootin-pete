@@ -4,87 +4,62 @@
   "version": "1.0.0",
   "difficulty": "tutorial",
   "estimatedDuration": 45,
-  
+
   "objectives": [
     {
       "type": "eliminate_all_enemies",
-      "target": 5,
-      "description": "Pop all balloons to win!",
+      "target": 1,
+      "description": "Pop the balloon to win!",
       "isOptional": false,
       "rewardMultiplier": 1.0
     }
   ],
-  
+
   "failureConditions": [
     {
       "type": "time_limit",
       "threshold": 120
     }
   ],
-  
+
   "enemyWaves": [
     {
       "id": "tutorial_wave_1",
-      "startTime": 2.0,
-      "duration": 30.0,
+      "startTime": 0.1,
+      "duration": 0.5,
       "enemies": [
         {
           "type": "basic",
-          "count": 3,
+          "count": 1,
           "sizeLevel": 3,
-          "spawnInterval": 3.0,
-          "movementType": "physics_normal",
-          "movementSpeed": 0.8,
-          "splitBehavior": {
-            "enabled": true,
-            "minSizeToSplit": 2,
-            "splitInto": 2,
-            "childSizeReduction": 0.7,
-            "childSpeedBonus": 1.1
-          }
-        }
-      ],
-      "spawnPattern": "left_to_right",
-      "speedBonus": 0.0,
-      "sizeVariation": 0.0
-    },
-    {
-      "id": "tutorial_wave_2",
-      "startTime": 20.0,
-      "duration": 20.0,
-      "enemies": [
-        {
-          "type": "basic",
-          "count": 2,
-          "sizeLevel": 2,
-          "spawnInterval": 4.0,
+          "spawnInterval": 0.1,
           "movementType": "physics_normal",
           "movementSpeed": 1.0,
           "splitBehavior": {
-            "enabled": true,
-            "minSizeToSplit": 1,
+            "enabled": false,
+            "minSizeToSplit": 2,
             "splitInto": 2,
-            "childSizeReduction": 0.7,
-            "childSpeedBonus": 1.1
+            "childSizeReduction": 1.0,
+            "childSpeedBonus": 1.0
           }
         }
       ],
-      "spawnPattern": "random",
+      "spawnPattern": "two_small",
       "speedBonus": 0.0,
-      "sizeVariation": 0.1
+      "sizeVariation": 0.0
     }
   ],
-  
-  "totalEnemyCount": 5,
-  
+
+  "totalEnemyCount": 1,
+
   "environment": {
-    "gravity": 40.0,
-    "airResistance": 0.5,
-    "wallBounceMultiplier": 0.9,
-    "floorBounceMultiplier": 1.4,
-    "ceilingBounceMultiplier": 0.8
+    "gravity": 500.0,
+    "airResistance": 0.0,
+    "wallBounceMultiplier": 1.0,
+    "floorBounceMultiplier": 1.0,
+    "ceilingBounceMultiplier": 1.0
   },
-  
+
   "theme": {
     "colorScheme": {
       "primary": "#4ECDC4",
@@ -119,18 +94,18 @@
       "hudOpacity": 0.9
     }
   },
-  
+
   "balance": {
-    "enemySpeedMultiplier": 0.8,
+    "enemySpeedMultiplier": 1.0,
     "spawnRateMultiplier": 1.0,
-    "balloonSizeMultiplier": 1.1,
+    "balloonSizeMultiplier": 1.0,
     "gravityMultiplier": 1.0,
     "bounceEnergyMultiplier": 1.0,
     "peteSpeedMultiplier": 1.0,
     "projectileSpeedMultiplier": 1.0,
     "targetFailRate": 0.05
   },
-  
+
   "rewards": {
     "baseScore": 100,
     "perfectionBonus": 50,
@@ -138,16 +113,22 @@
     "unlocksNextLevel": true,
     "coinsAwarded": 10,
     "unlocksPowerup": null,
-    "unlocksAchievement": "first_pop"
+    "unlocksAchievement": "first_pop",
+    "masteryThresholds": {
+      "goldTimeThreshold": 30000,
+      "goldAccuracyThreshold": 90,
+      "goldStyleThreshold": 500,
+      "perfectCompletionMultiplier": 2.0
+    }
   },
-  
+
   "metadata": {
     "testGroup": "tutorial_flow",
     "variant": "standard",
     "designIntent": ["teach_basic_shooting", "introduce_balloon_physics", "demonstrate_splitting"],
     "expectedPlaytime": 45,
     "difficultyRating": 1,
-    "targetRetryRate": 0.10,
+    "targetRetryRate": 0.1,
     "targetCompletionRate": 0.95,
     "createdDate": "2025-01-11",
     "lastModified": "2025-01-11",
