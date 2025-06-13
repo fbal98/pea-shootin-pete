@@ -93,7 +93,7 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
   const currentWave = useCurrentWave();
   const waveIndex = useWaveIndex();
   
-  // Initialize level if not loaded (only once)
+  // Initialize level if not loaded (only once per game session)
   const hasInitializedLevel = useRef(false);
   useEffect(() => {
     if (!hasInitializedLevel.current && !currentLevel && !levelCompleted && !levelFailed) {
@@ -102,6 +102,25 @@ export const useHyperCasualGameLogic = (screenWidth: number, gameAreaHeight: num
       levelActions.loadLevel(1);
     }
   }, []);
+
+  // Reset initialization and clear game entities when game is reset
+  useEffect(() => {
+    if (!isPlaying && gameOver) {
+      // Game has ended, reset initialization flag for next game
+      hasInitializedLevel.current = false;
+      
+      // Clear all game entities
+      enemies.current = [];
+      projectiles.current = [];
+      mysteryBalloons.current = [];
+      activeWaves.current.clear();
+      waveSpawnTimers.current.clear();
+      
+      // Reset wave management
+      renderTickRef.current = 0;
+      lastUpdateTime.current = 0;
+    }
+  }, [isPlaying, gameOver]);
 
   // Initialize meta progression system once
   const hasInitializedMeta = useRef(false);

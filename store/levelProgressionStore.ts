@@ -105,6 +105,9 @@ interface LevelProgressionActions {
   // Mystery Balloon Integration
   onBalloonSpawned: () => void;
   onMysteryBalloonPopped: (balloonId: string) => void;
+  
+  // Full reset for new game
+  resetForNewGame: () => void;
 }
 
 interface LevelProgressionStore extends LevelProgressionState {
@@ -583,6 +586,45 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
           console.error('Failed to process mystery balloon reward:', error);
         }
       }, 0);
+    },
+    
+    // Full reset for new game
+    resetForNewGame: () => {
+      set({
+        // Reset level state
+        currentLevel: null,
+        currentLevelId: 1,
+        isLevelLoading: false,
+        levelLoadError: null,
+        
+        // Reset progress tracking
+        enemiesRemaining: 0,
+        totalEnemies: 0,
+        objectivesCompleted: [],
+        currentWave: null,
+        waveIndex: 0,
+        
+        // Reset victory/failure state
+        levelCompleted: false,
+        levelFailed: false,
+        failureReason: null,
+        
+        // Reset timing & statistics
+        levelStartTime: 0,
+        levelDuration: 0,
+        currentScore: 0,
+        shotsFired: 0,
+        shotsHit: 0,
+        currentCombo: 0,
+        maxCombo: 0,
+        
+        // Reset UI state
+        showLevelTransition: false,
+        showVictoryScreen: false,
+        showFailureScreen: false,
+        
+        // Keep player progress (unlocked levels, etc.)
+      });
     }
   };
 

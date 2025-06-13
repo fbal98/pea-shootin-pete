@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View, Text, TouchableOpacity, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { UI_COLORS } from '@/constants/HyperCasualColors';
 import { ANIMATION_CONFIG } from '@/constants/GameConfig';
+import { UI_COLORS } from '@/constants/HyperCasualColors';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -157,7 +157,7 @@ export const HyperCasualMenuScreen: React.FC<HyperCasualMenuScreenProps> = ({
           >
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <View style={styles.tapButton}>
-                <Text style={styles.tapText}>TAP TO PLAY</Text>
+                <Text style={styles.tapText}>PLAY</Text>
               </View>
             </Animated.View>
           </TouchableOpacity>

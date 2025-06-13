@@ -63,7 +63,7 @@ export default function HomeScreen() {
     setCurrentScreen('worldmap');
   }, []);
 
-  const handleLevelSelect = useCallback((levelId: number) => {
+  const handleLevelSelect = useCallback((_levelId: number) => {
     // Start the selected level
     actions.resetGame();
     actions.setIsPlaying(true);

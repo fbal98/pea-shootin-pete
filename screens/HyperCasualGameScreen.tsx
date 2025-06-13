@@ -108,8 +108,13 @@ export const HyperCasualGameScreen: React.FC<HyperCasualGameScreenProps> = ({ on
   // Game starts when isPlaying is set to true by parent component
 
   const handleRestart = useCallback(() => {
+    // Reset game store state
     actions.resetGame();
-  }, [actions]);
+    // Reset level progression state completely
+    levelActions.resetForNewGame();
+    // Load level 1 after resetting
+    levelActions.loadLevel(1);
+  }, [actions, levelActions]);
 
   const handleBackToMenu = useCallback(() => {
     actions.setIsPlaying(false);
