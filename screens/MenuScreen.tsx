@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View, Easing } from 'react-native';
+import { isFeatureEnabled } from '@/constants/FeatureFlagConfig';
 
 interface MenuScreenProps {
   onStartGame: () => void;
@@ -100,12 +101,16 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         {/* Top Navigation */}
         <View style={styles.topNavigation}>
-          <TouchableOpacity style={styles.iconButton} onPress={onSettings}>
-            <Ionicons name="settings-outline" size={28} color={UI_PALETTE.text_dark} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={onAbout}>
-            <Ionicons name="information-circle-outline" size={28} color={UI_PALETTE.text_dark} />
-          </TouchableOpacity>
+          {isFeatureEnabled('core.basicUI') && (
+            <TouchableOpacity style={styles.iconButton} onPress={onSettings}>
+              <Ionicons name="settings-outline" size={28} color={UI_PALETTE.text_dark} />
+            </TouchableOpacity>
+          )}
+          {isFeatureEnabled('core.basicUI') && (
+            <TouchableOpacity style={styles.iconButton} onPress={onAbout}>
+              <Ionicons name="information-circle-outline" size={28} color={UI_PALETTE.text_dark} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Game Title */}
@@ -134,7 +139,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
 
         {/* High Score & Bottom Nav */}
         <Animated.View style={[styles.bottomContainer, { transform: [{ translateY: buttonsSlideAnim }] }]}>
-          {highScore > 0 && (
+          {isFeatureEnabled('metaProgression.playerStats') && highScore > 0 && (
             <View style={styles.highScoreContainer}>
               <Ionicons name="trophy" size={20} color={UI_PALETTE.accent} />
               <Text style={styles.highScoreText}>HIGH SCORE: {highScore.toLocaleString()}</Text>
@@ -142,10 +147,12 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
           )}
 
           <View style={styles.bottomNav}>
-            <TouchableOpacity style={styles.bottomNavButton} onPress={onWorldMap}>
-              <Ionicons name="map-outline" size={24} color={UI_PALETTE.text_dark} />
-              <Text style={styles.bottomNavText}>MAP</Text>
-            </TouchableOpacity>
+            {isFeatureEnabled('metaProgression.levelMastery') && (
+              <TouchableOpacity style={styles.bottomNavButton} onPress={onWorldMap}>
+                <Ionicons name="map-outline" size={24} color={UI_PALETTE.text_dark} />
+                <Text style={styles.bottomNavText}>MAP</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.bottomNavButton}>
               <Ionicons name="shirt-outline" size={24} color={UI_PALETTE.text_dark} />
               <Text style={styles.bottomNavText}>SKINS</Text>

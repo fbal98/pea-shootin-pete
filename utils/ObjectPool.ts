@@ -39,6 +39,17 @@ class PooledIdGenerator {
   }
 }
 
+/**
+ * Fast ID generator for general use (replaces nanoid)
+ * Uses a simple counter-based approach for maximum performance
+ */
+let fastIdCounter = 0;
+const fastIdSessionId = Date.now().toString(36);
+
+export function generateFastId(): string {
+  return `${fastIdSessionId}_${++fastIdCounter}`;
+}
+
 export class ObjectPool {
   private pool: PooledObject[] = [];
   private createObject: () => GameObject;

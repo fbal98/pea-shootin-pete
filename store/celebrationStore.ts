@@ -12,7 +12,8 @@
  */
 
 import { create } from 'zustand';
-import { nanoid } from 'nanoid/non-secure';
+// Removed nanoid dependency - using fast UUID generation instead
+import { generateFastId } from '@/utils/ObjectPool';
 import { Achievement, MysteryReward } from '@/types/MetaProgressionTypes';
 
 export interface VictoryCelebration {
@@ -83,7 +84,7 @@ export const useCelebrationStore = create<CelebrationState>((set, get) => ({
 
   // Actions
   addVictoryCelebration: celebration => {
-    const id = `victory_${nanoid(8)}`;
+    const id = `victory_${generateFastId()}`;
     const fullCelebration = { ...celebration, id };
 
     set(state => ({
@@ -94,7 +95,7 @@ export const useCelebrationStore = create<CelebrationState>((set, get) => ({
   },
 
   addAchievementCelebration: celebration => {
-    const id = `achievement_${nanoid(8)}`;
+    const id = `achievement_${generateFastId()}`;
     const fullCelebration = { ...celebration, id };
 
     set(state => ({
@@ -105,7 +106,7 @@ export const useCelebrationStore = create<CelebrationState>((set, get) => ({
   },
 
   addComboCelebration: celebration => {
-    const id = `combo_${nanoid(8)}`;
+    const id = `combo_${generateFastId()}`;
     const fullCelebration = { ...celebration, id };
 
     set(state => ({
@@ -116,7 +117,7 @@ export const useCelebrationStore = create<CelebrationState>((set, get) => ({
   },
 
   addMysteryRewardCelebration: celebration => {
-    const id = `mysteryReward_${nanoid(8)}`;
+    const id = `mysteryReward_${generateFastId()}`;
     const fullCelebration = { ...celebration, id };
 
     set(state => ({
@@ -127,7 +128,7 @@ export const useCelebrationStore = create<CelebrationState>((set, get) => ({
   },
 
   addBattlePassCelebration: celebration => {
-    const id = `battlePass_${nanoid(8)}`;
+    const id = `battlePass_${generateFastId()}`;
     const fullCelebration = { ...celebration, id };
 
     set(state => ({
@@ -200,5 +201,19 @@ export const useRemoveCelebration = () => useCelebrationStore(state => state.rem
 export const useClearAllCelebrations = () =>
   useCelebrationStore(state => state.clearAllCelebrations);
 
-// ❌ DEPRECATED - Composite selector causes infinite loops
-// export const useCelebrationActions = () => useCelebrationStore(state => ({...}));
+// =============================================================================
+// ⚠️  ANTI-PATTERN PREVENTION
+// =============================================================================
+// 
+// DO NOT create composite selectors that return new objects on every render.
+// This breaks React's memoization and causes infinite re-render loops.
+//
+// ❌ NEVER DO THIS:
+// export const useCelebrationActions = () => useCelebrationStore(state => ({
+//   addVictory: state.addVictoryCelebration,
+//   addAchievement: state.addAchievementCelebration,
+//   clear: state.clearAllCelebrations
+// })); // <-- NEW OBJECT EVERY RENDER = INFINITE LOOPS
+//
+// ✅ INDIVIDUAL SELECTORS ABOVE ARE CORRECT
+// =============================================================================

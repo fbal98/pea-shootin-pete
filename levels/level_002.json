@@ -1,6 +1,6 @@
 {
   "id": 2,
-  "name": "Balloon Bouncer",
+  "name": "Mix & Pop",
   "version": "1.0.0",
   "difficulty": "easy",
   "estimatedDuration": 60,
@@ -9,7 +9,7 @@
     {
       "type": "eliminate_all_enemies",
       "target": 8,
-      "description": "Pop all bouncing balloons!",
+      "description": "Pop all the different balloons!",
       "isOptional": false,
       "rewardMultiplier": 1.0
     },
@@ -41,7 +41,7 @@
       "enemies": [
         {
           "type": "basic",
-          "count": 3,
+          "count": 2,
           "sizeLevel": 3,
           "spawnInterval": 0.2,
           "movementType": "physics_normal",
@@ -52,6 +52,17 @@
             "splitInto": 2,
             "childSizeReduction": 1.0,
             "childSpeedBonus": 1.0
+          }
+        },
+        {
+          "type": "fast",
+          "count": 1,
+          "sizeLevel": 2,
+          "spawnInterval": 0.3,
+          "movementType": "physics_normal",
+          "movementSpeed": 1.5,
+          "splitBehavior": {
+            "enabled": false
           }
         }
       ],
@@ -65,18 +76,29 @@
       "duration": 1.0,
       "enemies": [
         {
-          "type": "basic",
-          "count": 2,
+          "type": "strong",
+          "count": 1,
           "sizeLevel": 2,
           "spawnInterval": 0.3,
           "movementType": "physics_normal",
-          "movementSpeed": 1.0,
+          "movementSpeed": 0.8,
           "splitBehavior": {
             "enabled": true,
             "minSizeToSplit": 1,
-            "splitInto": 2,
+            "splitInto": 3,
             "childSizeReduction": 1.0,
-            "childSpeedBonus": 1.0
+            "childSpeedBonus": 1.2
+          }
+        },
+        {
+          "type": "basic",
+          "count": 1,
+          "sizeLevel": 1,
+          "spawnInterval": 0.4,
+          "movementType": "physics_normal",
+          "movementSpeed": 1.0,
+          "splitBehavior": {
+            "enabled": false
           }
         }
       ],
@@ -166,7 +188,7 @@
   "metadata": {
     "testGroup": "difficulty_progression",
     "variant": "standard",
-    "designIntent": ["introduce_fast_enemies", "teach_combo_system", "increase_challenge"],
+    "designIntent": ["introduce_enemy_variety", "mix_mechanics_early", "teach_adaptability"],
     "expectedPlaytime": 60,
     "difficultyRating": 3,
     "targetRetryRate": 0.25,
@@ -174,6 +196,6 @@
     "createdDate": "2025-01-11",
     "lastModified": "2025-01-11",
     "createdBy": "system",
-    "balanceNotes": "Introduces faster enemies and combo mechanics while maintaining approachable difficulty"
+    "balanceNotes": "FTUE-optimized: introduces fast AND strong enemies in level 2 for immediate variety and engagement"
   }
 }

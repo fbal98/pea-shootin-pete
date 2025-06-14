@@ -540,9 +540,19 @@ export type EnemyType = 'basic' | 'fast' | 'strong';
 export type GameConfigType = typeof ENTITY_CONFIG;
 
 // =============================================================================
-// LEGACY COMPATIBILITY
+// LEGACY COMPATIBILITY - SCHEDULED FOR REMOVAL
 // =============================================================================
-// Re-export as GAME_CONFIG for backward compatibility during migration
+// 
+// ⚠️  WARNING: This legacy export creates technical debt and should be gradually removed
+// 
+// MIGRATION STRATEGY:
+// 1. Replace GAME_CONFIG.PETE_SIZE with ENTITY_CONFIG.PETE.SIZE
+// 2. Replace GAME_CONFIG.GRAVITY with config.BALLOON_PHYSICS.GRAVITY_PX_S2 (level-specific)
+// 3. Replace GAME_CONFIG.SCORE_MULTIPLIER with SCORING_CONFIG.POINTS_BY_SIZE
+// 4. Use the new modular configuration objects directly
+// 
+// This legacy object should be deleted once all references are migrated to the
+// structured configuration system.
 export const GAME_CONFIG = {
   // Legacy field mappings - will be removed after migration
   PETE_SIZE: ENTITY_CONFIG.PETE.SIZE,

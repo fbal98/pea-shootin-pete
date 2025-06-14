@@ -16,7 +16,9 @@ import {
   CelebrationManager,
 } from '@/components/ui/CelebrationSystem';
 import { VictoryModal } from '@/components/ui/VictoryModal';
-import { TutorialOverlay } from '@/components/ui/TutorialOverlay';
+import InWorldTutorial from '@/components/ui/InWorldTutorial';
+import { PowerUpHUD } from '@/components/ui/PowerUpHUD';
+import { isFeatureEnabled } from '@/constants/FeatureFlagConfig';
 
 // Hooks
 import { useGameLogic } from '@/hooks/useGameLogic';
@@ -94,6 +96,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     x: number;
     y: number;
   }[]>([]);
+  
+  // Save Me state (one per level)
+  const [saveMeUsed, setSaveMeUsed] = useState(false);
 
   // Game logic hook
   const {
@@ -172,6 +177,46 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     levelActions.showVictory(false);
     handleBackToMenu();
   }, [levelActions, handleBackToMenu]);
+
+  // === SAVE ME FEATURE ===
+  const handleSaveMe = useCallback(async () => {
+    if (saveMeUsed) return; // Prevent multiple uses
+    
+    // Mark Save Me as used for this level
+    setSaveMeUsed(true);
+    
+    // TODO: Show rewarded ad here
+    // For now, we'll just activate the save immediately
+    console.log('Save Me activated - would show rewarded ad here');
+    
+    // Simulate ad completion after a brief delay
+    setTimeout(() => {
+      // Revive the player with 1 life
+      actions.setLives(1);
+      actions.setGameOver(false);
+      
+      // Add celebration for dramatic save
+      queueCelebration({
+        type: 'achievement',
+        priority: 20, // Very high priority
+        props: {
+          position: { x: 200, y: 300 }, // Center-ish of screen
+          theme: 'beach',
+          intensity: 'high',
+          message: 'SAVED!',
+        },
+      });
+      
+      console.log('Player saved! Game continues...');
+    }, 1000); // 1 second delay to simulate ad
+  }, [saveMeUsed, actions, queueCelebration]);
+  
+  // Reset Save Me when starting a new level
+  useEffect(() => {
+    if (currentLevel?.id) {
+      setSaveMeUsed(false);
+    }
+  }, [currentLevel?.id]);
 
   // Input performance tracking (development only)
   const [inputStats, setInputStats] = useState<{
@@ -301,6 +346,21 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                     const centerX = mysteryBalloon.x + mysteryBalloon.width / 2;
                     const centerY = mysteryBalloon.y + mysteryBalloon.width / 2;
                     
+                    // === POWER-UP SYSTEM: ACTIVATE POWER-UPS FROM MYSTERY BALLOONS ===
+                    if (reward && typeof reward === 'object' && 'type' in reward) {
+                      const mysteryReward = reward as any;
+                      if (mysteryReward.type === 'power_boost') {
+                        // Activate power-up with duration based on rarity
+                        const duration = mysteryReward.rarity === 'epic' ? 15000 : // 15 seconds for epic
+                                        mysteryReward.rarity === 'rare' ? 12000 : // 12 seconds for rare  
+                                        mysteryReward.rarity === 'uncommon' ? 10000 : // 10 seconds for uncommon
+                                        8000; // 8 seconds for common
+                        
+                        actions.activatePowerUp(mysteryReward.value, duration);
+                        console.log(`Power-up activated: ${mysteryReward.value} for ${duration}ms`);
+                      }
+                    }
+                    
                     // High-priority celebration for mystery balloon pop
                     queueCelebration({
                       type: 'mystery_reward',
@@ -341,6 +401,18 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                 <Text style={styles.gameOverTitle}>GAME OVER</Text>
                 <Text style={styles.finalScore}>{score}</Text>
 
+                {/* Save Me Button - Only show if not used yet */}
+                {!saveMeUsed && (
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.saveMeButton]}
+                    onPress={handleSaveMe}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.saveMeButtonText}>💎 SAVE ME</Text>
+                    <Text style={styles.saveMeSubText}>Watch ad to continue</Text>
+                  </TouchableOpacity>
+                )}
+
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: UI_PALETTE.primary }]}
                   onPress={handleRestart}
@@ -361,7 +433,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
           )}
 
           {/* Real-time Progression HUD */}
-          <ProgressionHUD level={level} isPlaying={isPlaying && !gameOver} />
+          {isFeatureEnabled('metaProgression.playerStats') && (
+            <ProgressionHUD level={level} isPlaying={isPlaying && !gameOver} />
+          )}
+          
+          {/* Power-up Display */}
+          {isFeatureEnabled('economy.powerUpShop') && <PowerUpHUD />}
 
           {/* Mystery Reward Celebrations */}
           {mysteryRewards.map(mysteryReward => (
@@ -389,17 +466,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
             accuracy={accuracy}
           />
 
-          {/* Tutorial Overlay */}
-          {isShowingTutorial && currentTutorial && (
-            <TutorialOverlay
-              step={currentTutorial}
-              onNext={completeTutorialStep}
-              onSkip={skipCurrentTutorial}
-              onComplete={completeTutorialStep}
-              progress={{
-                current: 1, // TODO: Get actual progress from tutorial system
-                total: 3, // TODO: Get actual total from tutorial system
-              }}
+          {/* Simplified In-World Tutorial */}
+          {isFeatureEnabled('tutorial.animatedCues') && (
+            <InWorldTutorial
+              step={isShowingTutorial && currentTutorial ? 'tap_to_shoot' : null}
+              balloonPosition={enemies.length > 0 ? { x: enemies[0].x, y: enemies[0].y } : undefined}
+              onStepCompleted={completeTutorialStep}
             />
           )}
 
@@ -469,6 +541,29 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: UI_PALETTE.primary,
+  },
+  saveMeButton: {
+    backgroundColor: '#FF6B6B', // Attention-grabbing red
+    borderWidth: 2,
+    borderColor: '#FF4757',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  saveMeButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: UI_PALETTE.text_light,
+    textAlign: 'center',
+  },
+  saveMeSubText: {
+    fontSize: 12,
+    color: UI_PALETTE.text_light,
+    textAlign: 'center',
+    opacity: 0.9,
+    marginTop: 2,
   },
   debugOverlay: {
     position: 'absolute',

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { useGameActions, useIsPlaying, useGameOver } from '@/store/gameStore';
+import { useGameActions, useIsPlaying, useGameOver, useActivePowerUp, usePowerUpDuration } from '@/store/gameStore';
 import {
   useLevelProgressionActions,
   useCurrentLevel,
@@ -85,6 +85,10 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
 
   // Meta progression actions for mystery rewards
   const metaActions = useMetaProgressionActions();
+  
+  // Power-up state
+  const activePowerUp = useActivePowerUp();
+  const powerUpDuration = usePowerUpDuration();
   
   // Celebration system for feedback
   const { queueCelebration } = useCelebrationManager();
@@ -297,7 +301,7 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
     // Don't force update here - let the game loop handle visual updates
   }, []);
 
-  // Shoot projectile
+  // Shoot projectile with power-up support
   const shootProjectile = useCallback(() => {
     if (
       uiStateRef.current.gameOver ||
@@ -313,21 +317,64 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
     metaActions.recordShotFired();
 
     const config = levelConfig.current;
-    const projectile = objectPools.current.acquireProjectile();
-    projectile.x = petePosition.current + ENTITY_CONFIG.PETE.SIZE / 2 - ENTITY_CONFIG.PROJECTILE.SIZE / 2;
-    projectile.y = gameAreaHeightRef.current -
+    
+    // === POWER-UP SYSTEM: MODIFY SHOOTING BEHAVIOR ===
+    const currentActivePowerUp = activePowerUp; // Get current power-up from state
+    
+    // Base projectile properties
+    const baseX = petePosition.current + ENTITY_CONFIG.PETE.SIZE / 2 - ENTITY_CONFIG.PROJECTILE.SIZE / 2;
+    const baseY = gameAreaHeightRef.current -
       ENTITY_CONFIG.PETE.SIZE -
       UI_CONFIG.LAYOUT.BOTTOM_PADDING -
       ENTITY_CONFIG.PROJECTILE.SIZE;
-    projectile.width = ENTITY_CONFIG.PROJECTILE.SIZE;
-    projectile.height = ENTITY_CONFIG.PROJECTILE.SIZE;
-    projectile.size = ENTITY_CONFIG.PROJECTILE.SIZE;
-    projectile.velocityX = 0;
-    projectile.velocityY = -config.ENTITY_CONFIG.PROJECTILE.SPEED;
-
-    projectiles.current.push(projectile);
+    let projectileSize = ENTITY_CONFIG.PROJECTILE.SIZE;
+    let projectileSpeed = config.ENTITY_CONFIG.PROJECTILE.SPEED;
+    
+    // Apply power-up modifications
+    if (currentActivePowerUp === 'big_shot') {
+      projectileSize *= 2; // Double size for big shot
+    } else if (currentActivePowerUp === 'rapid_fire') {
+      projectileSpeed *= 1.5; // 50% faster
+    }
+    
+    // Create projectiles based on power-up type
+    const projectilesToCreate: Array<{x: number, y: number, velocityX: number, velocityY: number}> = [];
+    
+    if (currentActivePowerUp === 'triple_shot') {
+      // Triple shot: center, left, and right projectiles
+      projectilesToCreate.push(
+        { x: baseX, y: baseY, velocityX: 0, velocityY: -projectileSpeed }, // Center
+        { x: baseX - 15, y: baseY, velocityX: -50, velocityY: -projectileSpeed }, // Left
+        { x: baseX + 15, y: baseY, velocityX: 50, velocityY: -projectileSpeed } // Right
+      );
+    } else {
+      // Single shot (default for all other power-ups)
+      projectilesToCreate.push({ x: baseX, y: baseY, velocityX: 0, velocityY: -projectileSpeed });
+    }
+    
+    // Create all projectiles
+    projectilesToCreate.forEach((projectileData) => {
+      const projectile = objectPools.current.acquireProjectile();
+      projectile.x = projectileData.x;
+      projectile.y = projectileData.y;
+      projectile.width = projectileSize;
+      projectile.height = projectileSize;
+      projectile.size = projectileSize;
+      projectile.velocityX = projectileData.velocityX;
+      projectile.velocityY = projectileData.velocityY;
+      
+      // Mark special projectiles for collision handling
+      if (currentActivePowerUp === 'explosive_shot') {
+        (projectile as any).isExplosive = true;
+      } else if (currentActivePowerUp === 'piercing_shot') {
+        (projectile as any).isPiercing = true;
+      }
+      
+      projectiles.current.push(projectile);
+    });
+    
     // Don't force update here - let the game loop handle visual updates
-  }, []);
+  }, [activePowerUp, metaActions]);
 
   // Spawn enemy from wave definition with original game patterns
   const spawnEnemyFromWave = useCallback(
@@ -603,6 +650,9 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
 
       const config = levelConfig.current;
 
+      // === UPDATE POWER-UP TIMERS ===
+      actions.updatePowerUpDuration(currentDeltaTime);
+
       // Update wave management
       updateWaves(timestamp);
 
@@ -612,35 +662,38 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
       // Update mystery balloons
       updateMysteryBalloons(currentDeltaTime);
 
-      // Update projectiles with straight-line movement (no gravity - original game behavior)
-      const projectilesToRemove = projectiles.current.filter(p => {
+      // === OPTIMIZED PROJECTILE UPDATE: IN-PLACE MUTATION (NO ARRAY RE-ALLOCATION) ===
+      // Update projectiles with straight-line movement and remove off-screen ones
+      for (let i = projectiles.current.length - 1; i >= 0; i--) {
+        const p = projectiles.current[i];
         p.y += p.velocityY * currentDeltaTime;
-        // Remove projectiles that are well off screen
-        return p.y <= -100;
-      });
-      
-      // Release removed projectiles back to pool
-      projectilesToRemove.forEach(p => objectPools.current.releaseProjectile(p));
-      
-      // Keep only on-screen projectiles
-      projectiles.current = projectiles.current.filter(p => p.y > -100);
+        
+        // Remove projectiles that are well off screen (iterate backward to avoid index issues)
+        if (p.y <= -100) {
+          objectPools.current.releaseProjectile(p); // Release back to pool
+          projectiles.current.splice(i, 1);         // Remove in-place - no new array allocation
+        }
+      }
 
-      // Update enemies with balloon physics and cleanup
-      const enemiesToRemove: Enemy[] = [];
-      enemies.current = enemies.current.filter(enemy => {
-        // Use level-specific physics configuration
-        const balloonGravity = config.BALLOON_PHYSICS.GRAVITY_PX_S2;
-        const airResistance = config.BALLOON_PHYSICS.AIR_RESISTANCE;
-        const minBounceVelocity = config.BALLOON_PHYSICS.MIN_BOUNCE_VELOCITY;
-
+      // === OPTIMIZED ENEMY UPDATE: IN-PLACE MUTATION (NO ARRAY RE-ALLOCATION) ===
+      // Use level-specific physics configuration (cache outside loop)
+      const balloonGravity = config.BALLOON_PHYSICS.GRAVITY_PX_S2;
+      const minBounceVelocity = config.BALLOON_PHYSICS.MIN_BOUNCE_VELOCITY;
+      
+      // Update enemies with physics and remove off-screen ones (iterate backward)
+      for (let i = enemies.current.length - 1; i >= 0; i--) {
+        const enemy = enemies.current[i];
+        
         // Apply lighter gravity (convert to pixels per frame)
         enemy.velocityY += balloonGravity * currentDeltaTime;
 
-        // No air resistance - arcade physics with perfect velocity retention
-
-        // Update position
-        enemy.x += enemy.velocityX * currentDeltaTime;
-        enemy.y += enemy.velocityY * currentDeltaTime;
+        // === APPLY ENEMY TYPE SPEED MULTIPLIERS ===
+        // Get type-specific speed multiplier from game config
+        const typeSpeedMultiplier = ENEMY_CONFIG.TYPE_SPEED_MULTIPLIERS[enemy.type] || 1.0;
+        
+        // Update position with type-specific speed modifications
+        enemy.x += (enemy.velocityX * typeSpeedMultiplier) * currentDeltaTime;
+        enemy.y += enemy.velocityY * currentDeltaTime; // Vertical movement unchanged for predictable physics
 
         // Bounce off walls with level-specific physics
         if (enemy.x <= 0 || enemy.x >= screenWidth - enemy.size) {
@@ -669,16 +722,12 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
           enemy.velocityX = direction * config.BALLOON_PHYSICS.MIN_HORIZONTAL_VELOCITY;
         }
 
-        // Check if enemy should be removed (fallen off screen)
-        const shouldKeep = enemy.y < gameAreaHeightRef.current + enemy.size;
-        if (!shouldKeep) {
-          enemiesToRemove.push(enemy);
+        // Remove enemies that fall off screen (in-place removal)
+        if (enemy.y >= gameAreaHeightRef.current + enemy.size) {
+          objectPools.current.releaseEnemy(enemy); // Release back to pool
+          enemies.current.splice(i, 1);            // Remove in-place - no new array allocation
         }
-        return shouldKeep;
-      });
-      
-      // Release removed enemies back to pool
-      enemiesToRemove.forEach(enemy => objectPools.current.releaseEnemy(enemy));
+      }
 
       // Check collisions using CollisionSystem
       const hitMysteryBalloonIds = new Set<string>();
@@ -719,12 +768,13 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
         velocityY: 0,
       };
 
-      // Process collisions
+      // Process collisions with level-specific physics configuration
       const collisionResult = CollisionSystem.processCollisions(
         projectileObjects,
         enemyObjects,
         peteObject,
-        objectPools.current
+        objectPools.current,
+        config // Pass level configuration for physics-consistent splitting
       );
 
       // Handle collision results
@@ -865,24 +915,31 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
         }
       }
 
-      // Release hit enemies back to pool before removing them
-      const hitEnemies = enemies.current.filter(enemy => collisionResult.hitEnemyIds.has(enemy.id));
-      hitEnemies.forEach(enemy => objectPools.current.releaseEnemy(enemy));
-
-      // Release hit projectiles back to pool before removing them  
-      const hitProjectiles = projectiles.current.filter(p => collisionResult.hitProjectileIds.has(p.id));
-      hitProjectiles.forEach(p => objectPools.current.releaseProjectile(p));
-
-      // Keep enemies that weren't hit and add new split enemies
-      enemies.current = [
-        ...enemies.current.filter(enemy => !collisionResult.hitEnemyIds.has(enemy.id)),
-        ...newEnemies,
-      ];
-
-      // Remove hit projectiles
-      projectiles.current = projectiles.current.filter(
-        p => !collisionResult.hitProjectileIds.has(p.id)
-      );
+      // === OPTIMIZED COLLISION CLEANUP: IN-PLACE REMOVAL ===
+      // Remove hit enemies and projectiles in-place (iterate backward to avoid index issues)
+      
+      // Remove hit enemies from the array
+      for (let i = enemies.current.length - 1; i >= 0; i--) {
+        const enemy = enemies.current[i];
+        if (collisionResult.hitEnemyIds.has(enemy.id)) {
+          objectPools.current.releaseEnemy(enemy); // Release back to pool
+          enemies.current.splice(i, 1);            // Remove in-place
+        }
+      }
+      
+      // Remove hit projectiles from the array
+      for (let i = projectiles.current.length - 1; i >= 0; i--) {
+        const p = projectiles.current[i];
+        if (collisionResult.hitProjectileIds.has(p.id)) {
+          objectPools.current.releaseProjectile(p); // Release back to pool
+          projectiles.current.splice(i, 1);         // Remove in-place
+        }
+      }
+      
+      // Add new split enemies efficiently (direct push - no array spread)
+      newEnemies.forEach(enemy => {
+        enemies.current.push(enemy);
+      });
 
       // Check collisions with mystery balloons
       const hitMysteryProjectileIds = new Set<string>();

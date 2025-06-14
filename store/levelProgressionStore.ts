@@ -682,39 +682,24 @@ export const useLevelProgressionActions = () => useLevelProgressionStore(state =
 
 export const useCurrentLevel = () => useLevelProgressionStore(state => state.currentLevel);
 
-// DEPRECATED: These composite selectors cause infinite re-render loops
-// Use individual selectors below instead
-
-// export const useLevelProgress = () =>
-//   useLevelProgressionStore(state => ({
-//     enemiesRemaining: state.enemiesRemaining,
-//     totalEnemies: state.totalEnemies,
-//     currentScore: state.currentScore,
-//     accuracy: calculateAccuracy(state.shotsHit, state.shotsFired),
-//     currentCombo: state.currentCombo
-//   }));
-
-// export const useLevelState = () =>
-//   useLevelProgressionStore(state => ({
-//     isLoading: state.isLevelLoading,
-//     completed: state.levelCompleted,
-//     failed: state.levelFailed,
-//     failureReason: state.failureReason
-//   }));
-
-// export const useLevelUI = () =>
-//   useLevelProgressionStore(state => ({
-//     showTransition: state.showLevelTransition,
-//     showVictory: state.showVictoryScreen,
-//     showFailure: state.showFailureScreen
-//   }));
-
-// export const usePlayerProgress = () =>
-//   useLevelProgressionStore(state => ({
-//     unlockedLevels: state.unlockedLevels,
-//     completedLevels: state.completedLevels,
-//     currentLevelId: state.currentLevelId
-//   }));
+// =============================================================================
+// ⚠️  ANTI-PATTERN PREVENTION
+// =============================================================================
+//
+// DO NOT create composite selectors that return new objects on every render.
+// This breaks React's memoization and causes infinite re-render loops.
+//
+// The following patterns were REMOVED to prevent performance issues:
+//
+// ❌ REMOVED - These caused infinite loops:
+// - useLevelProgress() returned { enemiesRemaining, totalEnemies, currentScore, accuracy, currentCombo }
+// - useLevelState() returned { isLoading, completed, failed, failureReason }
+// - useLevelUI() returned { showTransition, showVictory, showFailure }
+// - usePlayerProgress() returned { unlockedLevels, completedLevels, currentLevelId }
+//
+// ✅ USE INDIVIDUAL SELECTORS INSTEAD:
+// Components should subscribe to individual, primitive state values only.
+// =============================================================================
 
 // Individual selectors for level progression (to avoid infinite loop issues)
 export const useEnemiesRemaining = () => useLevelProgressionStore(state => state.enemiesRemaining);

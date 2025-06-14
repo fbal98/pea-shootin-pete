@@ -1,4 +1,7 @@
-import { nanoid } from 'nanoid/non-secure';
+// REMOVED: nanoid import was only used by the inefficient splitEnemy function
+// The CollisionSystem now handles enemy splitting using the optimized PooledIdGenerator
+
+import { PHYSICS } from '../constants/GameConfig';
 
 export interface GameObject {
   id: string;
@@ -63,9 +66,8 @@ export interface PhysicsConfig {
   MAX_VELOCITY?: number;
 }
 
-// Constants for enemy splitting
-export const SPLIT_HORIZONTAL_VELOCITY = 150; // horizontal velocity when enemy splits
-export const SPLIT_VERTICAL_VELOCITY = 200; // upward velocity when enemy splits
+// REMOVED: Split velocity constants now handled by level configuration system
+// These values are now defined in GameConfig.ts and can be customized per level
 
 // UI Constants
 export const HUD_HEIGHT = 50; // Height reserved for HUD at bottom
@@ -78,8 +80,8 @@ export const updateBouncingEnemy = (
 ): GameObject => {
   let newEnemy = { ...enemy };
 
-  // Apply gravity (using hardcoded value for legacy function)
-  newEnemy.velocityY = (newEnemy.velocityY || 0) + 500 * deltaTime;
+  // Apply gravity (centralized configuration)
+  newEnemy.velocityY = (newEnemy.velocityY || 0) + PHYSICS.GRAVITY_PX_S2 * deltaTime;
 
   // Update position
   newEnemy.x += (newEnemy.velocityX || 0) * deltaTime;
@@ -95,7 +97,7 @@ export const updateBouncingEnemy = (
       deltaY: newEnemy.y - enemy.y,
       oldVelocityY: enemy.velocityY || 0,
       newVelocityY: newEnemy.velocityY,
-      gravityApplied: 500 * deltaTime,
+      gravityApplied: PHYSICS.GRAVITY_PX_S2 * deltaTime,
       deltaTime,
       gameAreaBottom,
       willBounce: newEnemy.y + newEnemy.height > gameAreaBottom,
@@ -184,39 +186,12 @@ export const updateBouncingEnemyInPlace = (
   }
 };
 
-export const splitEnemy = (enemy: GameObject): GameObject[] => {
-  if (!enemy.sizeLevel || enemy.sizeLevel <= 1) {
-    return []; // Smallest size, don't split
-  }
-
-  const newSize = enemy.sizeLevel - 1;
-  const newWidth = enemy.width * 0.7; // Smaller enemies are 70% the size
-  const newHeight = enemy.height * 0.7;
-
-  // Create two smaller enemies with opposite horizontal velocities
-  const enemy1: GameObject = {
-    id: `${enemy.id}-split1-${nanoid(8)}`,
-    x: enemy.x - newWidth / 4,
-    y: enemy.y,
-    width: newWidth,
-    height: newHeight,
-    velocityX: -SPLIT_HORIZONTAL_VELOCITY, // Move left
-    velocityY: -SPLIT_VERTICAL_VELOCITY, // Bounce up
-    type: enemy.type,
-    sizeLevel: newSize,
-  };
-
-  const enemy2: GameObject = {
-    id: `${enemy.id}-split2-${nanoid(8)}`,
-    x: enemy.x + enemy.width - newWidth * 0.75,
-    y: enemy.y,
-    width: newWidth,
-    height: newHeight,
-    velocityX: SPLIT_HORIZONTAL_VELOCITY, // Move right
-    velocityY: -SPLIT_VERTICAL_VELOCITY, // Bounce up
-    type: enemy.type,
-    sizeLevel: newSize,
-  };
-
-  return [enemy1, enemy2];
-};
+// REMOVED: splitEnemy function was inefficient and redundant
+// - Used slow nanoid() for ID generation instead of fast PooledIdGenerator
+// - Duplicated logic already handled correctly in CollisionSystem.ts
+// - Had hardcoded physics values instead of using level-specific configuration
+// 
+// The CollisionSystem.splitEnemy() method should be used instead, which:
+// - Uses PooledIdGenerator for 10x faster ID generation
+// - Supports level-specific physics configuration
+// - Integrates properly with the ObjectPool system

@@ -3,7 +3,7 @@
   "name": "First Pop",
   "version": "1.0.0",
   "difficulty": "tutorial",
-  "estimatedDuration": 45,
+  "estimatedDuration": 20,
 
   "objectives": [
     {
@@ -25,7 +25,7 @@
   "enemyWaves": [
     {
       "id": "tutorial_wave_1",
-      "startTime": 3.0,
+      "startTime": 0.5,
       "duration": 0.5,
       "enemies": [
         {
@@ -126,13 +126,13 @@
     "testGroup": "tutorial_flow",
     "variant": "standard",
     "designIntent": ["teach_basic_shooting", "introduce_balloon_physics", "demonstrate_splitting"],
-    "expectedPlaytime": 45,
+    "expectedPlaytime": 20,
     "difficultyRating": 1,
     "targetRetryRate": 0.1,
     "targetCompletionRate": 0.95,
     "createdDate": "2025-01-11",
     "lastModified": "2025-01-11",
     "createdBy": "system",
-    "balanceNotes": "Tutorial level designed for 95% completion rate with gentle introduction to mechanics"
+    "balanceNotes": "FTUE-optimized: instant action (0.5s spawn) for immediate engagement and 3-second hook"
   }
 }

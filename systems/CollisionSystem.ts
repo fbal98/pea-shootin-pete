@@ -62,7 +62,8 @@ export class CollisionSystem {
     projectiles: GameObject[],
     enemies: GameObject[],
     pete: GameObject,
-    objectPools: GameObjectPools
+    objectPools: GameObjectPools,
+    levelConfig?: any // Optional level configuration for physics
   ): CollisionResult {
     const result: CollisionResult = {
       events: [],
@@ -75,10 +76,10 @@ export class CollisionSystem {
 
     if (this.useSpatialOptimization && this.spatialGrid) {
       // Use spatial partitioning for optimized collision detection
-      this.processCollisionsOptimized(projectiles, enemies, pete, result, objectPools);
+      this.processCollisionsOptimized(projectiles, enemies, pete, result, objectPools, levelConfig);
     } else {
       // Fallback to brute force method
-      this.processProjectileEnemyCollisions(projectiles, enemies, result, objectPools);
+      this.processProjectileEnemyCollisions(projectiles, enemies, result, objectPools, levelConfig);
       this.processEnemyPeteCollisions(enemies, pete, result);
     }
 
@@ -93,7 +94,8 @@ export class CollisionSystem {
     enemies: GameObject[],
     pete: GameObject,
     result: CollisionResult,
-    objectPools: GameObjectPools
+    objectPools: GameObjectPools,
+    levelConfig?: any
   ): void {
     if (!this.spatialGrid) return;
 
@@ -132,8 +134,8 @@ export class CollisionSystem {
           const points = this.calculateScore(enemy);
           result.scoreIncrease += points;
 
-          // Handle enemy splitting
-          const splitEnemies = this.splitEnemy(enemy, objectPools);
+          // Handle enemy splitting with level config
+          const splitEnemies = this.splitEnemy(enemy, objectPools, levelConfig);
           result.splitEnemies.push(...splitEnemies);
 
           // Only one collision per projectile
@@ -153,7 +155,8 @@ export class CollisionSystem {
     projectiles: GameObject[],
     enemies: GameObject[],
     result: CollisionResult,
-    objectPools: GameObjectPools
+    objectPools: GameObjectPools,
+    levelConfig?: any
   ): void {
     for (const projectile of projectiles) {
       if (result.hitProjectileIds.has(projectile.id)) continue;
@@ -177,8 +180,8 @@ export class CollisionSystem {
           const points = this.calculateScore(enemy);
           result.scoreIncrease += points;
 
-          // Handle enemy splitting
-          const splitEnemies = this.splitEnemy(enemy, objectPools);
+          // Handle enemy splitting with level config
+          const splitEnemies = this.splitEnemy(enemy, objectPools, levelConfig);
           result.splitEnemies.push(...splitEnemies);
 
           // Only one collision per projectile
@@ -229,7 +232,7 @@ export class CollisionSystem {
   /**
    * Split an enemy into smaller enemies if possible
    */
-  private static splitEnemy(enemy: GameObject, objectPools: GameObjectPools): GameObject[] {
+  private static splitEnemy(enemy: GameObject, objectPools: GameObjectPools, levelConfig?: any): GameObject[] {
     if (!enemy.sizeLevel || enemy.sizeLevel <= 1) {
       return []; // Smallest size, don't split
     }
@@ -239,14 +242,19 @@ export class CollisionSystem {
     const newWidth = GAME_CONFIG.ENEMY_BASE_SIZE * sizeMultiplier;
     const newHeight = GAME_CONFIG.ENEMY_BASE_SIZE * sizeMultiplier;
 
+    // === USE LEVEL-SPECIFIC PHYSICS FOR SPLITTING ===
+    // Get split velocities from level config if available, otherwise fallback to defaults
+    const splitHorizontalVelocity = levelConfig?.BALLOON_PHYSICS?.SPLIT?.HORIZONTAL_VELOCITY || GAME_CONFIG.SPLIT_HORIZONTAL_VELOCITY;
+    const splitVerticalVelocity = levelConfig?.BALLOON_PHYSICS?.SPLIT?.VERTICAL_VELOCITY || GAME_CONFIG.SPLIT_VERTICAL_VELOCITY;
+
     // Create two smaller enemies using optimized object pool
     const enemy1 = objectPools.acquireSplitEnemy(enemy.id, 1);
     enemy1.x = enemy.x - newWidth / 4;
     enemy1.y = enemy.y;
     enemy1.width = newWidth;
     enemy1.height = newHeight;
-    enemy1.velocityX = -GAME_CONFIG.SPLIT_HORIZONTAL_VELOCITY;
-    enemy1.velocityY = -GAME_CONFIG.SPLIT_VERTICAL_VELOCITY;
+    enemy1.velocityX = -splitHorizontalVelocity; // Use level-specific velocity
+    enemy1.velocityY = -splitVerticalVelocity; // Use level-specific velocity
     enemy1.type = enemy.type;
     enemy1.sizeLevel = newSizeLevel;
 
@@ -255,8 +263,8 @@ export class CollisionSystem {
     enemy2.y = enemy.y;
     enemy2.width = newWidth;
     enemy2.height = newHeight;
-    enemy2.velocityX = GAME_CONFIG.SPLIT_HORIZONTAL_VELOCITY;
-    enemy2.velocityY = -GAME_CONFIG.SPLIT_VERTICAL_VELOCITY;
+    enemy2.velocityX = splitHorizontalVelocity; // Use level-specific velocity
+    enemy2.velocityY = -splitVerticalVelocity; // Use level-specific velocity
     enemy2.type = enemy.type;
     enemy2.sizeLevel = newSizeLevel;
 

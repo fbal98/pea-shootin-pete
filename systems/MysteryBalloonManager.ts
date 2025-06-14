@@ -126,12 +126,22 @@ export class MysteryBalloonManager {
         },
       },
       score_multiplier: {
-        probability: 10, // 10% chance for score boost
+        probability: 7, // 7% chance for score boost (reduced to make room for power-ups)
         rarityWeights: {
           common: 50,
           uncommon: 30,
           rare: 15,
           epic: 5,
+          legendary: 0,
+        },
+      },
+      power_boost: {
+        probability: 8, // 8% chance for power-ups (NEW - strategic gameplay depth)
+        rarityWeights: {
+          common: 40, // Basic power-ups (single shot)
+          uncommon: 35, // Enhanced power-ups (triple shot)
+          rare: 20, // Premium power-ups (explosive)
+          epic: 5, // Legendary power-ups (time slow)
           legendary: 0,
         },
       },
@@ -441,7 +451,81 @@ export class MysteryBalloonManager {
         },
       ],
 
-      power_boost: [], // Will be implemented later
+      power_boost: [
+        // Common power-ups (40% of power_boost rewards)
+        {
+          id: 'powerup_rapid_fire',
+          type: 'power_boost',
+          value: 'rapid_fire',
+          rarity: 'common',
+          baseDropRate: 0.4,
+          scalingFactor: 1.0,
+          celebrationIntensity: 'medium',
+          announcementText: 'RAPID FIRE!',
+          particleEffect: 'powerup_speed',
+        },
+        {
+          id: 'powerup_big_shot',
+          type: 'power_boost',
+          value: 'big_shot',
+          rarity: 'common',
+          baseDropRate: 0.4,
+          scalingFactor: 1.0,
+          celebrationIntensity: 'medium',
+          announcementText: 'BIG SHOT!',
+          particleEffect: 'powerup_size',
+        },
+
+        // Uncommon power-ups (35% of power_boost rewards)
+        {
+          id: 'powerup_triple_shot',
+          type: 'power_boost',
+          value: 'triple_shot',
+          rarity: 'uncommon',
+          baseDropRate: 0.35,
+          scalingFactor: 1.0,
+          celebrationIntensity: 'dramatic',
+          announcementText: 'TRIPLE SHOT!',
+          particleEffect: 'powerup_triple',
+        },
+        {
+          id: 'powerup_piercing_shot',
+          type: 'power_boost',
+          value: 'piercing_shot',
+          rarity: 'uncommon',
+          baseDropRate: 0.35,
+          scalingFactor: 1.0,
+          celebrationIntensity: 'dramatic',
+          announcementText: 'PIERCING SHOT!',
+          particleEffect: 'powerup_pierce',
+        },
+
+        // Rare power-ups (20% of power_boost rewards)
+        {
+          id: 'powerup_explosive_shot',
+          type: 'power_boost',
+          value: 'explosive_shot',
+          rarity: 'rare',
+          baseDropRate: 0.2,
+          scalingFactor: 1.0,
+          celebrationIntensity: 'spectacular',
+          announcementText: 'EXPLOSIVE SHOT!',
+          particleEffect: 'powerup_explosion',
+        },
+
+        // Epic power-ups (5% of power_boost rewards)
+        {
+          id: 'powerup_time_slow',
+          type: 'power_boost',
+          value: 'time_slow',
+          rarity: 'epic',
+          baseDropRate: 0.05,
+          scalingFactor: 1.0,
+          celebrationIntensity: 'spectacular',
+          announcementText: 'TIME SLOW!',
+          particleEffect: 'powerup_time',
+        },
+      ],
       achievement_progress: [], // Will be implemented later
     };
   }

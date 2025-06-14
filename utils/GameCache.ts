@@ -1,7 +1,15 @@
 /**
  * High-performance caching system for game calculations
  * Reduces redundant computations and improves frame rate consistency
+ * 
+ * IMPORTANT: This wraps actual GameConfig functions to avoid logic duplication
  */
+
+import { 
+  getBalloonSize, 
+  getBalloonPoints, 
+  getEnemySpeedBySize 
+} from '@/constants/GameConfig';
 
 export interface CacheEntry<T> {
   value: T;
@@ -63,55 +71,51 @@ export class GameCache {
   }
 
   /**
-   * Cache balloon size calculations
+   * Cache balloon size calculations (wraps GameConfig.getBalloonSize)
    */
-  getBalloonSize(sizeLevel: number): number {
+  getBalloonSize(sizeLevel: 1 | 2 | 3): number {
     if (this.balloonSizeCache.has(sizeLevel)) {
       this.cacheHits++;
       return this.balloonSizeCache.get(sizeLevel)!;
     }
     
     this.cacheMisses++;
-    // Calculate size (this should match the actual getBalloonSize function)
-    const ENTITY_CONFIG = { BALLOON: { BASE_SIZE: 30 } }; // Import actual value
-    const SIZE_MULTIPLIERS = { 1: 0.7, 2: 0.85, 3: 1.0 };
-    const size = ENTITY_CONFIG.BALLOON.BASE_SIZE * (SIZE_MULTIPLIERS[sizeLevel as keyof typeof SIZE_MULTIPLIERS] || 1.0);
+    // Use actual GameConfig function - no logic duplication
+    const size = getBalloonSize(sizeLevel);
     
     this.balloonSizeCache.set(sizeLevel, size);
     return size;
   }
 
   /**
-   * Cache balloon points calculations
+   * Cache balloon points calculations (wraps GameConfig.getBalloonPoints)
    */
-  getBalloonPoints(sizeLevel: number): number {
+  getBalloonPoints(sizeLevel: 1 | 2 | 3): number {
     if (this.balloonPointsCache.has(sizeLevel)) {
       this.cacheHits++;
       return this.balloonPointsCache.get(sizeLevel)!;
     }
     
     this.cacheMisses++;
-    // Calculate points (this should match the actual getBalloonPoints function)
-    const POINTS = { 1: 30, 2: 20, 3: 10 };
-    const points = POINTS[sizeLevel as keyof typeof POINTS] || 10;
+    // Use actual GameConfig function - no logic duplication
+    const points = getBalloonPoints(sizeLevel);
     
     this.balloonPointsCache.set(sizeLevel, points);
     return points;
   }
 
   /**
-   * Cache enemy speed calculations
+   * Cache enemy speed calculations (wraps GameConfig.getEnemySpeedBySize)
    */
-  getEnemySpeed(sizeLevel: number): number {
+  getEnemySpeed(sizeLevel: 1 | 2 | 3): number {
     if (this.enemySpeedCache.has(sizeLevel)) {
       this.cacheHits++;
       return this.enemySpeedCache.get(sizeLevel)!;
     }
     
     this.cacheMisses++;
-    // Calculate speed (this should match the actual getEnemySpeedBySize function)
-    const SPEEDS = { 1: 80, 2: 64, 3: 50 };
-    const speed = SPEEDS[sizeLevel as keyof typeof SPEEDS] || 50;
+    // Use actual GameConfig function - no logic duplication
+    const speed = getEnemySpeedBySize(sizeLevel);
     
     this.enemySpeedCache.set(sizeLevel, speed);
     return speed;
