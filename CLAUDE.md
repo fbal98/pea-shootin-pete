@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Pea Shootin' Pete is a React Native hyper-casual mobile game built with Expo. Originally a modern remaster of the 1994 DOS game, it has been transformed into a hyper-casual experience where the player controls Pete who shoots peas at bouncing balloon-like enemies that split into smaller pieces when hit.
+Pea Shootin' Pete is a React Native professional mobile game built with Expo. Originally a modern remaster of the 1994 DOS game, it has evolved into a polished, professional mobile experience with comprehensive progression systems, social features, and monetization. The player controls Pete who shoots peas at bouncing balloon-like enemies that split into smaller pieces when hit.
 
 ## Essential Commands
 
@@ -34,11 +34,11 @@ npm run reset-project   # Reset to fresh project state
 
 ### Navigation Structure
 - Uses **Expo Router v5** with file-based routing
-- **Hyper-casual single-screen approach** - Simple state-based navigation
+- **Professional mobile game navigation** - State-based screen management
 - Main entry point: `app/index.tsx` (manages all screen transitions)
-- **Screen Flow**: Menu ↔ Game ↔ Settings ↔ About
+- **Screen Flow**: Menu ↔ Game ↔ World Map ↔ Settings ↔ About
 - State-based screen switching with smooth transitions
-- Minimal navigation buttons in corners for settings/about access
+- Professional UI with comprehensive navigation options
 
 ### Current Project Architecture
 ```
@@ -49,12 +49,10 @@ app/
 
 screens/                          # All game screens
 ├── GameScreen.tsx               # Main game with level progression UI
-├── MenuScreen.tsx               # Main menu with level selection
-├── SettingsScreen.tsx           # Settings integration
-├── AboutScreen.tsx              # About screen
-├── GameScreenMinimal.tsx        # Minimal game screen variant
-├── PeteCustomizationScreen.tsx  # Character customization
-└── WorldMapScreen.tsx           # Level selection map
+├── MenuScreen.tsx               # Professional main menu
+├── SettingsScreen.tsx           # Settings with sound and haptics
+├── AboutScreen.tsx              # About screen with credits
+└── EnhancedWorldMapScreen.tsx   # World map with level progression
 
 components/
 ├── game/                        # Core game visual components
@@ -64,19 +62,33 @@ components/
 │   ├── GameBackground.tsx      # Theme-based backgrounds
 │   └── MysteryBalloon.tsx      # Special mystery balloon mechanic
 ├── ui/                         # UI components and HUD elements
+│   ├── GameHUD.tsx            # Main game HUD with professional design
 │   ├── LevelHUD.tsx           # Level progress, objectives, combo display
+│   ├── GameHeader.tsx         # Game header with score and status
+│   ├── LevelSection.tsx       # Level information display
+│   ├── ScoreSection.tsx       # Score display component
+│   ├── StatusSection.tsx      # Game status indicators
+│   ├── MenuButton.tsx         # Reusable menu button component
+│   ├── StyledSwitch.tsx       # Custom styled switch component
 │   ├── LevelTransition.tsx    # Level start/victory/failure screens
-│   ├── GameHUD.tsx            # Main game HUD
 │   ├── CelebrationSystem.tsx  # Victory celebrations and rewards
 │   ├── ProgressionHUD.tsx     # Meta-progression display
 │   ├── TutorialOverlay.tsx    # Tutorial system
 │   ├── VictoryModal.tsx       # Level completion modal
 │   ├── DailyChallengesDisplay.tsx # Daily challenges UI
 │   ├── LevelMasteryDisplay.tsx # Level mastery indicators
-│   └── MysteryRewardDisplay.tsx # Mystery reward system
+│   ├── MysteryRewardDisplay.tsx # Mystery reward system
+│   ├── EnhancedWorldNode.tsx  # World map node component
+│   ├── DynamicPath.tsx        # Animated path connections
+│   └── [Other UI components]   # Various UI elements
 ├── social/                     # Social features
-│   ├── FriendsListScreen.tsx  # Friends list management
 │   └── SocialSharingModal.tsx # Social sharing functionality
+├── optimized/                  # Performance-optimized components
+│   ├── OptimizedGameRenderer.tsx # Optimized game rendering
+│   ├── OptimizedEnemy.tsx      # Performance-optimized enemies
+│   ├── OptimizedPete.tsx       # Performance-optimized Pete
+│   ├── OptimizedProjectile.tsx # Performance-optimized projectiles
+│   └── ViewportCuller.tsx      # Viewport culling system
 └── [Standard Expo components]  # ThemedText, ThemedView, etc.
 
 systems/                        # Core game systems and managers
@@ -123,7 +135,8 @@ types/                          # TypeScript type definitions
 
 constants/                      # Configuration and constants
 ├── GameConfig.ts             # Level-configurable game parameters
-├── GameColors.ts             # Theme-based color schemes
+├── GameColors.ts             # Professional game color schemes
+├── DesignTokens.ts           # Design system tokens and themes
 └── Colors.ts                 # Standard Expo color definitions
 
 utils/                          # Utility functions and helpers
@@ -153,12 +166,12 @@ ios/                           # iOS-specific build files
 - **Analytics integration**: Comprehensive tracking per publishing checklist requirements
 - **A/B testing ready**: Easy configuration variants and balance testing
 
-#### Hyper-Casual Design Philosophy
-- **3-second comprehension**: Game is instantly understandable without tutorials
-- **One-touch gameplay**: Tap to shoot, swipe to move Pete smoothly
-- **Progressive disclosure**: Tutorial level introduces mechanics gradually
-- **Level-based color schemes**: 5 rotating palettes that change per level
-- **Persistent progression**: Level unlocking and completion tracking
+#### Professional Mobile Game Design Philosophy
+- **Polished user experience**: Professional UI with smooth animations and transitions
+- **Intuitive controls**: Tap to shoot, swipe to move Pete with responsive feedback
+- **Comprehensive progression**: Multiple progression systems including levels, achievements, and meta-progression
+- **Visual variety**: Professional themes and color schemes that enhance gameplay
+- **Player retention**: Daily challenges, social features, and long-term goals
 
 #### Authentic DOS Game Physics System ⭐ CORE GAME PHILOSOPHY ⭐
 **CRITICAL**: We ALWAYS want precise, predictable physics with enemies spawning at specific heights and bouncing in consistent patterns. This is based on analysis of the original 1994 DOS game.
@@ -310,22 +323,22 @@ trackLevelFailed(levelId, levelName, reason, score, duration)
 
 ## Visual Design
 
-### Hyper-Casual Color Schemes
-The game uses 5 rotating color schemes that change per level:
+### Professional Color Themes
+The game uses a sophisticated design system with multiple themes:
 
-1. **Mint/Teal**: `#4ECDC4` primary, `#F7FFF7` to `#E0F2F1` gradient
-2. **Burgundy/Red**: `#C1666B` primary, `#FFF5F5` to `#FFE0E0` gradient  
-3. **Purple/Pink**: `#A374D5` primary, `#F5F0FF` to `#E6D5FF` gradient
-4. **Soft Pastel**: `#FFB6C1` primary, `#FFF0F5` to `#FFE4E1` gradient
-5. **Ocean Blue**: `#4A90E2` primary, `#F0F8FF` to `#E1F5FE` gradient
+1. **Default Theme**: Professional blue/purple gradient with clean UI
+2. **Dark Theme**: Sophisticated dark mode with high contrast
+3. **Colorful Theme**: Vibrant colors for engaging gameplay
+4. **Level-specific Themes**: Dynamic themes that adapt to level content
 
-### Minimal UI Elements
-- **Main Menu**: "TAP TO PLAY" with subtle settings/about navigation in corners
-- **Settings**: Minimal toggles for sound and haptics only
-- **About**: Simple game info, version, and tagline
-- **HUD**: Score only, top center, white text with shadow
-- **Game Over**: Clean overlay with score and restart/menu options
-- **No decorative elements**: All UI serves gameplay purpose
+### Professional UI Elements
+- **Main Menu**: Polished menu with animated elements and clear navigation
+- **World Map**: 3D-inspired level selection with progression tracking
+- **Settings**: Professional settings screen with custom styled components
+- **About**: Comprehensive about screen with credits and version info
+- **Game HUD**: Multi-section HUD with score, level, lives, and objectives
+- **Victory Modal**: Engaging completion screen with rewards and progression
+- **Transitions**: Smooth, professional animations between screens
 
 ### Entity Appearances
 - **Pete**: Colored circle with subtle white eyes, matches level color scheme
@@ -345,7 +358,17 @@ The game uses 5 rotating color schemes that change per level:
 
 ## Recent Improvements
 
-### Original DOS Game Physics Implementation (Latest - January 2025) ⭐ MAJOR ACHIEVEMENT ⭐
+### Professional Mobile Game Transformation (Latest - January 2025) ⭐ MAJOR ACHIEVEMENT ⭐
+- **Professional UI overhaul**: Complete redesign with modern mobile game aesthetics
+- **Enhanced world map**: 3D-inspired level selection with dynamic paths and animations
+- **Design system**: Implemented comprehensive design tokens and theming system
+- **Component architecture**: Modular UI components for consistent design language
+- **Performance optimization**: Added specialized optimized components for smooth 60fps gameplay
+- **Professional HUD**: Multi-section game HUD with clear information hierarchy
+- **Polished menus**: Animated menu screens with professional transitions
+- **Custom components**: StyledSwitch, MenuButton, and other reusable UI elements
+
+### Original DOS Game Physics Implementation (Previous - January 2025)
 - **Authentic physics system**: Reverse-engineered 1994 DOS game physics through binary analysis
 - **Fixed spawn positions**: Enemies spawn at exact Y positions (28.5%, 37.5%, 38.5%) like original
 - **Original wave patterns**: TWO_SMALL, THREE_SMALL_WIDE, PIPES, CRAZY, ENTRAP with precise X positions
@@ -368,13 +391,13 @@ The game uses 5 rotating color schemes that change per level:
 - **Helper functions**: Easy access functions for balloon sizes, points, and physics
 - **A/B testing ready**: Multiple configuration layers for testing and balance
 
-### Hyper-Casual Transformation (Previous)
-- **Complete visual overhaul**: Stripped arcade aesthetic for clean hyper-casual design
-- **Balloon physics**: Implemented light, bouncy enemy movement with air resistance
-- **Color scheme system**: Level-based rotating palettes for visual variety
-- **Smooth controls**: Added interpolated swipe movement for Pete
-- **High score tracking**: Persistent best score across game sessions
-- **Collision fixes**: Resolved duplicate React key issues with Set-based collision detection
+### Clean Architecture Implementation (Previous)
+- **Repository cleanup**: Removed obsolete files and documentation
+- **Code organization**: Structured components into logical directories
+- **Type safety**: Enhanced TypeScript definitions throughout
+- **Performance patterns**: Implemented optimized rendering components
+- **State management**: Refined Zustand stores for better performance
+- **Component modularity**: Created reusable UI components
 
 ### Previous Fixes
 - **Game loop stability**: Resolved freezing issues with ref-based game loop
@@ -403,41 +426,18 @@ The game uses 5 rotating color schemes that change per level:
 - **Performance issues**: Monitor enemy count and wave spawning frequency
 - **Type errors**: Run `npm run type-check` and verify LevelTypes compliance
 
-## Legacy Components (To Be Removed)
-
-The following files are **obsolete** after the hyper-casual transformation and can be safely removed in future cleanup:
-
-### Arcade UI Components (OBSOLETE)
-- `components/arcade/` - All arcade-style UI components
-- `constants/ArcadeColors.ts` - Neon color palette (replaced by GameColors.ts)
-- `screens/MenuScreen.tsx` - Old arcade menu (replaced by MenuScreen.tsx)
-- `screens/EnhancedMenuScreen.tsx` - Enhanced arcade menu
-- `screens/GameScreen.tsx` - Old arcade game screen (replaced by GameScreen.tsx)
-- `components/ui/EnhancedGameHUD.tsx` - Complex arcade HUD (replaced by GameHUD.tsx)
-- `components/ui/CRTFrame.tsx` - CRT screen effect component
-- `components/ui/AnimatedLogo.tsx` - Arcade-style animated logo
-- `hooks/useGameLogic.ts` - Complex arcade game logic (replaced by useGameLogic.ts)
-- `hooks/useGameInput.ts` - Arcade input handling (replaced by useGameInput.ts)
-
-### Original Game Components (LEGACY)
-- `components/game/Pete.tsx` - Detailed arcade Pete (replaced by Pete.tsx)
-- `components/game/Enemy.tsx` - Complex arcade enemies (replaced by Enemy.tsx)
-- `components/game/Projectile.tsx` - Animated arcade projectiles (replaced by Projectile.tsx)
-- `components/game/Starfield.tsx` - Arcade starfield background (replaced by GameBackground.tsx)
-
-**Note**: These files are kept for reference but are no longer used in the active hyper-casual game.
 
 ## Development Notes
-- **⭐ PHYSICS-FIRST ⭐**: Maintain precise, predictable physics with fixed spawn positions matching original DOS game
-- **Original game fidelity**: All physics changes must preserve the authentic arcade feel
-- **Level-driven development**: All new features should integrate with the level progression system
-- **Data-driven design**: Use JSON configuration for game behavior instead of hardcoding
-- **Mobile-first**: Design for touch controls and mobile performance with level-specific optimization
-- **Analytics-first**: Track all player interactions for publishing compliance and optimization
-- **Remote config ready**: Design features to support hot-reloadable configuration
-- **Publishing ready**: Follows 2025 hyper-casual and app store best practices
-- **Type-safe**: Comprehensive TypeScript coverage for level system and analytics
-- **ALWAYS run code quality checks**: Use `npm run validate` before any commit to prevent issues
+- **⭐ PROFESSIONAL QUALITY ⭐**: Maintain high standards for UI, UX, and code quality
+- **Physics fidelity**: Preserve precise, predictable physics from original DOS game
+- **Component-driven**: Use modular, reusable components for consistent design
+- **Performance-first**: Optimize for smooth 60fps gameplay on all devices
+- **Type-safe**: Comprehensive TypeScript coverage throughout the codebase
+- **Analytics-ready**: Track all player interactions for optimization
+- **Mobile-optimized**: Design for touch controls and mobile performance
+- **Publishing ready**: Follows 2025 mobile game best practices
+- **Clean architecture**: Maintain organized, scalable code structure
+- **ALWAYS run code quality checks**: Use `npm run validate` before any commit
 
 ## Level Development Best Practices
 - **Start with JSON**: Define levels in `levels/level_XXX.json` using the established schema
@@ -453,6 +453,24 @@ The following files are **obsolete** after the hyper-casual transformation and c
 - **Analytics integration**: Every level event automatically tracked for optimization
 - **Remote config ready**: Architecture supports Firebase Remote Config for live updates
 - **A/B testing support**: Easy configuration variants through level metadata
+
+## Key Features & Systems
+
+### Professional Game Features
+1. **World Map System**: 3D-inspired level selection with progression tracking
+2. **Design Token System**: Comprehensive theming with DesignTokens.ts
+3. **Professional HUD**: Multi-section display with GameHeader, LevelSection, ScoreSection, StatusSection
+4. **Optimized Rendering**: Dedicated performance components in components/optimized/
+5. **Custom UI Components**: StyledSwitch, MenuButton, and other reusable elements
+6. **Smooth Animations**: Professional transitions and visual feedback
+7. **Responsive Design**: Adapts to different screen sizes and orientations
+
+### Core Systems Integration
+- **LevelManager**: Centralized level loading and progression
+- **Analytics**: Comprehensive event tracking throughout
+- **State Management**: Multiple Zustand stores for different concerns
+- **Performance Monitoring**: Built-in FPS tracking and optimization
+- **Error Handling**: Comprehensive error boundaries and logging
 
 ## Critical Issues & Troubleshooting
 
