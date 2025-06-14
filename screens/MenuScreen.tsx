@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View, Easing } from 'react-native';
 import { isFeatureEnabled } from '@/constants/FeatureFlagConfig';
+import { audioManager } from '@/systems/AudioManager';
 
 interface MenuScreenProps {
   onStartGame: () => void;
@@ -28,6 +29,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({
   const buttonsSlideAnim = useRef(new Animated.Value(100)).current;
 
   useEffect(() => {
+    // Play menu music
+    audioManager.playMusic('menu_music'); // Assuming you have loaded 'menu_music'
+
     // Entrance animation
     Animated.stagger(150, [
       Animated.timing(fadeAnim, {

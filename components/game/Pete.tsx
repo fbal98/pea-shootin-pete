@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useRef, useImperativeHandle, forwardRef } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
 import { getColorScheme } from '@/constants/GameColors';
 
 interface PeteProps {
@@ -9,11 +9,33 @@ interface PeteProps {
   level: number;
 }
 
-export const Pete: React.FC<PeteProps> = ({ x, y, size, level }) => {
+export interface PeteRef {
+  triggerRecoil: () => void;
+  triggerMove: () => void;
+}
+
+export const Pete = forwardRef<PeteRef, PeteProps>(({ x, y, size, level }, ref) => {
   const colorScheme = getColorScheme(level);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const squashAnim = useRef(new Animated.Value(1)).current;
+
+  useImperativeHandle(ref, () => ({
+    triggerRecoil: () => {
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 0.9, duration: 50, useNativeDriver: true }),
+        Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+      ]).start();
+    },
+    triggerMove: () => {
+       Animated.sequence([
+        Animated.timing(squashAnim, { toValue: 1.1, duration: 100, useNativeDriver: true }),
+        Animated.spring(squashAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
+      ]).start();
+    }
+  }));
 
   return (
-    <View
+    <Animated.View
       style={[
         styles.pete,
         {
@@ -23,6 +45,7 @@ export const Pete: React.FC<PeteProps> = ({ x, y, size, level }) => {
           height: size,
           backgroundColor: colorScheme.primary,
           shadowColor: colorScheme.shadow,
+          transform: [{ scale: scaleAnim }, { scaleY: squashAnim }],
         },
       ]}
     >
@@ -31,9 +54,9 @@ export const Pete: React.FC<PeteProps> = ({ x, y, size, level }) => {
         <View style={styles.eye} />
         <View style={styles.eye} />
       </View>
-    </View>
+    </Animated.View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   pete: {

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Typography, Spacing, BorderRadius } from '@/constants/DesignTokens';
 import { UI_PALETTE } from '@/constants/GameColors';
@@ -9,6 +9,8 @@ interface ScoreSectionProps {
 }
 
 export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) => {
+  const [displayScore, setDisplayScore] = useState(score);
+  const scoreAnim = useRef(new Animated.Value(score)).current;
   const scoreScale = useRef(new Animated.Value(1)).current;
   const comboOpacity = useRef(new Animated.Value(0)).current;
   const comboScale = useRef(new Animated.Value(0.8)).current;
@@ -17,8 +19,17 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
   const prevCombo = useRef(combo);
 
   useEffect(() => {
-    // Animate score when it changes
-    if (score !== prevScore.current && score > prevScore.current) {
+    const listener = scoreAnim.addListener(({ value }) => {
+      setDisplayScore(Math.round(value));
+    });
+
+    return () => {
+      scoreAnim.removeListener(listener);
+    };
+  }, [scoreAnim]);
+
+  useEffect(() => {
+    if (score > prevScore.current) {
       Animated.sequence([
         Animated.timing(scoreScale, {
           toValue: 1.2,
@@ -30,11 +41,17 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
           duration: 150,
           useNativeDriver: true,
         }),
+        Animated.timing(scoreAnim, {
+          toValue: score,
+          duration: 300,
+          useNativeDriver: false,
+        }),
       ]).start();
-
-      prevScore.current = score;
+    } else {
+       scoreAnim.setValue(score);
     }
-  }, [score, scoreScale]);
+    prevScore.current = score;
+  }, [score, scoreScale, scoreAnim]);
 
   useEffect(() => {
     // Animate combo indicator and flash on combo increase
@@ -107,7 +124,7 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
           },
         ]}
       >
-        {score.toLocaleString()}
+        {displayScore.toLocaleString()}
       </Animated.Text>
 
       {combo > 1 && (

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { useGameActions, useIsPlaying, useGameOver, useActivePowerUp, usePowerUpDuration } from '@/store/gameStore';
+import { audioManager } from '@/systems/AudioManager';
 import {
   useLevelProgressionActions,
   useCurrentLevel,
@@ -312,6 +313,9 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
 
     // Track projectile fired for level progression
     levelActionsRef.current.projectileFired();
+
+    // Play shoot sound effect
+    audioManager.playSound('shoot');
 
     // Track for meta progression
     metaActions.recordShotFired();
@@ -798,6 +802,7 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
           // === ADD JUICE: HAPTIC FEEDBACK AND CELEBRATION ===
           // Haptic feedback for balloon pop
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          audioManager.playSound(enemy.sizeLevel === 1 ? 'pop_final' : 'pop_short');
           
           // Visual celebration at enemy position
           queueCelebration({

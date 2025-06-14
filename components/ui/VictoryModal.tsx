@@ -30,6 +30,7 @@ import { MysteryRewardDisplay } from '@/components/ui/MysteryRewardDisplay';
 import { AnimatedBalloon } from '@/components/ui/AnimatedBalloon';
 import { useAddVictoryCelebration } from '@/store/celebrationStore';
 import { MysteryReward } from '@/types/MetaProgressionTypes';
+import { audioManager } from '@/systems/AudioManager';
 
 interface VictoryModalProps {
   level: number;
@@ -73,6 +74,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
   useEffect(() => {
     if (isVisible) {
+      audioManager.playSound('victory_jingle');
       // Trigger victory celebration through celebration store
       addVictoryCelebration({
         level,

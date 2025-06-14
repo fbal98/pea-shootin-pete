@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
 import { getColorScheme } from '@/constants/GameColors';
 import { ENTITY_CONFIG, getBalloonOpacity } from '@/constants/GameConfig';
 
@@ -10,6 +10,7 @@ interface EnemyProps {
   type?: 'basic' | 'fast' | 'strong' | 'bouncer' | 'splitter' | 'ghost';
   sizeLevel?: number;
   level: number;
+  onHit?: () => void; // Prop to trigger flash
 }
 
 export const Enemy: React.FC<EnemyProps> = ({
@@ -19,8 +20,27 @@ export const Enemy: React.FC<EnemyProps> = ({
   type = 'basic',
   sizeLevel = 3,
   level,
+  onHit
 }) => {
   const colorScheme = getColorScheme(level);
+  const hitFlashAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (onHit) {
+      onHit(); // This can be used to trigger animations from parent
+    }
+  }, [onHit]);
+  
+  const triggerHitFlash = () => {
+    Animated.sequence([
+      Animated.timing(hitFlashAnim, { toValue: 1, duration: 50, useNativeDriver: false }),
+      Animated.timing(hitFlashAnim, { toValue: 0, duration: 100, useNativeDriver: false }),
+    ]).start();
+  };
+  
+  // Expose method to parent if needed, though direct prop change is better
+  // useImperativeHandle(ref, () => ({ triggerHitFlash }));
+
 
   // Minimal visual differentiation
   const getOpacity = () => {
@@ -48,6 +68,11 @@ export const Enemy: React.FC<EnemyProps> = ({
     }
   };
 
+  const flashColor = hitFlashAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['transparent', 'rgba(255, 255, 255, 0.7)'],
+  });
+
   return (
     <View
       style={[
@@ -61,9 +86,11 @@ export const Enemy: React.FC<EnemyProps> = ({
           backgroundColor: colorScheme.secondary,
           opacity: getOpacity(),
           shadowColor: colorScheme.shadow,
-        },
+        }
       ]}
-    />
+    >
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: flashColor, borderRadius: getShapeStyle().borderRadius }]} />
+    </View>
   );
 };
 

@@ -1,5 +1,6 @@
-import React, { useEffect, useCallback, useState } from 'react';
-import { View, StyleSheet, useWindowDimensions, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
+import { View, StyleSheet, useWindowDimensions, Text, TouchableOpacity, Animated } from 'react-native';
+import { audioManager } from '@/systems/AudioManager';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -53,6 +54,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const gameAreaHeight = screenHeight - insets.top - insets.bottom;
+  const gameOverAnim = useRef(new Animated.Value(0)).current;
 
   // Game state
   const score = useScore();
@@ -115,6 +117,31 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   useEffect(() => {
     gameAreaHeightRef.current = gameAreaHeight;
   }, [gameAreaHeight, gameAreaHeightRef]);
+
+  // Start level music when level begins
+  useEffect(() => {
+    if (isPlaying && !gameOver && currentLevel) {
+      // A simple mapping for now. This could be part of level config.
+      const musicMap = ['level_music_1', 'level_music_2', 'level_music_3'];
+      const musicKey = musicMap[(currentLevel.id -1) % musicMap.length];
+      // audioManager.playMusic(musicKey); // Assuming you have loaded these sounds
+    }
+  }, [isPlaying, gameOver, currentLevel]);
+
+  // Game Over animation
+  useEffect(() => {
+    if (gameOver) {
+      Animated.sequence([
+        Animated.timing(gameOverAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+        Animated.timing(gameOverAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
+        Animated.timing(gameOverAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+        Animated.timing(gameOverAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
+        Animated.spring(gameOverAnim, { toValue: 1, friction: 3, useNativeDriver: true })
+      ]).start();
+    } else {
+      gameOverAnim.setValue(0);
+    }
+  }, [gameOver]);
 
   // Enhanced shoot function to track tutorial progress
   const enhancedShootProjectile = useCallback(() => {
@@ -393,12 +420,27 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
 
           {/* Game Over overlay */}
           {gameOver && (
-            <View style={styles.gameOverOverlay}>
+            <Animated.View style={[styles.gameOverOverlay, {
+              opacity: gameOverAnim,
+              transform: [{
+                scale: gameOverAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1.2, 1]
+                })
+              }]
+            }]}>
               <LinearGradient
                 colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.98)']}
                 style={styles.gameOverContainer}
               >
-                <Text style={styles.gameOverTitle}>GAME OVER</Text>
+                <Animated.Text style={[styles.gameOverTitle, {
+                  transform: [{
+                    translateX: gameOverAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [Math.random() * 10 - 5, 0]
+                    })
+                  }]
+                }]}>GAME OVER</Animated.Text>
                 <Text style={styles.finalScore}>{score}</Text>
 
                 {/* Save Me Button - Only show if not used yet */}
@@ -429,7 +471,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                   <Text style={styles.secondaryButtonText}>MAIN MENU</Text>
                 </TouchableOpacity>
               </LinearGradient>
-            </View>
+            </Animated.View>
           )}
 
           {/* Real-time Progression HUD */}

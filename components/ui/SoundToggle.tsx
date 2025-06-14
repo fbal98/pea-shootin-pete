@@ -2,14 +2,18 @@ import React, { useState, useRef } from 'react';
 import { TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { audioManager } from '@/systems/AudioManager';
 
 export const SoundToggle: React.FC = () => {
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(audioManager.getSoundEnabled());
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
   const handleToggle = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newSoundState = audioManager.toggleSound();
+    audioManager.toggleMusic(); // Toggling both for simplicity here
+    setSoundEnabled(newSoundState);
 
     // Animation on toggle
     Animated.parallel([
@@ -31,8 +35,6 @@ export const SoundToggle: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start();
-
-    setSoundEnabled(!soundEnabled);
   };
 
   const rotation = rotateAnim.interpolate({
