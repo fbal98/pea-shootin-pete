@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "lastUpdated": "2025-01-14",
-  "totalLevels": 5,
+  "totalLevels": 8,
 
   "levels": [
     {
@@ -58,6 +58,50 @@
       "prerequisites": ["1d"],
       "category": "progression",
       "tags": ["combo_mastery", "fast_enemies", "skill_building"]
+    },
+    {
+      "id": 3,
+      "name": "Speed Test",
+      "filename": "level_003.json",
+      "difficulty": "easy",
+      "unlocked": false,
+      "estimatedDuration": 65,
+      "prerequisites": [2],
+      "category": "progression",
+      "tags": ["fast_enemies", "reflexes", "speed_challenge"]
+    },
+    {
+      "id": 4,
+      "name": "Tough Balloons",
+      "filename": "level_004.json",
+      "difficulty": "easy",
+      "unlocked": false,
+      "estimatedDuration": 70,
+      "prerequisites": [3],
+      "category": "progression",
+      "tags": ["strong_enemies", "persistence", "accuracy"]
+    },
+    {
+      "id": 5,
+      "name": "Bouncy Castle",
+      "filename": "level_005.json",
+      "difficulty": "easy",
+      "unlocked": false,
+      "estimatedDuration": 75,
+      "prerequisites": [4],
+      "category": "progression",
+      "tags": ["bouncer_enemies", "physics", "tracking"]
+    },
+    {
+      "id": 6,
+      "name": "Split Decision",
+      "filename": "level_006.json",
+      "difficulty": "medium",
+      "unlocked": false,
+      "estimatedDuration": 80,
+      "prerequisites": [5],
+      "category": "progression",
+      "tags": ["splitter_enemies", "chaos", "combo_mastery"]
     }
   ],
 
@@ -70,7 +114,7 @@
     "progression": {
       "name": "Adventure",
       "description": "Progressive difficulty levels",
-      "levels": [2]
+      "levels": [2, 3, 4, 5, 6]
     }
   },
 
@@ -114,7 +158,7 @@
   },
 
   "remoteConfig": {
-    "enabledLevels": [1, "1b", "1c", "1d", 2],
+    "enabledLevels": [1, "1b", "1c", "1d", 2, 3, 4, 5, 6],
     "globalDifficultyMultiplier": 1.0,
     "globalSpeedMultiplier": 1.0,
     "features": {

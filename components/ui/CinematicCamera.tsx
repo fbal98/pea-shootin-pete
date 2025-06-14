@@ -10,10 +10,10 @@ interface CinematicCameraProps {
   duration?: number;
   easing?: any;
   autoFocus?: boolean;
-  parallaxLayers?: Array<{
+  parallaxLayers?: {
     component: React.ReactNode;
     depth: number; // 0-1, where 0 is background, 1 is foreground
-  }>;
+  }[];
 }
 
 export const CinematicCamera: React.FC<CinematicCameraProps> = ({

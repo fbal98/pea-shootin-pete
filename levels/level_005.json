@@ -1,0 +1,149 @@
+{
+  "id": 5,
+  "name": "Bouncy Castle",
+  "version": "1.0.0",
+  "difficulty": "easy",
+  "estimatedDuration": 75,
+
+  "objectives": [
+    {
+      "type": "eliminate_all_enemies",
+      "target": 6,
+      "description": "Pop the super bouncy balloons!",
+      "isOptional": false,
+      "rewardMultiplier": 1.0
+    },
+    {
+      "type": "achieve_combo",
+      "target": 4,
+      "description": "Get a 4-hit combo",
+      "isOptional": true,
+      "rewardMultiplier": 1.6
+    }
+  ],
+
+  "failureConditions": [
+    {
+      "type": "time_limit",
+      "threshold": 140
+    },
+    {
+      "type": "missed_shots",
+      "threshold": 20
+    }
+  ],
+
+  "enemyWaves": [
+    {
+      "id": "bouncer_introduction",
+      "startTime": 2.0,
+      "duration": 2.5,
+      "enemies": [
+        {
+          "type": "bouncer",
+          "count": 3,
+          "sizeLevel": 3,
+          "spawnInterval": 0.8,
+          "movementType": "physics_normal",
+          "movementSpeed": 1.0,
+          "splitBehavior": {
+            "enabled": true,
+            "minSizeToSplit": 2,
+            "splitInto": 2,
+            "childSizeReduction": 1.0,
+            "childSpeedBonus": 1.0
+          }
+        }
+      ],
+      "spawnPattern": "three_small_wide",
+      "speedBonus": 0.0,
+      "sizeVariation": 0.0
+    }
+  ],
+
+  "totalEnemyCount": 6,
+
+  "environment": {
+    "gravity": 450.0,
+    "airResistance": 0.0,
+    "wallBounceMultiplier": 1.4,
+    "floorBounceMultiplier": 1.3,
+    "ceilingBounceMultiplier": 1.2
+  },
+
+  "theme": {
+    "colorScheme": {
+      "primary": "#FFB6C1",
+      "background": {
+        "start": "#FFF5F8",
+        "end": "#FFE8F0"
+      },
+      "balloonColors": ["#FFB6C1", "#FFC2D1", "#FFCEDE"],
+      "peteColor": "#FFB6C1",
+      "projectileColor": "#E695A8"
+    },
+    "backgroundType": "floating_shapes",
+    "particleEffects": {
+      "balloonPopParticles": {
+        "enabled": true,
+        "count": 18,
+        "color": "#FFB6C1",
+        "lifespan": 1.6,
+        "scale": 1.4
+      },
+      "comboParticles": {
+        "enabled": true,
+        "count": 25,
+        "color": "#FFD700",
+        "lifespan": 2.5,
+        "scale": 1.6
+      }
+    },
+    "uiStyle": {
+      "scoreColor": "#2D3436",
+      "levelProgressColor": "#FFB6C1",
+      "hudOpacity": 0.9
+    }
+  },
+
+  "balance": {
+    "enemySpeedMultiplier": 1.0,
+    "spawnRateMultiplier": 1.0,
+    "balloonSizeMultiplier": 1.0,
+    "gravityMultiplier": 0.9,
+    "bounceEnergyMultiplier": 1.4,
+    "peteSpeedMultiplier": 1.0,
+    "projectileSpeedMultiplier": 1.0,
+    "targetFailRate": 0.25
+  },
+
+  "rewards": {
+    "baseScore": 350,
+    "perfectionBonus": 175,
+    "speedBonus": 85,
+    "unlocksNextLevel": true,
+    "coinsAwarded": 30,
+    "unlocksPowerup": null,
+    "unlocksAchievement": "bouncing_betty",
+    "masteryThresholds": {
+      "goldTimeThreshold": 60000,
+      "goldAccuracyThreshold": 78,
+      "goldStyleThreshold": 800,
+      "perfectCompletionMultiplier": 2.0
+    }
+  },
+
+  "metadata": {
+    "testGroup": "enemy_variety",
+    "variant": "standard",
+    "designIntent": ["introduce_bouncer_enemies", "unpredictable_physics", "tracking_challenge"],
+    "expectedPlaytime": 75,
+    "difficultyRating": 3.8,
+    "targetRetryRate": 0.28,
+    "targetCompletionRate": 0.68,
+    "createdDate": "2025-01-14",
+    "lastModified": "2025-01-14",
+    "createdBy": "system",
+    "balanceNotes": "First introduction to bouncer enemy type with enhanced physics"
+  }
+}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import * as Haptics from 'expo-haptics';
 import { useGameActions, useIsPlaying, useGameOver } from '@/store/gameStore';
 import {
   useLevelProgressionActions,
@@ -34,6 +35,7 @@ import { GameObject } from '@/utils/gameEngine';
 import { EnemyWave, EnemySpawnDefinition } from '@/types/LevelTypes';
 import { mysteryBalloonManager, MysteryBalloonInstance } from '@/systems/MysteryBalloonManager';
 import { useMetaProgressionActions } from '@/store/metaProgressionStore';
+import { useCelebrationManager } from '@/hooks/useCelebrationManager';
 import { trackBalloonPopped, trackMysteryBalloonPopped } from '@/utils/analytics';
 import { CollisionSystem } from '@/systems/CollisionSystem';
 import { GameObjectPools } from '@/utils/ObjectPool';
@@ -83,6 +85,9 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
 
   // Meta progression actions for mystery rewards
   const metaActions = useMetaProgressionActions();
+  
+  // Celebration system for feedback
+  const { queueCelebration } = useCelebrationManager();
   const enemiesRemaining = useEnemiesRemaining();
   const totalEnemies = useTotalEnemies();
   const currentScore = useCurrentScore();
@@ -740,6 +745,21 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
           // Track for meta progression
           metaActions.recordShotHit();
 
+          // === ADD JUICE: HAPTIC FEEDBACK AND CELEBRATION ===
+          // Haptic feedback for balloon pop
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          
+          // Visual celebration at enemy position
+          queueCelebration({
+            type: 'combo',
+            priority: 3,
+            props: {
+              position: { x: enemy.x + enemy.width / 2, y: enemy.y + enemy.height / 2 },
+              theme: 'beach', // TODO: Use level theme
+              intensity: enemy.sizeLevel === 1 ? 'high' : 'medium', // Smaller balloons = more satisfying
+            },
+          });
+
           // Update score based on enemy size
           const points = getBalloonPoints(enemy.sizeLevel as 1 | 2 | 3);
 
@@ -751,6 +771,37 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
           // Apply combo multiplier to score
           const finalPoints = Math.round(points * comboResult.scoreMultiplier);
           actions.updateScore(finalPoints);
+
+          // === COMBO MILESTONE CELEBRATIONS ===
+          // Check for combo milestones and add enhanced celebration
+          const newCombo = comboResult.scoreMultiplier > 1 ? currentCombo + 1 : currentCombo;
+          if (newCombo >= 5 && newCombo % 5 === 0) {
+            // Every 5 combo milestone gets enhanced feedback
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            queueCelebration({
+              type: 'combo',
+              priority: 7,
+              props: {
+                position: { x: screenWidth / 2, y: gameAreaHeight / 3 },
+                theme: 'space',
+                intensity: newCombo >= 15 ? 'high' : 'medium',
+                message: `${newCombo}x COMBO!`,
+              },
+            });
+          } else if (newCombo >= 10 && newCombo % 10 === 0) {
+            // Every 10 combo milestone gets the biggest celebration
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            queueCelebration({
+              type: 'achievement',
+              priority: 10,
+              props: {
+                position: { x: screenWidth / 2, y: gameAreaHeight / 2 },
+                theme: 'volcano',
+                intensity: 'high',
+                message: `AMAZING ${newCombo}x COMBO!`,
+              },
+            });
+          }
 
           // Track balloon popped analytics
           trackBalloonPopped(

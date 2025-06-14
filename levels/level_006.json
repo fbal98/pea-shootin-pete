@@ -1,0 +1,149 @@
+{
+  "id": 6,
+  "name": "Split Decision",
+  "version": "1.0.0",
+  "difficulty": "medium",
+  "estimatedDuration": 80,
+
+  "objectives": [
+    {
+      "type": "eliminate_all_enemies",
+      "target": 10,
+      "description": "Pop the multi-splitting balloons!",
+      "isOptional": false,
+      "rewardMultiplier": 1.0
+    },
+    {
+      "type": "achieve_combo",
+      "target": 6,
+      "description": "Get a 6-hit combo",
+      "isOptional": true,
+      "rewardMultiplier": 1.8
+    }
+  ],
+
+  "failureConditions": [
+    {
+      "type": "time_limit",
+      "threshold": 150
+    },
+    {
+      "type": "missed_shots",
+      "threshold": 25
+    }
+  ],
+
+  "enemyWaves": [
+    {
+      "id": "splitter_introduction",
+      "startTime": 2.0,
+      "duration": 3.0,
+      "enemies": [
+        {
+          "type": "splitter",
+          "count": 2,
+          "sizeLevel": 3,
+          "spawnInterval": 1.5,
+          "movementType": "physics_normal",
+          "movementSpeed": 1.0,
+          "splitBehavior": {
+            "enabled": true,
+            "minSizeToSplit": 1,
+            "splitInto": 4,
+            "childSizeReduction": 0.8,
+            "childSpeedBonus": 1.2
+          }
+        }
+      ],
+      "spawnPattern": "two_small",
+      "speedBonus": 0.0,
+      "sizeVariation": 0.0
+    }
+  ],
+
+  "totalEnemyCount": 10,
+
+  "environment": {
+    "gravity": 520.0,
+    "airResistance": 0.0,
+    "wallBounceMultiplier": 1.0,
+    "floorBounceMultiplier": 1.0,
+    "ceilingBounceMultiplier": 1.0
+  },
+
+  "theme": {
+    "colorScheme": {
+      "primary": "#FF6B35",
+      "background": {
+        "start": "#FFF8F5",
+        "end": "#FFEDE0"
+      },
+      "balloonColors": ["#FF6B35", "#FF7F50", "#FF9370"],
+      "peteColor": "#FF6B35",
+      "projectileColor": "#E5512A"
+    },
+    "backgroundType": "floating_shapes",
+    "particleEffects": {
+      "balloonPopParticles": {
+        "enabled": true,
+        "count": 25,
+        "color": "#FF6B35",
+        "lifespan": 1.8,
+        "scale": 1.6
+      },
+      "comboParticles": {
+        "enabled": true,
+        "count": 30,
+        "color": "#FFD700",
+        "lifespan": 3.0,
+        "scale": 1.8
+      }
+    },
+    "uiStyle": {
+      "scoreColor": "#2D3436",
+      "levelProgressColor": "#FF6B35",
+      "hudOpacity": 0.9
+    }
+  },
+
+  "balance": {
+    "enemySpeedMultiplier": 1.0,
+    "spawnRateMultiplier": 1.0,
+    "balloonSizeMultiplier": 1.0,
+    "gravityMultiplier": 1.04,
+    "bounceEnergyMultiplier": 1.0,
+    "peteSpeedMultiplier": 1.0,
+    "projectileSpeedMultiplier": 1.0,
+    "targetFailRate": 0.28
+  },
+
+  "rewards": {
+    "baseScore": 400,
+    "perfectionBonus": 200,
+    "speedBonus": 100,
+    "unlocksNextLevel": true,
+    "coinsAwarded": 35,
+    "unlocksPowerup": null,
+    "unlocksAchievement": "split_master",
+    "masteryThresholds": {
+      "goldTimeThreshold": 65000,
+      "goldAccuracyThreshold": 75,
+      "goldStyleThreshold": 900,
+      "perfectCompletionMultiplier": 2.0
+    }
+  },
+
+  "metadata": {
+    "testGroup": "enemy_variety",
+    "variant": "standard",
+    "designIntent": ["introduce_splitter_enemies", "chaos_management", "combo_opportunities"],
+    "expectedPlaytime": 80,
+    "difficultyRating": 4.2,
+    "targetRetryRate": 0.30,
+    "targetCompletionRate": 0.65,
+    "createdDate": "2025-01-14",
+    "lastModified": "2025-01-14",
+    "createdBy": "system",
+    "balanceNotes": "First introduction to splitter enemy type with 4-way splits"
+  }
+}

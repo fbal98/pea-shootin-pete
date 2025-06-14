@@ -22,6 +22,7 @@ import { TutorialOverlay } from '@/components/ui/TutorialOverlay';
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { useOptimizedGameInputBridge } from '@/hooks/useOptimizedGameInputBridge';
 import { useTutorialIntegration } from '@/hooks/useTutorialIntegration';
+import { useCelebrationManager } from '@/hooks/useCelebrationManager';
 
 // Store
 import { useGameOver, useScore, useLevel, useGameActions, useIsPlaying, useLives } from '@/store/gameStore';
@@ -82,6 +83,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     skipCurrentTutorial,
     trackTutorialProgress,
   } = useTutorialIntegration();
+
+  // Celebration system for enhanced feedback
+  const { queueCelebration } = useCelebrationManager();
 
   // Mystery reward display state
   const [mysteryRewards, setMysteryRewards] = useState<{
@@ -185,6 +189,46 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     }
   }, [getInputStats]);
 
+  // Performance tracking for victory screen
+  const [levelStartTime, setLevelStartTime] = useState<number>(Date.now());
+  const [levelDuration, setLevelDuration] = useState<number>(0);
+
+  // Track level start time
+  useEffect(() => {
+    if (isPlaying && !gameOver) {
+      setLevelStartTime(Date.now());
+    }
+  }, [currentLevel?.id]);
+
+  // Calculate level duration
+  useEffect(() => {
+    if (showVictoryScreen) {
+      setLevelDuration((Date.now() - levelStartTime) / 1000); // in seconds
+    }
+  }, [showVictoryScreen, levelStartTime]);
+
+  // Calculate stars earned based on performance
+  const calculateStarsEarned = useCallback(() => {
+    if (!currentLevel) return 1;
+
+    let stars = 1; // Base star for completion
+    
+    // Star 2: Good accuracy (>75%)
+    if (accuracy >= 75) {
+      stars = 2;
+    }
+    
+    // Star 3: Excellent performance
+    const goldTime = currentLevel.rewards?.masteryThresholds?.goldTimeThreshold || 60000;
+    const goldAccuracy = currentLevel.rewards?.masteryThresholds?.goldAccuracyThreshold || 85;
+    
+    if (accuracy >= goldAccuracy && levelDuration <= goldTime / 1000) {
+      stars = 3;
+    }
+    
+    return stars;
+  }, [currentLevel, accuracy, levelDuration]);
+
   // Calculate positions
   const peteY = gameAreaHeight - GAME_CONFIG.PETE_SIZE - GAME_CONFIG.BOTTOM_PADDING;
 
@@ -253,16 +297,34 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                   level={level}
                   mysteryBalloon={mysteryBalloon.mysteryBalloon}
                   onPopped={(balloonId, reward) => {
-                    // Show reward celebration
-                    setMysteryRewards(prev => [
-                      ...prev,
-                      {
-                        id: `reward_${Date.now()}`,
-                        reward: reward as any, // TODO: Fix reward type compatibility
-                        x: mysteryBalloon.x + mysteryBalloon.width / 2,
-                        y: mysteryBalloon.y + mysteryBalloon.width / 2,
+                    // === ENHANCED MYSTERY BALLOON CELEBRATION ===
+                    const centerX = mysteryBalloon.x + mysteryBalloon.width / 2;
+                    const centerY = mysteryBalloon.y + mysteryBalloon.width / 2;
+                    
+                    // High-priority celebration for mystery balloon pop
+                    queueCelebration({
+                      type: 'mystery_reward',
+                      priority: 15, // Very high priority - interrupts other celebrations
+                      props: {
+                        position: { x: centerX, y: centerY },
+                        theme: 'volcano',
+                        intensity: 'high',
+                        message: 'MYSTERY BONUS!',
                       },
-                    ]);
+                    });
+
+                    // Show reward celebration after a brief delay
+                    setTimeout(() => {
+                      setMysteryRewards(prev => [
+                        ...prev,
+                        {
+                          id: `reward_${Date.now()}`,
+                          reward: reward as any, // TODO: Fix reward type compatibility
+                          x: centerX,
+                          y: centerY,
+                        },
+                      ]);
+                    }, 500); // Small delay to let the main celebration play first
                   }}
                 />
               ))}
@@ -318,12 +380,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
           <VictoryModal
             level={typeof currentLevel?.id === 'string' ? parseInt(currentLevel.id) || 1 : currentLevel?.id || 1}
             score={currentLevelScore}
-            starsEarned={3} // TODO: Calculate actual stars based on performance
+            starsEarned={calculateStarsEarned()}
             isVisible={showVictoryScreen}
             onContinue={handleContinue}
             onBackToMenu={handleVictoryBackToMenu}
             onWorldMap={onWorldMap}
-            time={4.25} // TODO: Add actual level time tracking
+            time={levelDuration}
             accuracy={accuracy}
           />
 

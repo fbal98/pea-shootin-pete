@@ -1,0 +1,142 @@
+{
+  "id": 4,
+  "name": "Tough Balloons",
+  "version": "1.0.0",
+  "difficulty": "easy",
+  "estimatedDuration": 70,
+
+  "objectives": [
+    {
+      "type": "eliminate_all_enemies",
+      "target": 4,
+      "description": "Pop the tough balloons - they need 2 hits!",
+      "isOptional": false,
+      "rewardMultiplier": 1.0
+    }
+  ],
+
+  "failureConditions": [
+    {
+      "type": "time_limit",
+      "threshold": 120
+    },
+    {
+      "type": "missed_shots",
+      "threshold": 15
+    }
+  ],
+
+  "enemyWaves": [
+    {
+      "id": "strong_introduction",
+      "startTime": 2.0,
+      "duration": 2.0,
+      "enemies": [
+        {
+          "type": "strong",
+          "count": 2,
+          "sizeLevel": 3,
+          "spawnInterval": 1.0,
+          "movementType": "physics_normal",
+          "movementSpeed": 1.0,
+          "splitBehavior": {
+            "enabled": true,
+            "minSizeToSplit": 1,
+            "splitInto": 2,
+            "childSizeReduction": 1.0,
+            "childSpeedBonus": 1.0
+          }
+        }
+      ],
+      "spawnPattern": "two_small",
+      "speedBonus": 0.0,
+      "sizeVariation": 0.0
+    }
+  ],
+
+  "totalEnemyCount": 4,
+
+  "environment": {
+    "gravity": 500.0,
+    "airResistance": 0.0,
+    "wallBounceMultiplier": 1.0,
+    "floorBounceMultiplier": 1.0,
+    "ceilingBounceMultiplier": 1.0
+  },
+
+  "theme": {
+    "colorScheme": {
+      "primary": "#A374D5",
+      "background": {
+        "start": "#F8F4FF",
+        "end": "#F0E8FF"
+      },
+      "balloonColors": ["#A374D5", "#B584E0", "#C794EB"],
+      "peteColor": "#A374D5",
+      "projectileColor": "#7A4FB8"
+    },
+    "backgroundType": "floating_shapes",
+    "particleEffects": {
+      "balloonPopParticles": {
+        "enabled": true,
+        "count": 15,
+        "color": "#A374D5",
+        "lifespan": 1.4,
+        "scale": 1.3
+      },
+      "comboParticles": {
+        "enabled": true,
+        "count": 20,
+        "color": "#FFD700",
+        "lifespan": 2.0,
+        "scale": 1.4
+      }
+    },
+    "uiStyle": {
+      "scoreColor": "#2D3436",
+      "levelProgressColor": "#A374D5",
+      "hudOpacity": 0.9
+    }
+  },
+
+  "balance": {
+    "enemySpeedMultiplier": 1.0,
+    "spawnRateMultiplier": 1.0,
+    "balloonSizeMultiplier": 1.1,
+    "gravityMultiplier": 1.0,
+    "bounceEnergyMultiplier": 1.0,
+    "peteSpeedMultiplier": 1.0,
+    "projectileSpeedMultiplier": 1.0,
+    "targetFailRate": 0.22
+  },
+
+  "rewards": {
+    "baseScore": 300,
+    "perfectionBonus": 150,
+    "speedBonus": 75,
+    "unlocksNextLevel": true,
+    "coinsAwarded": 25,
+    "unlocksPowerup": null,
+    "unlocksAchievement": "tough_guy",
+    "masteryThresholds": {
+      "goldTimeThreshold": 55000,
+      "goldAccuracyThreshold": 85,
+      "goldStyleThreshold": 700,
+      "perfectCompletionMultiplier": 2.0
+    }
+  },
+
+  "metadata": {
+    "testGroup": "enemy_variety",
+    "variant": "standard",
+    "designIntent": ["introduce_strong_enemies", "teach_persistence", "accuracy_challenge"],
+    "expectedPlaytime": 70,
+    "difficultyRating": 3.5,
+    "targetRetryRate": 0.25,
+    "targetCompletionRate": 0.70,
+    "createdDate": "2025-01-14",
+    "lastModified": "2025-01-14",
+    "createdBy": "system",
+    "balanceNotes": "First introduction to strong enemy type requiring multiple hits"
+  }
+}

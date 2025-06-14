@@ -1,0 +1,145 @@
+{
+  "id": 3,
+  "name": "Speed Test",
+  "version": "1.0.0",
+  "difficulty": "easy",
+  "estimatedDuration": 65,
+
+  "objectives": [
+    {
+      "type": "eliminate_all_enemies",
+      "target": 4,
+      "description": "Pop the speedy balloons!",
+      "isOptional": false,
+      "rewardMultiplier": 1.0
+    },
+    {
+      "type": "achieve_combo",
+      "target": 3,
+      "description": "Get a 3-hit combo",
+      "isOptional": true,
+      "rewardMultiplier": 1.4
+    }
+  ],
+
+  "failureConditions": [
+    {
+      "type": "time_limit",
+      "threshold": 120
+    }
+  ],
+
+  "enemyWaves": [
+    {
+      "id": "fast_introduction",
+      "startTime": 2.0,
+      "duration": 1.5,
+      "enemies": [
+        {
+          "type": "fast",
+          "count": 2,
+          "sizeLevel": 3,
+          "spawnInterval": 0.5,
+          "movementType": "physics_normal",
+          "movementSpeed": 1.3,
+          "splitBehavior": {
+            "enabled": true,
+            "minSizeToSplit": 2,
+            "splitInto": 2,
+            "childSizeReduction": 1.0,
+            "childSpeedBonus": 1.0
+          }
+        }
+      ],
+      "spawnPattern": "two_small",
+      "speedBonus": 0.3,
+      "sizeVariation": 0.0
+    }
+  ],
+
+  "totalEnemyCount": 4,
+
+  "environment": {
+    "gravity": 500.0,
+    "airResistance": 0.0,
+    "wallBounceMultiplier": 1.0,
+    "floorBounceMultiplier": 1.0,
+    "ceilingBounceMultiplier": 1.0
+  },
+
+  "theme": {
+    "colorScheme": {
+      "primary": "#4A90E2",
+      "background": {
+        "start": "#F0F8FF",
+        "end": "#E0F0FF"
+      },
+      "balloonColors": ["#4A90E2", "#6BA3E8", "#87B7ED"],
+      "peteColor": "#4A90E2",
+      "projectileColor": "#2E5A8A"
+    },
+    "backgroundType": "floating_shapes",
+    "particleEffects": {
+      "balloonPopParticles": {
+        "enabled": true,
+        "count": 12,
+        "color": "#4A90E2",
+        "lifespan": 1.3,
+        "scale": 1.2
+      },
+      "comboParticles": {
+        "enabled": true,
+        "count": 18,
+        "color": "#FFD700",
+        "lifespan": 2.2,
+        "scale": 1.5
+      }
+    },
+    "uiStyle": {
+      "scoreColor": "#2D3436",
+      "levelProgressColor": "#4A90E2",
+      "hudOpacity": 0.9
+    }
+  },
+
+  "balance": {
+    "enemySpeedMultiplier": 1.3,
+    "spawnRateMultiplier": 1.0,
+    "balloonSizeMultiplier": 1.0,
+    "gravityMultiplier": 1.0,
+    "bounceEnergyMultiplier": 1.0,
+    "peteSpeedMultiplier": 1.0,
+    "projectileSpeedMultiplier": 1.0,
+    "targetFailRate": 0.18
+  },
+
+  "rewards": {
+    "baseScore": 250,
+    "perfectionBonus": 125,
+    "speedBonus": 60,
+    "unlocksNextLevel": true,
+    "coinsAwarded": 20,
+    "unlocksPowerup": null,
+    "unlocksAchievement": "speed_demon",
+    "masteryThresholds": {
+      "goldTimeThreshold": 50000,
+      "goldAccuracyThreshold": 80,
+      "goldStyleThreshold": 600,
+      "perfectCompletionMultiplier": 2.0
+    }
+  },
+
+  "metadata": {
+    "testGroup": "enemy_variety",
+    "variant": "standard",
+    "designIntent": ["introduce_fast_enemies", "test_player_reflexes", "speed_challenge"],
+    "expectedPlaytime": 65,
+    "difficultyRating": 3.2,
+    "targetRetryRate": 0.20,
+    "targetCompletionRate": 0.75,
+    "createdDate": "2025-01-14",
+    "lastModified": "2025-01-14",
+    "createdBy": "system",
+    "balanceNotes": "First introduction to fast enemy type, teaching reflexes and quick shooting"
+  }
+}

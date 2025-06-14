@@ -12,7 +12,9 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
   const scoreScale = useRef(new Animated.Value(1)).current;
   const comboOpacity = useRef(new Animated.Value(0)).current;
   const comboScale = useRef(new Animated.Value(0.8)).current;
+  const comboFlash = useRef(new Animated.Value(0)).current;
   const prevScore = useRef(score);
+  const prevCombo = useRef(combo);
 
   useEffect(() => {
     // Animate score when it changes
@@ -35,8 +37,24 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
   }, [score, scoreScale]);
 
   useEffect(() => {
-    // Animate combo indicator
+    // Animate combo indicator and flash on combo increase
     if (combo > 1) {
+      // Flash animation when combo increases
+      if (combo > prevCombo.current) {
+        Animated.sequence([
+          Animated.timing(comboFlash, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(comboFlash, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }
+
       Animated.parallel([
         Animated.timing(comboOpacity, {
           toValue: 1,
@@ -44,12 +62,22 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
           useNativeDriver: true,
         }),
         Animated.spring(comboScale, {
-          toValue: 1,
-          tension: 100,
+          toValue: combo > prevCombo.current ? 1.2 : 1, // Extra scale on increase
+          tension: 120,
           friction: 8,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        if (combo > prevCombo.current) {
+          // Scale back down after the initial burst
+          Animated.spring(comboScale, {
+            toValue: 1,
+            tension: 100,
+            friction: 8,
+            useNativeDriver: true,
+          }).start();
+        }
+      });
     } else {
       Animated.parallel([
         Animated.timing(comboOpacity, {
@@ -64,7 +92,9 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
         }),
       ]).start();
     }
-  }, [combo, comboOpacity, comboScale]);
+    
+    prevCombo.current = combo;
+  }, [combo, comboOpacity, comboScale, comboFlash]);
 
   return (
     <View style={styles.container}>
@@ -90,7 +120,23 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
             },
           ]}
         >
-          <Text style={styles.comboText}>COMBO x{combo}</Text>
+          <Animated.Text
+            style={[
+              styles.comboText,
+            ]}
+          >
+            COMBO x{combo}
+          </Animated.Text>
+          
+          {/* Flash overlay for extra juice */}
+          <Animated.View
+            style={[
+              styles.comboFlashOverlay,
+              {
+                opacity: comboFlash,
+              },
+            ]}
+          />
         </Animated.View>
       )}
     </View>
@@ -144,5 +190,15 @@ const styles = StyleSheet.create({
     textShadowColor: UI_PALETTE.primary_shadow,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  comboFlashOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFD700',
+    borderRadius: BorderRadius.medium,
+    zIndex: -1,
   },
 });

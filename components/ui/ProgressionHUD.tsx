@@ -21,8 +21,7 @@ import {
   useNewAchievements,
   useMetaProgressionActions,
   useSessionStats,
-} from '@/store/metaProgressionStore';
-import { useMetaProgressionStore } from '@/store/metaProgressionStore';
+ useMetaProgressionStore } from '@/store/metaProgressionStore';
 import {
   useCurrentCombo,
   useCurrentScore,
@@ -457,7 +456,7 @@ export const ProgressionHUD: React.FC<ProgressionHUDProps> = ({ level, isPlaying
   });
 
   // Track XP gains for floating notifications
-  const [xpGains, setXpGains] = useState<Array<{ id: string; amount: number; source: string }>>([]);
+  const [xpGains, setXpGains] = useState<{ id: string; amount: number; source: string }[]>([]);
   const prevBattlePassXP = useRef(battlePassXP);
 
   useEffect(() => {
