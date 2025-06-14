@@ -79,7 +79,8 @@
       "Bash(timeout 30s npm start)",
       "Bash(git restore:*)",
       "Bash(git merge:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
