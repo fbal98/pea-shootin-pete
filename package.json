@@ -4,10 +4,14 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:ai": "EXPO_PUBLIC_AI_MODE=true expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
+    "android:ai": "EXPO_PUBLIC_AI_MODE=true expo run:android",
     "ios": "expo run:ios",
+    "ios:ai": "EXPO_PUBLIC_AI_MODE=true expo run:ios",
     "web": "expo start --web",
+    "web:ai": "EXPO_PUBLIC_AI_MODE=true expo start --web",
     "lint": "expo lint",
     "lint:fix": "expo lint --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json}\"",
@@ -18,7 +22,8 @@
     "test:watch": "jest testing/tests/ --watch",
     "test:coverage": "jest testing/tests/ --coverage",
     "test:performance": "jest testing/tests/ --testNamePattern=\"Performance\"",
-    "test:gameplay": "jest testing/tests/basic-gameplay.test.ts"
+    "test:gameplay": "jest testing/tests/basic-gameplay.test.ts",
+    "test:ai": "EXPO_PUBLIC_AI_MODE=true npm run test:gameplay"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",

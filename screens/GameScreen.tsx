@@ -25,6 +25,8 @@ import { useCelebrationManager } from '@/hooks/useCelebrationManager';
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { useOptimizedGameInputBridge } from '@/hooks/useOptimizedGameInputBridge';
 import { useTutorialIntegration } from '@/hooks/useTutorialIntegration';
+import { useAIPlayer, AI_MODE_ENABLED } from '@/hooks/useAIPlayer';
+import { AI_PRESETS } from '@/pete_ai';
 
 // Store
 import { useGameActions, useGameOver, useIsPlaying, useLevel, useLives, useScore } from '@/store/gameStore';
@@ -42,7 +44,7 @@ import {
 
 // Constants
 import { UI_PALETTE } from '@/constants/GameColors';
-import { GAME_CONFIG, INPUT_CONFIG } from '@/constants/GameConfig';
+import { GAME_CONFIG } from '@/constants/GameConfig';
 
 interface GameScreenProps {
   onBackToMenu?: () => void;
@@ -62,6 +64,18 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   const gameOver = useGameOver();
   const isPlaying = useIsPlaying();
   const actions = useGameActions();
+  
+  // Debug game state changes
+  useEffect(() => {
+    console.log('🎮 Game State Changed:', {
+      score,
+      level,
+      lives,
+      gameOver,
+      isPlaying,
+      timestamp: Date.now()
+    });
+  }, [score, level, lives, gameOver, isPlaying]);
 
   // Level progression state
   const showVictoryScreen = useShowVictoryScreen();
@@ -100,6 +114,34 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   
   // Save Me state (one per level)
   const [saveMeUsed, setSaveMeUsed] = useState(false);
+
+  // AI Player state
+  const [aiEnabled, setAIEnabled] = useState(AI_MODE_ENABLED);
+  const [aiPreset, setAIPreset] = useState<keyof typeof AI_PRESETS>('aggressive');
+  
+  // Debug AI state changes
+  useEffect(() => {
+    console.log('🎮 GameScreen AI State:', {
+      aiEnabled,
+      aiPreset,
+      AI_MODE_ENABLED,
+      envVar: process.env.EXPO_PUBLIC_AI_MODE,
+      __DEV__
+    });
+  }, [aiEnabled, aiPreset]);
+
+  // Debug AI Player initialization
+  useEffect(() => {
+    console.log('🎮 AI Player State:', {
+      aiEnabled,
+      aiPreset,
+      peteXPosition: petePosition.current,
+      enemyCount: enemies?.length || 0,
+      projectileCount: projectiles?.length || 0,
+      screenDimensions: { width: screenWidth, height: gameAreaHeight },
+      gameState: { isPlaying, gameOver, score, lives }
+    });
+  }, [aiEnabled, aiPreset, enemies?.length, projectiles?.length, isPlaying, gameOver]);
 
   // Game logic hook
   const {
@@ -154,24 +196,39 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     trackTutorialProgress('swipe');
   }, [updatePetePosition, trackTutorialProgress]);
 
-  // Optimized game input handling
-  const { handleTouchStart, handleTouchMove, handleTouchEnd, updateSmoothing, getInputStats } = useOptimizedGameInputBridge(
+  // AI Player integration (log moved to useEffect to prevent render loops)
+
+  const aiPlayer = useAIPlayer(
+    petePosition,
+    enemies,
+    projectiles,
+    screenWidth,
+    gameAreaHeight,
+    {
+      updatePetePosition: enhancedUpdatePetePosition,
+      shootProjectile: enhancedShootProjectile,
+    },
+    {
+      enabled: aiEnabled,
+      preset: aiPreset,
+      decisionInterval: 100,
+      onAction: (action, gameState) => {
+        console.log('🎮 AI Action Executed:', action.type, 'with', gameState.enemies.length, 'enemies');
+      }
+    }
+  );
+
+  // Optimized game input handling (disabled when AI is active)
+  const { handleTouchStart, handleTouchMove, handleTouchEnd } = useOptimizedGameInputBridge(
     screenWidth,
     enhancedShootProjectile,
     enhancedUpdatePetePosition,
     {
-      smoothingFactor: 0.2, // Slightly more responsive for mobile
-      predictionFrames: 1, // Conservative prediction for stable feel
-      deadZone: 1.5, // Smaller dead zone for precise control
-      tapThreshold: 15, // Slightly larger tap threshold for touch screens
+      debounceMs: 16, // 60fps throttling
+      disabled: aiEnabled, // Disable touch input when AI is controlling
     }
   );
 
-  // Smooth movement update loop
-  useEffect(() => {
-    const interval = setInterval(updateSmoothing, INPUT_CONFIG.SMOOTHING_UPDATE_INTERVAL);
-    return () => clearInterval(interval);
-  }, [updateSmoothing]);
 
   // Game starts when isPlaying is set to true by parent component
 
@@ -244,21 +301,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     }
   }, [currentLevel?.id]);
 
-  // Input performance tracking (development only)
-  const [inputStats, setInputStats] = useState<{
-    totalTouches: number;
-    averageResponseTime: number;
-    smoothingEfficiency: number;
-  } | null>(null);
 
-  useEffect(() => {
-    if (__DEV__) {
-      const interval = setInterval(() => {
-        setInputStats(getInputStats());
-      }, 2000); // Update every 2 seconds
-      return () => clearInterval(interval);
-    }
-  }, [getInputStats]);
 
   // Performance tracking for victory screen
   const [levelStartTime, setLevelStartTime] = useState<number>(Date.now());
@@ -313,6 +356,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
         <View
           style={[styles.gameArea, { paddingTop: insets.top }]}
           onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
           onResponderGrant={handleTouchStart}
           onResponderMove={handleTouchMove}
           onResponderRelease={handleTouchEnd}
@@ -481,6 +525,65 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
           {/* Power-up Display */}
           {isFeatureEnabled('economy.powerUpShop') && <PowerUpHUD />}
 
+          {/* AI Debug Panel */}
+          {__DEV__ && (
+            <View style={styles.aiDebugPanel}>
+              <Text style={styles.aiDebugTitle}>AI Debug</Text>
+              <View style={styles.aiToggleRow}>
+                <Text style={styles.aiDebugLabel}>AI Mode:</Text>
+                <TouchableOpacity
+                  style={[styles.aiToggle, aiEnabled && styles.aiToggleActive]}
+                  onPress={() => {
+                    console.log('🎮 AI Toggle Pressed - changing from', aiEnabled, 'to', !aiEnabled);
+                    setAIEnabled(!aiEnabled);
+                  }}
+                >
+                  <Text style={[styles.aiToggleText, aiEnabled && styles.aiToggleTextActive]}>
+                    {aiEnabled ? 'ON' : 'OFF'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {aiEnabled && (
+                <View style={styles.aiPresetRow}>
+                  <Text style={styles.aiDebugLabel}>Preset:</Text>
+                  <TouchableOpacity
+                    style={styles.aiPresetButton}
+                    onPress={() => {
+                      const presets = Object.keys(AI_PRESETS) as (keyof typeof AI_PRESETS)[];
+                      const currentIndex = presets.indexOf(aiPreset);
+                      const nextIndex = (currentIndex + 1) % presets.length;
+                      console.log('🎮 AI Preset changing from', aiPreset, 'to', presets[nextIndex]);
+                      setAIPreset(presets[nextIndex]);
+                    }}
+                  >
+                    <Text style={styles.aiPresetText}>{aiPreset}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              
+              {/* Game State Debug Info */}
+              <View style={styles.aiDebugInfoRow}>
+                <Text style={styles.aiDebugInfo}>
+                  Game: {isPlaying ? 'Playing' : 'Stopped'} | Enemies: {enemies?.length || 0} | Pete: {Math.round(petePosition.current)}
+                </Text>
+              </View>
+              
+              {/* Quick Start Button */}
+              {!isPlaying && (
+                <TouchableOpacity
+                  style={styles.aiStartButton}
+                  onPress={async () => {
+                    console.log('🎮 Quick Start pressed - starting game');
+                    await levelActions.loadLevel(1);
+                    actions.setIsPlaying(true);
+                  }}
+                >
+                  <Text style={styles.aiStartButtonText}>START GAME</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {/* Mystery Reward Celebrations */}
           {mysteryRewards.map(mysteryReward => (
             <MysteryRewardDisplay
@@ -517,14 +620,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
           )}
 
           {/* Input Performance Debug (Development Only) */}
-          {__DEV__ && inputStats && (
-            <View style={styles.debugOverlay}>
-              <Text style={styles.debugText}>Input Performance:</Text>
-              <Text style={styles.debugText}>Touches: {inputStats.totalTouches}</Text>
-              <Text style={styles.debugText}>Avg Response: {inputStats.averageResponseTime.toFixed(1)}ms</Text>
-              <Text style={styles.debugText}>Smoothing: {inputStats.smoothingEfficiency.toFixed(1)}%</Text>
-            </View>
-          )}
         </View>
       </View>
     </CelebrationManager>
@@ -606,18 +701,94 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     marginTop: 2,
   },
-  debugOverlay: {
+  aiDebugPanel: {
     position: 'absolute',
-    top: 100,
+    top: 10,
     right: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 8,
-    borderRadius: 4,
-    zIndex: 200,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderRadius: 8,
+    padding: 10,
+    minWidth: 120,
+    zIndex: 1000,
   },
-  debugText: {
-    color: '#ffffff',
+  aiDebugTitle: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  aiToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  aiPresetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  aiDebugLabel: {
+    color: 'white',
     fontSize: 10,
-    fontFamily: 'monospace',
+    flex: 1,
+  },
+  aiToggle: {
+    backgroundColor: '#333',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    minWidth: 35,
+  },
+  aiToggleActive: {
+    backgroundColor: UI_PALETTE.primary,
+  },
+  aiToggleText: {
+    color: '#999',
+    fontSize: 10,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  aiToggleTextActive: {
+    color: 'white',
+  },
+  aiPresetButton: {
+    backgroundColor: '#444',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 3,
+    flex: 1,
+    marginLeft: 5,
+  },
+  aiPresetText: {
+    color: 'white',
+    fontSize: 9,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  aiDebugInfoRow: {
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#555',
+  },
+  aiDebugInfo: {
+    color: '#ccc',
+    fontSize: 8,
+    textAlign: 'center',
+  },
+  aiStartButton: {
+    backgroundColor: UI_PALETTE.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginTop: 6,
+  },
+  aiStartButtonText: {
+    color: 'white',
+    fontSize: 9,
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });

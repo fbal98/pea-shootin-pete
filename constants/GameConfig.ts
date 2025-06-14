@@ -108,11 +108,6 @@ export const BALLOON_PHYSICS = GAME_PHYSICS;
 // PLAYER INPUT & MOVEMENT
 // =============================================================================
 export const INPUT_CONFIG = {
-  // Pete movement smoothing
-  MOVEMENT_SMOOTHING: 0.2, // Interpolation factor for smooth movement
-  SMOOTHING_THRESHOLD: 0.5, // Minimum distance to trigger smoothing
-  SMOOTHING_UPDATE_INTERVAL: 16, // 60fps update interval (16ms)
-
   // Touch responsiveness
   MOVE_THROTTLE_MS: 16, // Throttle movement updates to 60fps
 

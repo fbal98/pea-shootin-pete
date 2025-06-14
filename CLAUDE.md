@@ -80,6 +80,11 @@ components/
 │   ├── MysteryRewardDisplay.tsx # Mystery reward system
 │   ├── EnhancedWorldNode.tsx  # World map node component
 │   ├── DynamicPath.tsx        # Animated path connections
+│   ├── PowerUpHUD.tsx         # Power-up status display with animations
+│   ├── SoundToggle.tsx        # Audio toggle with animations
+│   ├── InWorldTutorial.tsx    # In-world tutorial guidance
+│   ├── ParticleSystem.tsx     # Particle effects system
+│   ├── AtmosphericBackground.tsx # Enhanced background effects
 │   └── [Other UI components]   # Various UI elements
 ├── social/                     # Social features
 │   └── SocialSharingModal.tsx # Social sharing functionality
@@ -105,7 +110,9 @@ systems/                        # Core game systems and managers
 ├── MicroAchievementSystem.ts  # Micro-achievements
 ├── SpecialEventsManager.ts    # Special events handling
 ├── DeepLinkManager.ts         # Deep linking system
-└── ViralTrackingManager.ts    # Viral growth tracking
+├── ViralTrackingManager.ts    # Viral growth tracking
+├── AudioManager.ts            # Audio system with music and sound effects
+└── SpatialGrid.ts             # Spatial partitioning for collision optimization
 
 store/                          # State management (Zustand)
 ├── gameStore.ts               # Basic game state (score, lives, etc.)
@@ -119,7 +126,11 @@ hooks/                          # Custom React hooks
 ├── useGameLogic.ts           # Wave-based enemy spawning and level physics
 ├── useGameInput.ts           # Smooth swipe controls for Pete
 ├── useCelebrationManager.ts   # Celebration system integration
-└── useTutorialIntegration.ts  # Tutorial system hooks
+├── useTutorialIntegration.ts  # Tutorial system hooks
+└── core/                     # Core game hooks (isolated systems)
+    ├── useGameLoop.ts        # Main game loop management
+    ├── useLevelManager.ts    # Level loading and management
+    └── usePowerUpSystem.ts   # Power-up system integration
 
 levels/                         # Level configuration system
 ├── level_001.json            # Tutorial level (5 enemies, basic mechanics)
@@ -137,6 +148,7 @@ constants/                      # Configuration and constants
 ├── GameConfig.ts             # Level-configurable game parameters
 ├── GameColors.ts             # Professional game color schemes
 ├── DesignTokens.ts           # Design system tokens and themes
+├── FeatureFlagConfig.ts      # Feature flags for hyper-casual vs full features
 └── Colors.ts                 # Standard Expo color definitions
 
 utils/                          # Utility functions and helpers
@@ -144,7 +156,10 @@ utils/                          # Utility functions and helpers
 ├── gameEngine.ts             # Core game engine utilities
 ├── ObjectPool.ts             # Performance optimization
 ├── PerformanceMonitor.ts     # Performance tracking
-└── errorLogger.ts            # Error logging and reporting
+├── errorLogger.ts            # Error logging and reporting
+├── GameCache.ts              # High-performance caching system
+├── MobileOptimizer.ts        # Mobile-specific optimizations
+└── StateOptimizer.ts         # State management optimizations
 
 testing/                        # Testing and development tools
 ├── GameTester.ts             # Game testing utilities
@@ -207,6 +222,15 @@ ios/                           # iOS-specific build files
 - **Combo system**: Consecutive hits build multipliers with visual feedback
 - **Responsive feedback**: Level-aware visual and haptic responses
 
+#### Hyper-Casual Feature Flag System (NEW)
+- **Focus on core gameplay**: Feature flags disable complex meta-systems for launch
+- **HYPER_CASUAL_FLAGS**: Default configuration eliminating cognitive load for new players
+- **Easy feature toggling**: Switch between simple and full feature sets via `ACTIVE_FLAGS`
+- **A/B testing ready**: Easy configuration variants for retention optimization
+- **Categories**: Core, Tutorial, Meta-progression, Social, Economy, Events, Advanced, Debug
+- **Helper functions**: `isFeatureEnabled()` and `getFeatureCategory()` for conditional rendering
+- **Development overrides**: Runtime feature flag modification in development mode
+
 ### Key Game Systems
 1. **Authentic Physics**: Original 1994 DOS game physics with fixed spawn positions and predictable patterns
 2. **Level Progression**: Data-driven level loading with JSON configuration
@@ -231,6 +255,13 @@ ios/                           # iOS-specific build files
 21. **Error Handling**: Comprehensive error logging and crash reporting
 22. **Deep Linking**: URL-based navigation for marketing and user acquisition
 23. **Viral Tracking**: Social sharing and referral system analytics
+24. **Audio System**: Full audio manager with music, sound effects, and user controls
+25. **Power-Up System**: Temporary gameplay modifiers with visual feedback and effects
+26. **Feature Flags**: Hyper-casual focus with ability to toggle complex features
+27. **Game Caching**: High-performance caching for calculations and frame rate optimization
+28. **Spatial Partitioning**: Optimized collision detection using spatial grid system
+29. **Trail Effects**: Enhanced visual feedback for projectiles and gameplay elements
+30. **Mobile Optimization**: Platform-specific optimizations for touch devices
 
 ## Important Technical Details
 
@@ -358,7 +389,16 @@ The game uses a sophisticated design system with multiple themes:
 
 ## Recent Improvements
 
-### Professional Mobile Game Transformation (Latest - January 2025) ⭐ MAJOR ACHIEVEMENT ⭐
+### Expert Review Follow-up & Audio Integration (Latest - January 2025) ⭐ NEW FEATURES ⭐
+- **Audio System Integration**: Complete AudioManager implementation with background music and sound effects
+- **Power-Up System**: Full power-up mechanics with visual HUD, effects, and gameplay integration
+- **Feature Flag System**: Hyper-casual focus configuration with ability to toggle complex features
+- **Performance Caching**: GameCache system for optimized calculations and reduced frame drops
+- **Enhanced UI Components**: SoundToggle with animations, PowerUpHUD with real-time tracking
+- **Advanced Input System**: Optimized touch handling with improved responsiveness
+- **Trail Effects**: Enhanced projectile visual trails for better gameplay feedback
+
+### Professional Mobile Game Transformation (Previous - January 2025) ⭐ MAJOR ACHIEVEMENT ⭐
 - **Professional UI overhaul**: Complete redesign with modern mobile game aesthetics
 - **Enhanced world map**: 3D-inspired level selection with dynamic paths and animations
 - **Design system**: Implemented comprehensive design tokens and theming system
@@ -438,6 +478,11 @@ The game uses a sophisticated design system with multiple themes:
 - **Publishing ready**: Follows 2025 mobile game best practices
 - **Clean architecture**: Maintain organized, scalable code structure
 - **ALWAYS run code quality checks**: Use `npm run validate` before any commit
+- **Feature flag driven**: Use `isFeatureEnabled()` for conditional feature rendering
+- **Audio integration**: Initialize AudioManager in app startup for music and sound effects
+- **Power-up effects**: Use `usePowerUpSystem()` hook for gameplay modifications
+- **Cache optimization**: Leverage GameCache for expensive calculations and better performance
+- **Isolated systems**: Keep core game hooks in `hooks/core/` for modularity
 
 ## Level Development Best Practices
 - **Start with JSON**: Define levels in `levels/level_XXX.json` using the established schema
@@ -453,6 +498,66 @@ The game uses a sophisticated design system with multiple themes:
 - **Analytics integration**: Every level event automatically tracked for optimization
 - **Remote config ready**: Architecture supports Firebase Remote Config for live updates
 - **A/B testing support**: Easy configuration variants through level metadata
+
+## Audio System Integration
+The game now includes a comprehensive audio system with background music and sound effects:
+
+### AudioManager Features
+- **Singleton pattern**: Global access through `audioManager` instance
+- **Music management**: Background music with loop control and volume management
+- **Sound effects**: Individual sound loading and playback with error handling
+- **User controls**: Sound and music toggle functionality with state persistence
+- **Error resilience**: Graceful fallback when audio files fail to load
+
+### Audio Implementation
+```typescript
+// Initialize audio system
+await audioManager.loadSounds({
+  shoot: require('@/assets/sounds/shoot.wav'),
+  hit: require('@/assets/sounds/hit.wav'),
+  powerup: require('@/assets/sounds/powerup.wav')
+});
+
+// Play sounds during gameplay
+audioManager.playSound('shoot'); // On projectile fire
+audioManager.playSound('hit');   // On enemy collision
+
+// Control audio state
+audioManager.setSoundEnabled(enabled);
+audioManager.setMusicEnabled(enabled);
+```
+
+## Power-Up System Integration
+The power-up system provides temporary gameplay modifiers with visual feedback:
+
+### Power-Up Types
+- **Rapid Fire**: Increased fire rate and projectile speed
+- **Multi Shot**: Multiple projectiles with spread pattern
+- **Power Boost**: Enhanced projectile speed, size, and penetration
+- **Explosive Shot**: Projectiles with explosion effects
+- **Precision Mode**: Fast, small projectiles with penetration
+
+### Power-Up Implementation
+```typescript
+// Using the power-up system
+const powerUpSystem = usePowerUpSystem();
+
+// Apply effects to projectiles
+const enhancedProjectiles = powerUpSystem.createProjectiles(baseProjectile);
+
+// Update power-up duration
+powerUpSystem.updateDuration(deltaTime);
+
+// Check power-up status
+if (powerUpSystem.isActive) {
+  const fireRateMultiplier = powerUpSystem.getFireRateMultiplier();
+}
+```
+
+### Power-Up UI Components
+- **PowerUpHUD**: Real-time display with animations and countdown timer
+- **Visual effects**: Pulsing animations and color-coded power-up indicators
+- **Duration tracking**: Percentage-based progress indicators
 
 ## Key Features & Systems
 
