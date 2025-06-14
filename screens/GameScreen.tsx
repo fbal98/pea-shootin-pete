@@ -20,7 +20,7 @@ import { TutorialOverlay } from '@/components/ui/TutorialOverlay';
 
 // Hooks
 import { useGameLogic } from '@/hooks/useGameLogic';
-import { useGameInput } from '@/hooks/useGameInput';
+import { useOptimizedGameInputBridge } from '@/hooks/useOptimizedGameInputBridge';
 import { useTutorialIntegration } from '@/hooks/useTutorialIntegration';
 
 // Store
@@ -119,11 +119,17 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     trackTutorialProgress('swipe');
   }, [updatePetePosition, trackTutorialProgress]);
 
-  // Game input handling
-  const { handleTouchStart, handleTouchMove, handleTouchEnd, updateSmoothing } = useGameInput(
+  // Optimized game input handling
+  const { handleTouchStart, handleTouchMove, handleTouchEnd, updateSmoothing, getInputStats } = useOptimizedGameInputBridge(
     screenWidth,
     enhancedShootProjectile,
-    enhancedUpdatePetePosition
+    enhancedUpdatePetePosition,
+    {
+      smoothingFactor: 0.2, // Slightly more responsive for mobile
+      predictionFrames: 1, // Conservative prediction for stable feel
+      deadZone: 1.5, // Smaller dead zone for precise control
+      tapThreshold: 15, // Slightly larger tap threshold for touch screens
+    }
   );
 
   // Smooth movement update loop
@@ -162,6 +168,22 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     levelActions.showVictory(false);
     handleBackToMenu();
   }, [levelActions, handleBackToMenu]);
+
+  // Input performance tracking (development only)
+  const [inputStats, setInputStats] = useState<{
+    totalTouches: number;
+    averageResponseTime: number;
+    smoothingEfficiency: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (__DEV__) {
+      const interval = setInterval(() => {
+        setInputStats(getInputStats());
+      }, 2000); // Update every 2 seconds
+      return () => clearInterval(interval);
+    }
+  }, [getInputStats]);
 
   // Calculate positions
   const peteY = gameAreaHeight - GAME_CONFIG.PETE_SIZE - GAME_CONFIG.BOTTOM_PADDING;
@@ -294,7 +316,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
 
           {/* Victory Modal */}
           <VictoryModal
-            level={currentLevel?.id || 1}
+            level={typeof currentLevel?.id === 'string' ? parseInt(currentLevel.id) || 1 : currentLevel?.id || 1}
             score={currentLevelScore}
             starsEarned={3} // TODO: Calculate actual stars based on performance
             isVisible={showVictoryScreen}
@@ -317,6 +339,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                 total: 3, // TODO: Get actual total from tutorial system
               }}
             />
+          )}
+
+          {/* Input Performance Debug (Development Only) */}
+          {__DEV__ && inputStats && (
+            <View style={styles.debugOverlay}>
+              <Text style={styles.debugText}>Input Performance:</Text>
+              <Text style={styles.debugText}>Touches: {inputStats.totalTouches}</Text>
+              <Text style={styles.debugText}>Avg Response: {inputStats.averageResponseTime.toFixed(1)}ms</Text>
+              <Text style={styles.debugText}>Smoothing: {inputStats.smoothingEfficiency.toFixed(1)}%</Text>
+            </View>
           )}
         </View>
       </View>
@@ -375,5 +407,19 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: UI_PALETTE.primary,
+  },
+  debugOverlay: {
+    position: 'absolute',
+    top: 100,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 8,
+    borderRadius: 4,
+    zIndex: 200,
+  },
+  debugText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontFamily: 'monospace',
   },
 });
