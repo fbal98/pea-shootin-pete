@@ -1,49 +1,48 @@
-import React, { useEffect, useCallback, useState, useRef } from 'react';
-import { View, StyleSheet, useWindowDimensions, Text, TouchableOpacity, Animated } from 'react-native';
-import { audioManager } from '@/systems/AudioManager';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Components
-import { GameBackground } from '@/components/game/GameBackground';
-import { Pete } from '@/components/game/Pete';
 import { Enemy } from '@/components/game/Enemy';
-import { Projectile } from '@/components/game/Projectile';
-import { GameHUD } from '@/components/ui/GameHUD';
+import { GameBackground } from '@/components/game/GameBackground';
 import { MysteryBalloon } from '@/components/game/MysteryBalloon';
-import { ProgressionHUD } from '@/components/ui/ProgressionHUD';
-import { MysteryRewardDisplay } from '@/components/ui/MysteryRewardDisplay';
+import { Pete } from '@/components/game/Pete';
+import { Projectile } from '@/components/game/Projectile';
 import {
   CelebrationManager,
 } from '@/components/ui/CelebrationSystem';
-import { VictoryModal } from '@/components/ui/VictoryModal';
+import { GameHUD } from '@/components/ui/GameHUD';
 import InWorldTutorial from '@/components/ui/InWorldTutorial';
+import { MysteryRewardDisplay } from '@/components/ui/MysteryRewardDisplay';
 import { PowerUpHUD } from '@/components/ui/PowerUpHUD';
+import { ProgressionHUD } from '@/components/ui/ProgressionHUD';
+import { VictoryModal } from '@/components/ui/VictoryModal';
 import { isFeatureEnabled } from '@/constants/FeatureFlagConfig';
 
 // Hooks
+import { useCelebrationManager } from '@/hooks/useCelebrationManager';
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { useOptimizedGameInputBridge } from '@/hooks/useOptimizedGameInputBridge';
 import { useTutorialIntegration } from '@/hooks/useTutorialIntegration';
-import { useCelebrationManager } from '@/hooks/useCelebrationManager';
 
 // Store
-import { useGameOver, useScore, useLevel, useGameActions, useIsPlaying, useLives } from '@/store/gameStore';
+import { useGameActions, useGameOver, useIsPlaying, useLevel, useLives, useScore } from '@/store/gameStore';
 import {
-  useShowVictoryScreen,
-  useCurrentScore,
-  useLevelProgressionActions,
+  useCurrentCombo,
   useCurrentLevel,
+  useCurrentScore,
+  useEnemiesRemaining,
+  useLevelProgressionActions,
   useShotsFired,
   useShotsHit,
+  useShowVictoryScreen,
   useTotalEnemies,
-  useEnemiesRemaining,
-  useCurrentCombo,
 } from '@/store/levelProgressionStore';
 
 // Constants
-import { GAME_CONFIG, INPUT_CONFIG } from '@/constants/GameConfig';
 import { UI_PALETTE } from '@/constants/GameColors';
+import { GAME_CONFIG, INPUT_CONFIG } from '@/constants/GameConfig';
 
 interface GameScreenProps {
   onBackToMenu?: () => void;
@@ -122,8 +121,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   useEffect(() => {
     if (isPlaying && !gameOver && currentLevel) {
       // A simple mapping for now. This could be part of level config.
-      const musicMap = ['level_music_1', 'level_music_2', 'level_music_3'];
-      const musicKey = musicMap[(currentLevel.id -1) % musicMap.length];
+      // const musicMap = ['level_music_1', 'level_music_2', 'level_music_3'];
+      // const musicKey = musicMap[(currentLevel.id -1) % musicMap.length];
       // audioManager.playMusic(musicKey); // Assuming you have loaded these sounds
     }
   }, [isPlaying, gameOver, currentLevel]);

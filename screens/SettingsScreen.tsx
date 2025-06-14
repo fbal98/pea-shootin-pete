@@ -1,18 +1,17 @@
+import { FloatingPeasBackground } from '@/components/ui/FloatingPeasBackground';
+import { StyledSwitch } from '@/components/ui/StyledSwitch';
+import { BorderRadius, Layout, Spacing, Typography } from '@/constants/DesignTokens';
+import { UI_PALETTE } from '@/constants/GameColors';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   StyleSheet,
-  View,
   Text,
   TouchableOpacity,
-  Dimensions,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { UI_PALETTE } from '@/constants/GameColors';
-import { Typography, Spacing, BorderRadius, Layout } from '@/constants/DesignTokens';
-import { FloatingPeasBackground } from '@/components/ui/FloatingPeasBackground';
-import { StyledSwitch } from '@/components/ui/StyledSwitch';
 
 
 interface SettingsScreenProps {

@@ -16,7 +16,19 @@ export const Projectile: React.FC<ProjectileProps> = ({ x, y, size, level }) => 
   return (
     <View style={[styles.container, { left: x, top: y }]}>
       {/* TODO: Add a proper particle trail system here for more juice */}
-      <View style={[styles.trail, { width: size / 2, height: size, backgroundColor: colorScheme.particle, opacity: 0.5 }]} />
+      <View
+        style={[
+          styles.trail,
+          {
+            top: size / 2,
+            borderRadius: size / 4,
+            width: size / 2,
+            height: size,
+            backgroundColor: colorScheme.particle,
+            opacity: 0.5,
+          },
+        ]}
+      />
       <LinearGradient
         colors={[`${colorScheme.particle}ff`, `${colorScheme.particle}00`]}
         style={[
@@ -46,7 +58,6 @@ const styles = StyleSheet.create({
   },
   trail: {
     position: 'absolute',
-    top: size / 2,
-    borderRadius: size / 4,
+    // top and borderRadius are now set inline where the trail is rendered
   }
 });
