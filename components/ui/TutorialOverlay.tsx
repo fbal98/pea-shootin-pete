@@ -28,7 +28,8 @@ import {
   TutorialSpotlightProps,
   HighlightArea,
 } from '@/types/TutorialTypes';
-import { getColorScheme } from '@/constants/GameColors';
+import { UI_PALETTE } from '@/constants/GameColors';
+import { Typography, Spacing, BorderRadius, Layout } from '@/constants/DesignTokens';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -310,7 +311,7 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
       width: width + padding * 2,
       height: height + padding * 2,
       borderWidth: 3,
-      borderColor: '#4ECDC4',
+      borderColor: UI_PALETTE.primary,
     };
 
     let borderRadius = 0;
@@ -383,134 +384,141 @@ const styles = StyleSheet.create({
   // Modal styles
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: UI_PALETTE.background_overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.large,
   },
 
   modalContainer: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 24,
-    maxWidth: 340,
+    backgroundColor: UI_PALETTE.white,
+    borderRadius: BorderRadius.xlarge,
+    padding: Spacing.large,
+    maxWidth: Layout.modalMaxWidth,
     width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 20,
+    shadowColor: UI_PALETTE.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 16,
+    borderWidth: 1,
+    borderColor: UI_PALETTE.elevation_1,
   },
 
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.medium,
   },
 
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
+    ...Typography.h2,
+    color: UI_PALETTE.text_dark,
     flex: 1,
   },
 
   skipButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: Spacing.small,
+    paddingVertical: Spacing.micro,
+    borderRadius: BorderRadius.small,
+    backgroundColor: UI_PALETTE.elevation_1,
   },
 
   skipText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
+    ...Typography.caption,
+    color: UI_PALETTE.text_secondary,
+    fontWeight: '600',
   },
 
   modalDescription: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 24,
-    marginBottom: 24,
+    ...Typography.body,
+    color: UI_PALETTE.text_secondary,
+    marginBottom: Spacing.large,
   },
 
   progressContainer: {
-    marginBottom: 24,
+    marginBottom: Spacing.large,
   },
 
   progressBar: {
     height: 6,
-    backgroundColor: '#E5E5E5',
-    borderRadius: 3,
-    marginBottom: 8,
+    backgroundColor: UI_PALETTE.elevation_1,
+    borderRadius: BorderRadius.small,
+    marginBottom: Spacing.small,
   },
 
   progressFill: {
     height: '100%',
-    backgroundColor: '#4ECDC4',
-    borderRadius: 3,
+    backgroundColor: UI_PALETTE.primary,
+    borderRadius: BorderRadius.small,
   },
 
   progressText: {
-    fontSize: 12,
-    color: '#999',
+    ...Typography.small,
+    color: UI_PALETTE.text_disabled,
     textAlign: 'center',
   },
 
   nextButton: {
-    backgroundColor: '#4ECDC4',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: UI_PALETTE.primary,
+    paddingVertical: Spacing.medium,
+    borderRadius: BorderRadius.medium,
     alignItems: 'center',
+    shadowColor: UI_PALETTE.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
+    ...Typography.button,
+    color: UI_PALETTE.text_light,
   },
 
   // Tooltip styles
   tooltipContainer: {
     position: 'absolute',
-    backgroundColor: '#333',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: UI_PALETTE.text_dark,
+    borderRadius: BorderRadius.medium,
+    padding: Spacing.medium,
     maxWidth: 250,
-    shadowColor: '#000',
+    shadowColor: UI_PALETTE.shadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 8,
     zIndex: 1000,
+    borderWidth: 1,
+    borderColor: UI_PALETTE.elevation_1,
   },
 
   tooltipTitle: {
-    fontSize: 14,
+    ...Typography.caption,
     fontWeight: '600',
-    color: 'white',
-    marginBottom: 8,
+    color: UI_PALETTE.text_light,
+    marginBottom: Spacing.small,
   },
 
   tooltipDescription: {
-    fontSize: 12,
-    color: '#E5E5E5',
-    lineHeight: 18,
-    marginBottom: 12,
+    ...Typography.small,
+    color: UI_PALETTE.secondary,
+    marginBottom: Spacing.medium,
   },
 
   tooltipButton: {
-    backgroundColor: '#4ECDC4',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    backgroundColor: UI_PALETTE.primary,
+    paddingVertical: Spacing.small,
+    paddingHorizontal: Spacing.medium,
+    borderRadius: BorderRadius.small,
     alignSelf: 'flex-end',
   },
 
   tooltipButtonText: {
-    fontSize: 12,
+    ...Typography.small,
     fontWeight: '600',
-    color: 'white',
+    color: UI_PALETTE.text_light,
   },
 
   // Arrow styles
@@ -531,7 +539,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 8,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#333',
+    borderTopColor: UI_PALETTE.text_dark,
   },
 
   arrowDown: {
@@ -543,7 +551,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 8,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: '#333',
+    borderBottomColor: UI_PALETTE.text_dark,
   },
 
   arrowLeft: {
@@ -555,7 +563,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 8,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
-    borderLeftColor: '#333',
+    borderLeftColor: UI_PALETTE.text_dark,
   },
 
   arrowRight: {
@@ -567,7 +575,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 8,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
-    borderRightColor: '#333',
+    borderRightColor: UI_PALETTE.text_dark,
   },
 
   // Spotlight styles
@@ -582,32 +590,37 @@ const styles = StyleSheet.create({
 
   spotlightBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: UI_PALETTE.background_overlay,
   },
 
   spotlightInstructions: {
     position: 'absolute',
     bottom: 100,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 16,
-    padding: 20,
+    left: Spacing.large,
+    right: Spacing.large,
+    backgroundColor: UI_PALETTE.white,
+    borderRadius: BorderRadius.xlarge,
+    padding: Spacing.large,
     alignItems: 'center',
+    shadowColor: UI_PALETTE.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 16,
+    borderWidth: 1,
+    borderColor: UI_PALETTE.elevation_1,
   },
 
   spotlightTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 8,
+    ...Typography.h3,
+    color: UI_PALETTE.text_dark,
+    marginBottom: Spacing.small,
     textAlign: 'center',
   },
 
   spotlightDescription: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
+    ...Typography.body,
+    color: UI_PALETTE.text_secondary,
     textAlign: 'center',
   },
 });

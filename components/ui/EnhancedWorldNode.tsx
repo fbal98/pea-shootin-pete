@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Circle, Polygon, Path, LinearGradient, Defs, Stop, RadialGradient } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface WorldNode {
   id: string;
@@ -36,433 +36,86 @@ export const EnhancedWorldNode: React.FC<EnhancedWorldNodeProps> = ({
   node,
   isSelected,
   onPress,
-  scale,
 }) => {
-  const breathingAnimation = useRef(new Animated.Value(0)).current;
-  const glowAnimation = useRef(new Animated.Value(0)).current;
-  const pulseAnimation = useRef(new Animated.Value(0)).current;
-  const starAnimation = useRef(new Animated.Value(0)).current;
-  const celebrationAnimation = useRef(new Animated.Value(0)).current;
-  
-  const [showCelebration, setShowCelebration] = useState(false);
+  const pressAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Breathing animation for available nodes
     if (!node.locked && !node.completed) {
+      // Add a subtle pulse for available levels to draw attention
       Animated.loop(
         Animated.sequence([
-          Animated.timing(breathingAnimation, {
-            toValue: 1,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(breathingAnimation, {
-            toValue: 0,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, { toValue: 1.05, duration: 1200, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
         ])
-      ).start();
-    }
-
-    // Glow animation for completed nodes
-    if (node.completed) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnimation, {
-            toValue: 1,
-            duration: 3000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(glowAnimation, {
-            toValue: 0,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    }
-
-    // Pulse animation for selected nodes
-    if (isSelected) {
-      Animated.loop(
-        Animated.timing(pulseAnimation, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        })
       ).start();
     } else {
-      pulseAnimation.setValue(0);
+      pulseAnim.setValue(1);
     }
+  }, [node.locked, node.completed, pulseAnim]);
 
-    // Star twinkling for completed nodes
-    if (node.completed && node.stars > 0) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(starAnimation, {
-            toValue: 1,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(starAnimation, {
-            toValue: 0,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    }
-  }, [node.locked, node.completed, isSelected, node.stars]);
-
-  const triggerCelebration = () => {
-    setShowCelebration(true);
-    
-    Animated.sequence([
-      Animated.timing(celebrationAnimation, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(celebrationAnimation, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setShowCelebration(false);
-    });
+  const handlePressIn = () => {
+    Animated.spring(pressAnim, { toValue: 0.95, useNativeDriver: true }).start();
+  };
+  const handlePressOut = () => {
+    Animated.spring(pressAnim, { toValue: 1, useNativeDriver: true }).start();
   };
 
-  const handlePress = () => {
-    if (node.completed && node.stars === 3) {
-      triggerCelebration();
-    }
-    onPress(node);
-  };
-
-  const getThemeColors = () => {
-    switch (node.theme) {
-      case 'beach':
-        return {
-          primary: '#FFD93D',
-          secondary: '#6BCF7F',
-          accent: '#87CEEB',
-          glow: 'rgba(255, 217, 61, 0.6)',
-        };
-      case 'space':
-        return {
-          primary: '#6C5CE7',
-          secondary: '#A29BFE',
-          accent: '#74B9FF',
-          glow: 'rgba(108, 92, 231, 0.6)',
-        };
-      case 'city':
-        return {
-          primary: '#FF7675',
-          secondary: '#FD79A8',
-          accent: '#FDCB6E',
-          glow: 'rgba(255, 118, 117, 0.6)',
-        };
-      case 'forest':
-        return {
-          primary: '#00B894',
-          secondary: '#55A3FF',
-          accent: '#98FB98',
-          glow: 'rgba(0, 184, 148, 0.6)',
-        };
-      case 'arctic':
-        return {
-          primary: '#74B9FF',
-          secondary: '#FFFFFF',
-          accent: '#E1F5FE',
-          glow: 'rgba(116, 185, 255, 0.6)',
-        };
-      case 'volcano':
-        return {
-          primary: '#FF6348',
-          secondary: '#FF9F43',
-          accent: '#FF7979',
-          glow: 'rgba(255, 99, 72, 0.6)',
-        };
-      case 'desert':
-        return {
-          primary: '#FDCB6E',
-          secondary: '#E17055',
-          accent: '#F8C471',
-          glow: 'rgba(253, 203, 110, 0.6)',
-        };
-      case 'underwater':
-        return {
-          primary: '#0984E3',
-          secondary: '#6C5CE7',
-          accent: '#74B9FF',
-          glow: 'rgba(9, 132, 227, 0.6)',
-        };
-      default:
-        return {
-          primary: '#6C5CE7',
-          secondary: '#A29BFE',
-          accent: '#74B9FF',
-          glow: 'rgba(108, 92, 231, 0.6)',
-        };
-    }
-  };
-
-  const colors = getThemeColors();
-  const nodeSize = node.landmark ? 60 : 50;
-  const isLandmark = !!node.landmark;
-
-  const renderNodeBackground = () => {
-    if (node.locked) {
-      return (
-        <Circle
-          cx={nodeSize / 2}
-          cy={nodeSize / 2}
-          r={nodeSize / 2 - 2}
-          fill="#666666"
-          stroke="#444444"
-          strokeWidth="2"
-        />
-      );
-    }
-
-    const gradientId = `nodeGradient_${node.id}`;
-    
-    return (
-      <Svg width={nodeSize} height={nodeSize}>
-        <Defs>
-          <RadialGradient id={gradientId} cx="50%" cy="30%" r="70%">
-            <Stop offset="0%" stopColor={colors.secondary} />
-            <Stop offset="70%" stopColor={colors.primary} />
-            <Stop offset="100%" stopColor={colors.accent} />
-          </RadialGradient>
-        </Defs>
-        
-        {isLandmark ? (
-          <Polygon
-            points={`${nodeSize/2},5 ${nodeSize-10},${nodeSize/2-5} ${nodeSize-5},${nodeSize-5} ${nodeSize/2},${nodeSize-10} 5,${nodeSize-5} 10,${nodeSize/2-5}`}
-            fill={`url(#${gradientId})`}
-            stroke={node.completed ? '#FFD700' : colors.accent}
-            strokeWidth={isSelected ? "4" : "2"}
-          />
-        ) : (
-          <Circle
-            cx={nodeSize / 2}
-            cy={nodeSize / 2}
-            r={nodeSize / 2 - 2}
-            fill={`url(#${gradientId})`}
-            stroke={node.completed ? '#FFD700' : colors.accent}
-            strokeWidth={isSelected ? "4" : "2"}
-          />
-        )}
-      </Svg>
-    );
-  };
-
-  const renderGlowEffect = () => {
-    if (node.locked) return null;
-
-    return (
-      <Animated.View
-        style={[
-          styles.glowEffect,
-          {
-            width: nodeSize + 20,
-            height: nodeSize + 20,
-            borderRadius: isLandmark ? 0 : (nodeSize + 20) / 2,
-            backgroundColor: colors.glow,
-            opacity: node.completed 
-              ? glowAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.3, 0.8],
-                })
-              : breathingAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.1, 0.4],
-                }),
-            transform: [
-              {
-                scale: node.completed
-                  ? glowAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 1.2],
-                    })
-                  : breathingAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.9, 1.1],
-                    }),
-              },
-            ],
-          },
-        ]}
-      />
-    );
-  };
-
-  const renderPulseEffect = () => {
-    if (!isSelected) return null;
-
-    return (
-      <Animated.View
-        style={[
-          styles.pulseEffect,
-          {
-            width: nodeSize + 40,
-            height: nodeSize + 40,
-            borderRadius: isLandmark ? 0 : (nodeSize + 40) / 2,
-            borderColor: colors.primary,
-            opacity: pulseAnimation.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.5, 0],
-            }),
-            transform: [
-              {
-                scale: pulseAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [1, 1.5],
-                }),
-              },
-            ],
-          },
-        ]}
-      />
-    );
-  };
-
-  const renderCelebrationEffect = () => {
-    if (!showCelebration) return null;
-
-    return (
-      <View style={styles.celebrationContainer}>
-        {[...Array(8)].map((_, i) => (
-          <Animated.View
-            key={i}
-            style={[
-              styles.celebrationParticle,
-              {
-                backgroundColor: colors.primary,
-                transform: [
-                  {
-                    translateX: celebrationAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, Math.cos(i * Math.PI / 4) * 50],
-                    }),
-                  },
-                  {
-                    translateY: celebrationAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, Math.sin(i * Math.PI / 4) * 50],
-                    }),
-                  },
-                  {
-                    scale: celebrationAnimation.interpolate({
-                      inputRange: [0, 0.5, 1],
-                      outputRange: [0, 1, 0],
-                    }),
-                  },
-                ],
-                opacity: celebrationAnimation.interpolate({
-                  inputRange: [0, 0.5, 1],
-                  outputRange: [0, 1, 0],
-                }),
-              },
-            ]}
-          />
-        ))}
-      </View>
-    );
-  };
-
-  const renderStars = () => {
-    if (!node.completed) return null;
-
-    return (
-      <View style={styles.starsContainer}>
-        {[1, 2, 3].map(star => (
-          <Animated.View
-            key={star}
-            style={{
-              opacity: star <= node.stars ? starAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.7, 1],
-              }) : 0.3,
-              transform: [
-                {
-                  scale: star <= node.stars ? starAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1.2],
-                  }) : 1,
-                },
-              ],
-            }}
-          >
-            <Ionicons
-              name={star <= node.stars ? 'star' : 'star-outline'}
-              size={10}
-              color={star <= node.stars ? '#FFD700' : '#CCCCCC'}
-            />
-          </Animated.View>
-        ))}
-      </View>
-    );
-  };
+  const nodeSize = node.landmark ? 88 : 72;
+  const isAvailable = !node.locked && !node.completed;
+  const nodeStyles = [
+    styles.nodeContainer,
+    {
+      width: nodeSize,
+      height: nodeSize,
+      left: node.position.x - nodeSize / 2,
+      top: node.position.y - nodeSize / 2,
+    },
+  ];
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.nodeContainer,
-        {
-          left: node.position.x - nodeSize / 2,
-          top: node.position.y - nodeSize / 2,
-          width: nodeSize,
-          height: nodeSize,
-        },
-      ]}
-      onPress={handlePress}
-      disabled={node.locked}
-      activeOpacity={0.8}
-    >
-      {renderGlowEffect()}
-      {renderPulseEffect()}
-      
-      <Animated.View
-        style={[
-          styles.nodeContent,
-          {
-            transform: [
-              {
-                scale: scale || breathingAnimation.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [1, 1.05],
-                }),
-              },
-            ],
-          },
-        ]}
+    <Animated.View style={[nodeStyles, { transform: [{ scale: pressAnim }, { scale: pulseAnim }] }]}>
+      <TouchableOpacity
+        onPress={() => onPress(node)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={node.locked}
+        activeOpacity={0.9}
+        style={styles.touchable}
       >
-        {renderNodeBackground()}
-        
-        <View style={styles.nodeInner}>
-          {node.landmark ? (
-            <Text style={styles.landmarkIcon}>{node.landmark.icon}</Text>
+        <View style={styles.nodeShadow} />
+        <LinearGradient
+          colors={
+            node.locked
+              ? ['#B0B0B0', '#888888']
+              : isAvailable
+              ? ['#60D47A', '#4CAF50']
+              : ['#FFD700', '#FFA500']
+          }
+          style={[styles.node, { borderRadius: nodeSize / 2 }]}
+        >
+          {node.locked ? (
+            <Ionicons name="lock-closed" size={32} color="rgba(255,255,255,0.7)" />
           ) : (
-            <Text style={[styles.levelNumber, { color: node.locked ? '#CCCCCC' : '#333' }]}>
-              {node.levelId}
-            </Text>
+            <Text style={styles.levelNumber}>{node.levelId}</Text>
           )}
+        </LinearGradient>
 
-          {node.locked && (
-            <View style={styles.lockOverlay}>
-              <Ionicons name="lock-closed" size={16} color="white" />
-            </View>
-          )}
-        </View>
-      </Animated.View>
-
-      {renderStars()}
-      {renderCelebrationEffect()}
-    </TouchableOpacity>
+        {node.completed && (
+          <View style={styles.starsContainer}>
+            {[1, 2, 3].map(i => (
+              <Ionicons
+                key={i}
+                name="star"
+                size={14}
+                color={i <= node.stars ? '#FFD700' : '#FFFFFF30'}
+                style={styles.starIcon}
+              />
+            ))}
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
@@ -472,63 +125,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  glowEffect: {
-    position: 'absolute',
-    top: -10,
-    left: -10,
+  touchable: {
+    width: '100%',
+    height: '100%',
   },
-  pulseEffect: {
+  nodeShadow: {
     position: 'absolute',
-    top: -20,
-    left: -20,
-    borderWidth: 2,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#00000040',
+    borderRadius: 50,
+    transform: [{ translateY: 4 }],
   },
-  nodeContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  nodeInner: {
-    position: 'absolute',
+  node: {
     width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: 'white',
   },
   levelNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  landmarkIcon: {
-    fontSize: 28,
-  },
-  lockOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: 32,
+    fontWeight: '900',
+    color: 'white',
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 2,
   },
   starsContainer: {
     position: 'absolute',
-    bottom: -15,
+    bottom: -8,
     flexDirection: 'row',
-    gap: 3,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  celebrationContainer: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  celebrationParticle: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  starIcon: {
+    marginHorizontal: 1,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
 });

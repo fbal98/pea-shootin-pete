@@ -75,7 +75,9 @@
       "Bash(git remote add:*)",
       "Bash(git push:*)",
       "Bash(gh repo edit:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(timeout 30s npm start)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }

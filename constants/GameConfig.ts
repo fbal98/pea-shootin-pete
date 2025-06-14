@@ -267,6 +267,23 @@ export const UI_CONFIG = {
     BACK_BUTTON_SIZE: 40,
     SWITCH_SCALE: 1.1, // Scale factor for switches
   },
+
+  // Game HUD
+  HUD_CONFIG: {
+    SCORE_FONT_SIZE: 48,
+    SCORE_COLOR: '#FFFFFF',
+    SCORE_SHADOW_COLOR: 'rgba(0, 0, 0, 0.5)',
+    SCORE_SHADOW_OFFSET: { width: 2, height: 4 },
+    SCORE_SHADOW_RADIUS: 4,
+    LIVES_ICON_SIZE: 28,
+    LIVES_ICON_COLOR: '#FF4136',
+    LIVES_SPACING: 8,
+    PAUSE_BUTTON_SIZE: 56,
+    PAUSE_BUTTON_BACKGROUND: 'rgba(0, 0, 0, 0.4)',
+    PROGRESS_BAR_HEIGHT: 12,
+    PROGRESS_BAR_COLOR: '#4ECDC4',
+    OBJECTIVE_TEXT_COLOR: '#FFFFFF',
+  },
 } as const;
 
 // =============================================================================

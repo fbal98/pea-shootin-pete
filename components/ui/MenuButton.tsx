@@ -2,6 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { Typography, Spacing, BorderRadius, Shadows } from '@/constants/DesignTokens';
+import { UI_PALETTE } from '@/constants/GameColors';
 
 interface MenuButtonProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -116,7 +118,7 @@ export const MenuButton: React.FC<MenuButtonProps> = ({
         <Ionicons
           name={icon}
           size={24}
-          color={primary ? '#1a1a1a' : '#FFD700'}
+          color={primary ? UI_PALETTE.text_dark : UI_PALETTE.accent}
           style={styles.icon}
         />
         <Text style={[styles.text, primary ? styles.primaryText : styles.secondaryText]}>
@@ -129,55 +131,51 @@ export const MenuButton: React.FC<MenuButtonProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    marginVertical: Spacing.small,
     width: 280,
   },
   glowEffect: {
     position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    backgroundColor: '#FFD700',
-    borderRadius: 28,
+    top: -Spacing.micro,
+    left: -Spacing.micro,
+    right: -Spacing.micro,
+    bottom: -Spacing.micro,
+    backgroundColor: UI_PALETTE.accent,
+    borderRadius: BorderRadius.xlarge + Spacing.micro,
     zIndex: 0,
   },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 24,
+    paddingVertical: Spacing.medium,
+    paddingHorizontal: Spacing.large,
+    borderRadius: BorderRadius.xlarge,
     borderWidth: 2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...Shadows.medium,
     zIndex: 1,
   },
   primaryButton: {
-    backgroundColor: '#FFD700',
-    borderColor: '#FFA500',
-    shadowColor: '#FFD700',
+    backgroundColor: UI_PALETTE.accent,
+    borderColor: UI_PALETTE.accent_shadow,
+    shadowColor: UI_PALETTE.accent,
   },
   secondaryButton: {
     backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    borderColor: '#FFD700',
-    shadowColor: '#000',
+    borderColor: UI_PALETTE.accent,
+    shadowColor: UI_PALETTE.shadow,
   },
   icon: {
-    marginRight: 12,
+    marginRight: Spacing.medium,
   },
   text: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...Typography.buttonLarge,
     letterSpacing: 1,
   },
   primaryText: {
-    color: '#1a1a1a',
+    color: UI_PALETTE.text_dark,
   },
   secondaryText: {
-    color: '#FFD700',
+    color: UI_PALETTE.accent,
   },
 });

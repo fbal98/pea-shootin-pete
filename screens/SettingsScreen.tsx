@@ -6,12 +6,14 @@ import {
   Text,
   TouchableOpacity,
   Dimensions,
-  Switch,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UI_COLORS } from '@/constants/GameColors';
+import { Ionicons } from '@expo/vector-icons';
+import { UI_PALETTE } from '@/constants/GameColors';
+import { Typography, Spacing, BorderRadius, Layout } from '@/constants/DesignTokens';
+import { FloatingPeasBackground } from '@/components/ui/FloatingPeasBackground';
+import { StyledSwitch } from '@/components/ui/StyledSwitch';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface SettingsScreenProps {
   onBack: () => void;
@@ -19,127 +21,99 @@ interface SettingsScreenProps {
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const floatAnim1 = useRef(new Animated.Value(0)).current;
-  const floatAnim2 = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   // Simple settings state - minimal options following hyper-casual philosophy
   const [soundEnabled, setSoundEnabled] = React.useState(true);
   const [hapticEnabled, setHapticEnabled] = React.useState(true);
 
   useEffect(() => {
-    // Fade in animation
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-
-    // Floating background elements - subtle movement
-    const createFloatAnimation = (anim: Animated.Value, duration: number, delay: number) => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(anim, {
-            toValue: 1,
-            duration,
-            delay,
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    };
-
-    createFloatAnimation(floatAnim1, 10000, 0);
-    createFloatAnimation(floatAnim2, 12000, 3000);
+    // Entrance animation
+    Animated.stagger(100, [
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
-  const renderFloatingElement = (
-    anim: Animated.Value,
-    size: number,
-    startY: number,
-    opacity: number = 0.06
-  ) => {
-    const translateY = anim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [startY, startY - SCREEN_HEIGHT - size],
-    });
-
-    return (
-      <Animated.View
-        style={[
-          styles.floatingElement,
-          {
-            width: size,
-            height: size,
-            opacity,
-            transform: [{ translateY }],
-          },
-        ]}
-      />
-    );
-  };
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#F7FFF7', '#E0F2F1']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
+        colors={[UI_PALETTE.background_light, UI_PALETTE.background_dark]}
         style={styles.gradient}
-      >
-        {/* Subtle floating background elements */}
-        <View style={styles.backgroundElements}>
-          {renderFloatingElement(floatAnim1, 90, SCREEN_HEIGHT, 0.04)}
-          {renderFloatingElement(floatAnim2, 70, SCREEN_HEIGHT + 300, 0.06)}
+      />
+      <FloatingPeasBackground />
+
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        {/* Header with back button */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.8}>
+            <Ionicons name="arrow-back" size={28} color={UI_PALETTE.text_dark} />
+          </TouchableOpacity>
+          <Text style={styles.title}>Settings</Text>
+          <View style={styles.spacer} />
         </View>
 
-        <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-          {/* Header with back button */}
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
-              <Text style={styles.backText}>←</Text>
-            </TouchableOpacity>
-            <Text style={styles.title}>settings</Text>
-            <View style={styles.spacer} />
-          </View>
-
-          {/* Minimal settings options */}
-          <View style={styles.settingsContainer}>
-            {/* Sound toggle */}
+        {/* Settings sections */}
+        <Animated.View 
+          style={[
+            styles.settingsContainer,
+            { transform: [{ translateY: slideAnim }] }
+          ]}
+        >
+          {/* Audio Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Audio</Text>
+            
             <View style={styles.setting}>
-              <Text style={styles.settingLabel}>sound</Text>
-              <Switch
+              <View style={styles.settingInfo}>
+                <Ionicons name="volume-high" size={24} color={UI_PALETTE.text_dark} style={styles.settingIcon} />
+                <View>
+                  <Text style={styles.settingLabel}>Sound Effects</Text>
+                  <Text style={styles.settingDescription}>Game sounds and audio feedback</Text>
+                </View>
+              </View>
+              <StyledSwitch
                 value={soundEnabled}
                 onValueChange={setSoundEnabled}
-                trackColor={{ false: UI_COLORS.settingsSwitchOff, true: UI_COLORS.primary }}
-                thumbColor={UI_COLORS.white}
-                style={styles.switch}
               />
             </View>
+          </View>
 
-            {/* Haptic feedback toggle */}
+          {/* Interaction Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Interaction</Text>
+            
             <View style={styles.setting}>
-              <Text style={styles.settingLabel}>haptics</Text>
-              <Switch
+              <View style={styles.settingInfo}>
+                <Ionicons name="phone-portrait" size={24} color={UI_PALETTE.text_dark} style={styles.settingIcon} />
+                <View>
+                  <Text style={styles.settingLabel}>Haptic Feedback</Text>
+                  <Text style={styles.settingDescription}>Vibration for game actions</Text>
+                </View>
+              </View>
+              <StyledSwitch
                 value={hapticEnabled}
                 onValueChange={setHapticEnabled}
-                trackColor={{ false: UI_COLORS.settingsSwitchOff, true: UI_COLORS.primary }}
-                thumbColor={UI_COLORS.white}
-                style={styles.switch}
               />
             </View>
           </View>
-
-          {/* Minimal footer info */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>tap anywhere to play</Text>
-          </View>
         </Animated.View>
-      </LinearGradient>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Ready to play? Head back to the menu!</Text>
+        </View>
+      </Animated.View>
     </View>
   );
 };
@@ -149,81 +123,98 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gradient: {
-    flex: 1,
-  },
-  backgroundElements: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
+    top: 0,
     bottom: 0,
-  },
-  floatingElement: {
-    position: 'absolute',
-    backgroundColor: '#4ECDC4',
-    borderRadius: 16,
-    left: Math.random() * (SCREEN_WIDTH - 120),
   },
   content: {
     flex: 1,
-    paddingTop: 60,
-    paddingHorizontal: 40,
+    paddingTop: Layout.hudTopPadding,
+    paddingHorizontal: Spacing.large,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 80,
+    marginBottom: Spacing.xlarge,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  backText: {
-    fontSize: 28,
-    color: UI_COLORS.menuText,
-    fontWeight: '300',
+    shadowColor: UI_PALETTE.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   title: {
+    ...Typography.h1,
     flex: 1,
-    fontSize: 28,
-    fontWeight: '300',
-    color: UI_COLORS.menuText,
+    color: UI_PALETTE.text_dark,
     textAlign: 'center',
-    marginLeft: -40, // Compensate for back button
+    marginLeft: -56, // Compensate for back button
+    fontWeight: '700',
   },
   spacer: {
-    width: 40,
+    width: 56,
   },
   settingsContainer: {
     flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 40,
+  },
+  section: {
+    marginBottom: Spacing.xlarge,
+  },
+  sectionTitle: {
+    ...Typography.h3,
+    color: UI_PALETTE.text_dark,
+    marginBottom: Spacing.medium,
+    fontWeight: '600',
   },
   setting: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: UI_COLORS.settingsBorder,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    paddingVertical: Spacing.medium,
+    paddingHorizontal: Spacing.medium,
+    borderRadius: BorderRadius.large,
+    marginBottom: Spacing.medium,
+    shadowColor: UI_PALETTE.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  settingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingIcon: {
+    marginRight: Spacing.medium,
   },
   settingLabel: {
-    fontSize: 20,
-    fontWeight: '400',
-    color: UI_COLORS.menuText,
+    ...Typography.body,
+    color: UI_PALETTE.text_dark,
+    fontWeight: '600',
   },
-  switch: {
-    transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }],
+  settingDescription: {
+    ...Typography.caption,
+    color: UI_PALETTE.text_secondary,
+    marginTop: 2,
   },
   footer: {
     alignItems: 'center',
-    paddingBottom: 40,
+    paddingBottom: Spacing.xlarge,
   },
   footerText: {
-    fontSize: 14,
-    fontWeight: '300',
-    color: UI_COLORS.menuTextLight,
+    ...Typography.bodySmall,
+    color: UI_PALETTE.text_secondary,
+    textAlign: 'center',
   },
 });

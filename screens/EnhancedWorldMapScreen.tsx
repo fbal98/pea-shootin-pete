@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Dimensions,
   Animated,
+  Easing,
 } from 'react-native';
 import { PanGestureHandler, PinchGestureHandler, State } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,8 +14,8 @@ import { useLevelProgressionStore } from '../store/levelProgressionStore';
 import { AtmosphericBackground } from '../components/ui/AtmosphericBackground';
 import { DynamicPath } from '../components/ui/DynamicPath';
 import { EnhancedWorldNode } from '../components/ui/EnhancedWorldNode';
-import { CinematicCamera, useCinematicCamera } from '../components/ui/CinematicCamera';
-// import { usePerformanceOptimizer } from '../utils/PerformanceOptimizer';
+import { useCinematicCamera } from '../components/ui/CinematicCamera';
+import { UI_PALETTE } from '@/constants/GameColors';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -393,53 +394,27 @@ export const EnhancedWorldMapScreen: React.FC<EnhancedWorldMapScreenProps> = ({
   onLevelSelect 
 }) => {
   const [selectedNode, setSelectedNode] = useState<WorldNode | null>(null);
-  const [currentTheme, setCurrentTheme] = useState<WorldTheme>(WORLD_THEMES.beach);
-  const [cameraPosition, setCameraPosition] = useState({ x: 0, y: 0 });
+  const infoPanelAnim = useRef(new Animated.Value(350)).current; // Start off-screen
 
-  const { cameraControls, cameraTransform, translateX, translateY, scale } = useCinematicCamera();
-  
-  // Simplified performance settings for now
-  const lod = { animationQuality: 'high' as const, particleCount: 30 };
-  const shouldRenderObject = (pos: any, camera: any) => true;
-  const shouldEnableEffect = (effect: any) => true;
-  const isInViewport = (pos: any, size: any, camera: any, scale: any) => true;
-
-  // Animation values for pan and zoom (keeping original functionality)
-  const lastPan = useRef({ x: 0, y: 0 });
-  const lastScale = useRef(1);
-
-  const levelProgressionStore = useLevelProgressionStore();
+  const { cameraControls, cameraTransform } = useCinematicCamera();
 
   useEffect(() => {
-    // Update camera position for performance calculations
-    const updateCameraPosition = () => {
-      setCameraPosition({
-        x: -(translateX as any)._value,
-        y: -(translateY as any)._value,
-      });
-    };
-
-    const listener = translateX.addListener(updateCameraPosition);
-    const listener2 = translateY.addListener(updateCameraPosition);
-
-    return () => {
-      translateX.removeListener(listener);
-      translateY.removeListener(listener2);
-    };
-  }, [translateX, translateY]);
+    // Animate info panel based on selection
+    Animated.timing(infoPanelAnim, {
+      toValue: selectedNode ? 0 : 350, // Slide in or out
+      duration: 400,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [selectedNode, infoPanelAnim]);
 
   const handleNodePress = (node: WorldNode) => {
     if (node.locked) {
+      // Maybe show a "Locked" message
       return;
     }
-
     setSelectedNode(node);
-    setCurrentTheme(WORLD_THEMES[node.theme]);
-
-    // Use cinematic camera for smooth focusing
-    if (cameraControls) {
-      cameraControls.focusOn(node.position, 1.5);
-    }
+    cameraControls.focusOn(node.position, 1.2);
   };
 
   const handleLevelStart = () => {
@@ -448,68 +423,12 @@ export const EnhancedWorldMapScreen: React.FC<EnhancedWorldMapScreenProps> = ({
     }
   };
 
-  const onPanGestureEvent = Animated.event(
-    [{ nativeEvent: { translationX: translateX, translationY: translateY } }],
-    { useNativeDriver: true }
-  );
-
-  const onPanHandlerStateChange = (event: any) => {
-    if (event.nativeEvent.oldState === State.ACTIVE) {
-      lastPan.current = {
-        x: lastPan.current.x + event.nativeEvent.translationX,
-        y: lastPan.current.y + event.nativeEvent.translationY,
-      };
-      translateX.setOffset(lastPan.current.x);
-      translateY.setOffset(lastPan.current.y);
-      translateX.setValue(0);
-      translateY.setValue(0);
-    }
-  };
-
-  const onPinchGestureEvent = Animated.event([{ nativeEvent: { scale: scale } }], {
-    useNativeDriver: true,
-  });
-
-  const onPinchHandlerStateChange = (event: any) => {
-    if (event.nativeEvent.oldState === State.ACTIVE) {
-      lastScale.current *= event.nativeEvent.scale;
-      scale.setOffset(lastScale.current);
-      scale.setValue(1);
-    }
-  };
-
-  const getCurrentWorldTheme = (): string => {
-    if (!selectedNode) return 'beach';
-    
-    // Find the dominant theme in the current viewport
-    const visibleNodes = WORLD_NODES.filter(node =>
-      isInViewport(
-        node.position,
-        { width: 60, height: 60 },
-        cameraPosition,
-        (scale as any)._value
-      )
-    );
-    
-    if (visibleNodes.length === 0) return 'beach';
-    
-    // Return the theme of the first visible node, or selected node theme
-    return selectedNode?.theme || visibleNodes[0].theme;
-  };
-
   const renderPaths = () => {
     return WORLD_NODES.map(node =>
       node.connections.map(connectionId => {
         const connectedNode = WORLD_NODES.find(n => n.id === connectionId);
         if (!connectedNode) return null;
-
-        // Performance culling for paths
-        if (!shouldRenderObject(node.position, cameraPosition)) {
-          return null;
-        }
-
         const pathStatus = node.completed ? 'completed' : node.locked ? 'locked' : 'available';
-
         return (
           <DynamicPath
             key={`path_${node.id}_${connectionId}`}
@@ -517,151 +436,72 @@ export const EnhancedWorldMapScreen: React.FC<EnhancedWorldMapScreenProps> = ({
             to={connectedNode.position}
             theme={node.theme}
             status={pathStatus}
-            animated={shouldEnableEffect('complex')}
           />
         );
       })
     ).flat().filter(Boolean);
   };
 
-  const renderNodes = () => {
-    return WORLD_NODES.map(node => {
-      // Performance culling for nodes
-      if (!shouldRenderObject(node.position, cameraPosition)) {
-        return null;
-      }
-
-      return (
-        <EnhancedWorldNode
-          key={node.id}
-          node={node}
-          isSelected={selectedNode?.id === node.id}
-          onPress={handleNodePress}
-          scale={scale}
-        />
-      );
-    }).filter(Boolean);
-  };
-
-  const atmosphericIntensity = shouldEnableEffect('complex') ? 
-    (lod.animationQuality === 'high' ? 1 : lod.animationQuality === 'medium' ? 0.7 : 0.4) : 0.2;
-
   return (
-    <View style={[styles.container, { backgroundColor: currentTheme.backgroundColor }]}>
-      {/* Atmospheric Background */}
-      <AtmosphericBackground 
-        theme={getCurrentWorldTheme() as any} 
-        intensity={atmosphericIntensity}
-      />
+    <View style={styles.container}>
+      <AtmosphericBackground theme={'forest'} intensity={0.8} />
 
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+        <TouchableOpacity onPress={onBack} style={styles.headerButton}>
+          <Ionicons name="arrow-back" size={32} color="white" />
         </TouchableOpacity>
-
         <Text style={styles.headerTitle}>World Map</Text>
-
-        <TouchableOpacity style={styles.infoButton}>
-          <Ionicons name="information-circle" size={24} color="white" />
+        <TouchableOpacity style={styles.headerButton}>
+          <Ionicons name="information-circle-outline" size={32} color="white" />
         </TouchableOpacity>
       </View>
 
-      {/* Performance indicator (dev mode) */}
-      {__DEV__ && (
-        <View style={styles.performanceIndicator}>
-          <Text style={styles.performanceText}>
-            LOD: {lod.animationQuality} | Particles: {lod.particleCount}
-          </Text>
-        </View>
-      )}
-
-      {/* Map Container with Cinematic Camera */}
-      <PinchGestureHandler
-        onGestureEvent={onPinchGestureEvent}
-        onHandlerStateChange={onPinchHandlerStateChange}
-      >
+      <PinchGestureHandler onGestureEvent={() => {}} onHandlerStateChange={() => {}}>
         <Animated.View style={styles.mapContainer}>
-          <PanGestureHandler
-            onGestureEvent={onPanGestureEvent}
-            onHandlerStateChange={onPanHandlerStateChange}
-          >
-            <Animated.View
-              style={[
-                styles.mapContent,
-                cameraTransform,
-              ]}
-            >
-              {/* Dynamic Paths */}
+          <PanGestureHandler onGestureEvent={() => {}} onHandlerStateChange={() => {}}>
+            <Animated.View style={[styles.mapContent, cameraTransform]}>
               {renderPaths()}
-
-              {/* Enhanced Nodes */}
-              {renderNodes()}
+              {WORLD_NODES.map(node => (
+                <EnhancedWorldNode
+                  key={node.id}
+                  node={node}
+                  isSelected={selectedNode?.id === node.id}
+                  onPress={handleNodePress}
+                />
+              ))}
             </Animated.View>
           </PanGestureHandler>
         </Animated.View>
       </PinchGestureHandler>
 
-      {/* Selected Node Info */}
       {selectedNode && (
-        <Animated.View 
-          style={[
-            styles.nodeInfo, 
-            { backgroundColor: currentTheme.primaryColor }
-          ]}
-        >
-          <View style={styles.nodeInfoHeader}>
-            <Text style={styles.nodeInfoTitle}>{selectedNode.name}</Text>
-            <Text style={styles.nodeInfoTheme}>{currentTheme.name}</Text>
-          </View>
-
-          <Text style={styles.nodeInfoDescription}>
-            {selectedNode.landmark?.description || currentTheme.description}
-          </Text>
-
-          <View style={styles.nodeInfoStats}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Level</Text>
-              <Text style={styles.statValue}>{selectedNode.levelId}</Text>
+        <Animated.View style={[styles.infoPanel, { transform: [{ translateY: infoPanelAnim }] }]}>
+          <Text style={styles.infoTitle}>{selectedNode.name}</Text>
+          <Text style={styles.infoDescription}>{selectedNode.landmark?.description || `Level ${selectedNode.levelId}`}</Text>
+          
+          <View style={styles.infoStats}>
+             <View style={styles.statItem}>
+              <Ionicons name="star" size={20} color="#FFD700" />
+              <Text style={styles.statText}>{selectedNode.stars} / 3</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Stars</Text>
-              <Text style={styles.statValue}>{selectedNode.stars}/3</Text>
+              <Ionicons name="trophy-outline" size={20} color="#C0C0C0" />
+              <Text style={styles.statText}>00:45</Text>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Status</Text>
-              <Text style={styles.statValue}>
-                {selectedNode.completed ? 'Complete' : selectedNode.locked ? 'Locked' : 'Available'}
-              </Text>
+             <View style={styles.statItem}>
+              <Ionicons name="analytics-outline" size={20} color="#87CEEB" />
+              <Text style={styles.statText}>98%</Text>
             </View>
           </View>
 
           <TouchableOpacity
-            style={[
-              styles.playButton,
-              { backgroundColor: selectedNode.locked ? '#666666' : '#4CAF50' },
-            ]}
+            style={styles.playButton}
             onPress={handleLevelStart}
-            disabled={selectedNode.locked}
           >
-            <Text style={styles.playButtonText}>
-              {selectedNode.completed ? 'Replay Level' : 'Start Level'}
-            </Text>
+            <Text style={styles.playButtonText}>PLAY</Text>
           </TouchableOpacity>
         </Animated.View>
       )}
-
-      {/* Enhanced Theme Legend */}
-      <View style={styles.themeLegend}>
-        {Object.values(WORLD_THEMES)
-          .slice(0, 4)
-          .map(theme => (
-            <View key={theme.id} style={styles.themeItem}>
-              <View style={[styles.themeColor, { backgroundColor: theme.nodeColor }]} />
-              <Text style={styles.themeName}>{theme.landmark}</Text>
-            </View>
-          ))}
-      </View>
     </View>
   );
 };
@@ -669,124 +509,95 @@ export const EnhancedWorldMapScreen: React.FC<EnhancedWorldMapScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1E4620',
   },
   header: {
+    position: 'absolute',
+    top: 48,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
     zIndex: 10,
   },
-  backButton: {
+  headerButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
-  },
-  infoButton: {
-    padding: 8,
-  },
-  performanceIndicator: {
-    position: 'absolute',
-    top: 100,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 8,
-    borderRadius: 4,
-    zIndex: 10,
-  },
-  performanceText: {
-    color: 'white',
-    fontSize: 10,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
   },
   mapContainer: {
     flex: 1,
-    overflow: 'hidden',
   },
   mapContent: {
     width: 1200,
     height: 1000,
   },
-  nodeInfo: {
+  infoPanel: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    zIndex: 10,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 20,
   },
-  nodeInfoHeader: {
-    marginBottom: 12,
+  infoTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 4,
   },
-  nodeInfoTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  nodeInfoTheme: {
+  infoDescription: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
   },
-  nodeInfoDescription: {
-    fontSize: 14,
-    color: 'white',
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  nodeInfoStats: {
+  infoStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   statItem: {
     alignItems: 'center',
   },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
+  statText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 4,
   },
   playButton: {
+    backgroundColor: UI_PALETTE.primary,
+    borderRadius: 28,
     paddingVertical: 16,
-    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: UI_PALETTE.primary_shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    height: 56,
   },
   playButtonText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
-  },
-  themeLegend: {
-    position: 'absolute',
-    top: 100,
-    left: 20,
-    gap: 8,
-    zIndex: 10,
-  },
-  themeItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  themeColor: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-  },
-  themeName: {
-    fontSize: 16,
-    color: 'white',
-    fontWeight: '500',
+    letterSpacing: 1,
   },
 });

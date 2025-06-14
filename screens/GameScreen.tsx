@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,9 +14,6 @@ import { ProgressionHUD } from '@/components/ui/ProgressionHUD';
 import { MysteryRewardDisplay } from '@/components/ui/MysteryRewardDisplay';
 import {
   CelebrationManager,
-  AchievementCelebration,
-  LevelVictoryCelebration,
-  ComboStreakCelebration,
 } from '@/components/ui/CelebrationSystem';
 import { VictoryModal } from '@/components/ui/VictoryModal';
 
@@ -25,7 +22,7 @@ import { useGameLogic } from '@/hooks/useGameLogic';
 import { useGameInput } from '@/hooks/useGameInput';
 
 // Store
-import { useGameOver, useScore, useLevel, useGameActions, useIsPlaying } from '@/store/gameStore';
+import { useGameOver, useScore, useLevel, useGameActions, useIsPlaying, useLives } from '@/store/gameStore';
 import {
   useShowVictoryScreen,
   useCurrentScore,
@@ -33,11 +30,13 @@ import {
   useCurrentLevel,
   useShotsFired,
   useShotsHit,
+  useTotalEnemies,
+  useEnemiesRemaining,
 } from '@/store/levelProgressionStore';
 
 // Constants
 import { GAME_CONFIG, INPUT_CONFIG } from '@/constants/GameConfig';
-import { UI_COLORS } from '@/constants/GameColors';
+import { UI_PALETTE } from '@/constants/GameColors';
 
 interface GameScreenProps {
   onBackToMenu?: () => void;
@@ -52,6 +51,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   // Game state
   const score = useScore();
   const level = useLevel();
+  const lives = useLives();
   const gameOver = useGameOver();
   const isPlaying = useIsPlaying();
   const actions = useGameActions();
@@ -63,19 +63,20 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   const levelActions = useLevelProgressionActions();
   const shotsFired = useShotsFired();
   const shotsHit = useShotsHit();
+  const totalEnemies = useTotalEnemies();
+  const enemiesRemaining = useEnemiesRemaining();
 
-  // Calculate accuracy
+  // Calculate accuracy and progress
   const accuracy = shotsFired > 0 ? (shotsHit / shotsFired) * 100 : 0;
+  const levelProgress = totalEnemies > 0 ? (totalEnemies - enemiesRemaining) / totalEnemies : 0;
 
   // Mystery reward display state
-  const [mysteryRewards, setMysteryRewards] = useState<
-    Array<{
-      id: string;
-      reward: any;
-      x: number;
-      y: number;
-    }>
-  >([]);
+  const [mysteryRewards, setMysteryRewards] = useState<{
+    id: string;
+    reward: unknown;
+    x: number;
+    y: number;
+  }[]>([]);
 
   // Game logic hook
   const {
@@ -154,8 +155,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
           onResponderMove={handleTouchMove}
           onResponderRelease={handleTouchEnd}
         >
-          {/* Score display */}
-          <GameHUD score={score} />
+          {/* Enhanced Game HUD */}
+          <GameHUD
+            score={score}
+            lives={lives}
+            levelProgress={levelProgress}
+            levelObjective={currentLevel?.objectives[0]?.description || 'Pop the balloons!'}
+            onPause={() => actions.setIsPaused(true)}
+          />
 
           {/* Game entities */}
           {isPlaying && !gameOver && (
@@ -220,23 +227,23 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                 colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.98)']}
                 style={styles.gameOverContainer}
               >
-                <Text style={styles.gameOverTitle}>game over</Text>
+                <Text style={styles.gameOverTitle}>GAME OVER</Text>
                 <Text style={styles.finalScore}>{score}</Text>
 
                 <TouchableOpacity
-                  style={styles.restartButton}
+                  style={[styles.actionButton, { backgroundColor: UI_PALETTE.primary }]}
                   onPress={handleRestart}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.restartText}>PLAY AGAIN</Text>
+                  <Text style={styles.actionButtonText}>PLAY AGAIN</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.menuButton}
+                  style={[styles.actionButton, styles.secondaryButton]}
                   onPress={handleBackToMenu}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.menuText}>MENU</Text>
+                  <Text style={styles.secondaryButtonText}>MAIN MENU</Text>
                 </TouchableOpacity>
               </LinearGradient>
             </View>
@@ -279,65 +286,53 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: UI_PALETTE.background_light,
   },
   gameArea: {
     flex: 1,
   },
   gameOverOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    backgroundColor: 'rgba(0,0,0,0.7)',
   },
   gameOverContainer: {
-    paddingVertical: 60,
-    paddingHorizontal: 60,
-    borderRadius: 20,
+    padding: 32,
+    borderRadius: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
+    width: '85%',
   },
   gameOverTitle: {
-    fontSize: 28,
-    fontWeight: '300',
-    color: UI_COLORS.menuText,
-    marginBottom: 20,
-  },
-  finalScore: {
-    fontSize: 64,
-    fontWeight: '600',
-    color: UI_COLORS.menuText,
-    marginBottom: 40,
-  },
-  restartButton: {
-    backgroundColor: UI_COLORS.tapToPlayBg,
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    borderRadius: 25,
+    fontSize: 32,
+    fontWeight: '900',
+    color: UI_PALETTE.text_dark,
     marginBottom: 16,
   },
-  restartText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: UI_COLORS.menuText,
-    letterSpacing: 2,
+  finalScore: {
+    fontSize: 56,
+    fontWeight: 'bold',
+    color: UI_PALETTE.primary,
+    marginBottom: 32,
   },
-  menuButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 30,
+  actionButton: {
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 28,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  menuText: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: UI_COLORS.menuTextLight,
-    letterSpacing: 1,
+  actionButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: UI_PALETTE.text_light,
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: UI_PALETTE.primary,
+  },
+  secondaryButtonText: {
+    color: UI_PALETTE.primary,
   },
 });

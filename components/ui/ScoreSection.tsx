@@ -1,5 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
+import { Typography, Spacing, BorderRadius } from '@/constants/DesignTokens';
+import { UI_PALETTE } from '@/constants/GameColors';
 
 interface ScoreSectionProps {
   score: number;
@@ -97,44 +99,50 @@ export const ScoreSection: React.FC<ScoreSectionProps> = ({ score, combo = 0 }) 
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'flex-start',
-    minWidth: 100,
+    alignItems: 'center',
+    flex: 1,
   },
   label: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#00FFFF',
+    ...Typography.small,
+    fontWeight: '600',
+    color: UI_PALETTE.text_light,
     letterSpacing: 1,
     marginBottom: 2,
-    textShadowColor: '#008B8B',
-    textShadowOffset: { width: 1, height: 1 },
+    textShadowColor: UI_PALETTE.shadow,
+    textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+    opacity: 0.9,
   },
   scoreValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFD700',
+    ...Typography.h2,
+    fontWeight: '700',
+    color: UI_PALETTE.accent,
     fontFamily: 'monospace',
-    textShadowColor: '#FFA500',
+    textShadowColor: UI_PALETTE.accent_shadow,
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
   comboContainer: {
-    backgroundColor: 'rgba(255, 0, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: UI_PALETTE.primary,
+    paddingHorizontal: Spacing.small,
+    paddingVertical: Spacing.micro,
+    borderRadius: BorderRadius.medium,
     borderWidth: 1,
-    borderColor: '#FF00FF',
-    marginTop: 4,
+    borderColor: UI_PALETTE.primary_shadow,
+    marginTop: Spacing.micro,
+    shadowColor: UI_PALETTE.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   comboText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#FF00FF',
+    ...Typography.small,
+    fontWeight: '700',
+    color: UI_PALETTE.text_light,
     letterSpacing: 0.5,
-    textShadowColor: '#800080',
-    textShadowOffset: { width: 1, height: 1 },
+    textShadowColor: UI_PALETTE.primary_shadow,
+    textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
 });

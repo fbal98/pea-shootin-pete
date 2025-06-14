@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { UI_PALETTE } from '@/constants/GameColors';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UI_COLORS } from '@/constants/GameColors';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -60,7 +60,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack }) => {
 
     createFloatAnimation(floatAnim1, 14000, 0);
     createFloatAnimation(floatAnim2, 16000, 5000);
-  }, []);
+  }, [fadeAnim, floatAnim1, floatAnim2, pulseAnim ]);
 
   const renderFloatingElement = (
     anim: Animated.Value,
@@ -116,7 +116,7 @@ export const AboutScreen: React.FC<AboutScreenProps> = ({ onBack }) => {
           <View style={styles.aboutContainer}>
             {/* Game title */}
             <View style={styles.gameTitle}>
-              <Text style={styles.gameTitleText}>pea shootin' pete</Text>
+              <Text style={styles.gameTitleText}>pea shootin&apos; pete</Text>
             </View>
 
             {/* Simple description */}
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   },
   floatingElement: {
     position: 'absolute',
-    backgroundColor: '#4ECDC4',
+    backgroundColor: UI_PALETTE.accent,
     borderRadius: 20,
     left: Math.random() * (SCREEN_WIDTH - 120),
   },
@@ -182,14 +182,14 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 28,
-    color: UI_COLORS.menuText,
+    color: UI_PALETTE.menuText,
     fontWeight: '300',
   },
   title: {
     flex: 1,
     fontSize: 28,
     fontWeight: '300',
-    color: UI_COLORS.menuText,
+    color: UI_PALETTE.menuText,
     textAlign: 'center',
     marginLeft: -40, // Compensate for back button
   },
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   gameTitleText: {
     fontSize: 36,
     fontWeight: '300',
-    color: UI_COLORS.primary,
+    color: UI_PALETTE.primary,
     textAlign: 'center',
   },
   description: {
@@ -218,12 +218,12 @@ const styles = StyleSheet.create({
   descriptionText: {
     fontSize: 18,
     fontWeight: '300',
-    color: UI_COLORS.menuText,
+    color: UI_PALETTE.menuText,
     textAlign: 'center',
     lineHeight: 28,
   },
   versionContainer: {
-    backgroundColor: UI_COLORS.versionBg,
+    backgroundColor: UI_PALETTE.versionBg,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 16,
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 14,
     fontWeight: '400',
-    color: UI_COLORS.menuTextLight,
+    color: UI_PALETTE.menuTextLight,
   },
   footer: {
     alignItems: 'center',
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     fontWeight: '300',
-    color: UI_COLORS.menuTextLight,
+    color: UI_PALETTE.menuTextLight,
     fontStyle: 'italic',
   },
 });
