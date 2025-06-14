@@ -11,7 +11,7 @@
 
 export interface Level {
   // Core Metadata
-  id: number;
+  id: number | string;
   name: string;
   version: string; // For A/B testing different level versions
   difficulty: DifficultyTier;
@@ -368,7 +368,7 @@ export interface RemoteLevelConfig {
 
 // ===== EXPORT UTILITY TYPES =====
 
-export type LevelID = number;
+export type LevelID = number | string;
 export type WaveID = string;
 export type ThemeID = string;
 

@@ -16,10 +16,12 @@ import {
   CelebrationManager,
 } from '@/components/ui/CelebrationSystem';
 import { VictoryModal } from '@/components/ui/VictoryModal';
+import { TutorialOverlay } from '@/components/ui/TutorialOverlay';
 
 // Hooks
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { useGameInput } from '@/hooks/useGameInput';
+import { useTutorialIntegration } from '@/hooks/useTutorialIntegration';
 
 // Store
 import { useGameOver, useScore, useLevel, useGameActions, useIsPlaying, useLives } from '@/store/gameStore';
@@ -32,6 +34,7 @@ import {
   useShotsHit,
   useTotalEnemies,
   useEnemiesRemaining,
+  useCurrentCombo,
 } from '@/store/levelProgressionStore';
 
 // Constants
@@ -65,10 +68,20 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   const shotsHit = useShotsHit();
   const totalEnemies = useTotalEnemies();
   const enemiesRemaining = useEnemiesRemaining();
+  const currentCombo = useCurrentCombo();
 
   // Calculate accuracy and progress
   const accuracy = shotsFired > 0 ? (shotsHit / shotsFired) * 100 : 0;
   const levelProgress = totalEnemies > 0 ? (totalEnemies - enemiesRemaining) / totalEnemies : 0;
+
+  // Tutorial integration
+  const {
+    currentTutorial,
+    isShowingTutorial,
+    completeTutorialStep,
+    skipCurrentTutorial,
+    trackTutorialProgress,
+  } = useTutorialIntegration();
 
   // Mystery reward display state
   const [mysteryRewards, setMysteryRewards] = useState<{
@@ -94,11 +107,23 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     gameAreaHeightRef.current = gameAreaHeight;
   }, [gameAreaHeight, gameAreaHeightRef]);
 
+  // Enhanced shoot function to track tutorial progress
+  const enhancedShootProjectile = useCallback(() => {
+    shootProjectile();
+    trackTutorialProgress('tap');
+  }, [shootProjectile, trackTutorialProgress]);
+
+  // Enhanced position update to track tutorial progress
+  const enhancedUpdatePetePosition = useCallback((x: number) => {
+    updatePetePosition(x);
+    trackTutorialProgress('swipe');
+  }, [updatePetePosition, trackTutorialProgress]);
+
   // Game input handling
   const { handleTouchStart, handleTouchMove, handleTouchEnd, updateSmoothing } = useGameInput(
     screenWidth,
-    shootProjectile,
-    updatePetePosition
+    enhancedShootProjectile,
+    enhancedUpdatePetePosition
   );
 
   // Smooth movement update loop
@@ -159,8 +184,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
           <GameHUD
             score={score}
             lives={lives}
+            level={level}
             levelProgress={levelProgress}
             levelObjective={currentLevel?.objectives[0]?.description || 'Pop the balloons!'}
+            combo={currentCombo}
             onPause={() => actions.setIsPaused(true)}
           />
 
@@ -209,7 +236,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                       ...prev,
                       {
                         id: `reward_${Date.now()}`,
-                        reward,
+                        reward: reward as any, // TODO: Fix reward type compatibility
                         x: mysteryBalloon.x + mysteryBalloon.width / 2,
                         y: mysteryBalloon.y + mysteryBalloon.width / 2,
                       },
@@ -277,6 +304,20 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
             time={4.25} // TODO: Add actual level time tracking
             accuracy={accuracy}
           />
+
+          {/* Tutorial Overlay */}
+          {isShowingTutorial && currentTutorial && (
+            <TutorialOverlay
+              step={currentTutorial}
+              onNext={completeTutorialStep}
+              onSkip={skipCurrentTutorial}
+              onComplete={completeTutorialStep}
+              progress={{
+                current: 1, // TODO: Get actual progress from tutorial system
+                total: 3, // TODO: Get actual total from tutorial system
+              }}
+            />
+          )}
         </View>
       </View>
     </CelebrationManager>

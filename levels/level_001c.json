@@ -1,15 +1,15 @@
 {
-  "id": 1,
-  "name": "First Pop",
+  "id": "1c",
+  "name": "First Split",
   "version": "1.0.0",
   "difficulty": "tutorial",
-  "estimatedDuration": 45,
+  "estimatedDuration": 55,
 
   "objectives": [
     {
       "type": "eliminate_all_enemies",
-      "target": 1,
-      "description": "Pop the balloon to win!",
+      "target": 3,
+      "description": "Pop the balloon and its pieces!",
       "isOptional": false,
       "rewardMultiplier": 1.0
     }
@@ -24,8 +24,8 @@
 
   "enemyWaves": [
     {
-      "id": "tutorial_wave_1",
-      "startTime": 3.0,
+      "id": "tutorial_split_wave",
+      "startTime": 1.0,
       "duration": 0.5,
       "enemies": [
         {
@@ -36,8 +36,8 @@
           "movementType": "physics_normal",
           "movementSpeed": 1.0,
           "splitBehavior": {
-            "enabled": false,
-            "minSizeToSplit": 2,
+            "enabled": true,
+            "minSizeToSplit": 1,
             "splitInto": 2,
             "childSizeReduction": 1.0,
             "childSpeedBonus": 1.0
@@ -50,7 +50,7 @@
     }
   ],
 
-  "totalEnemyCount": 1,
+  "totalEnemyCount": 3,
 
   "environment": {
     "gravity": 500.0,
@@ -75,9 +75,9 @@
     "particleEffects": {
       "balloonPopParticles": {
         "enabled": true,
-        "count": 8,
+        "count": 10,
         "color": "#4ECDC4",
-        "lifespan": 1.0,
+        "lifespan": 1.1,
         "scale": 1.0
       },
       "comboParticles": {
@@ -103,21 +103,21 @@
     "bounceEnergyMultiplier": 1.0,
     "peteSpeedMultiplier": 1.0,
     "projectileSpeedMultiplier": 1.0,
-    "targetFailRate": 0.05
+    "targetFailRate": 0.08
   },
 
   "rewards": {
-    "baseScore": 100,
-    "perfectionBonus": 50,
-    "speedBonus": 25,
+    "baseScore": 180,
+    "perfectionBonus": 60,
+    "speedBonus": 30,
     "unlocksNextLevel": true,
-    "coinsAwarded": 10,
+    "coinsAwarded": 15,
     "unlocksPowerup": null,
-    "unlocksAchievement": "first_pop",
+    "unlocksAchievement": null,
     "masteryThresholds": {
-      "goldTimeThreshold": 30000,
-      "goldAccuracyThreshold": 90,
-      "goldStyleThreshold": 500,
+      "goldTimeThreshold": 40000,
+      "goldAccuracyThreshold": 88,
+      "goldStyleThreshold": 450,
       "perfectCompletionMultiplier": 2.0
     }
   },
@@ -125,14 +125,14 @@
   "metadata": {
     "testGroup": "tutorial_flow",
     "variant": "standard",
-    "designIntent": ["teach_basic_shooting", "introduce_balloon_physics", "demonstrate_splitting"],
-    "expectedPlaytime": 45,
-    "difficultyRating": 1,
-    "targetRetryRate": 0.1,
-    "targetCompletionRate": 0.95,
-    "createdDate": "2025-01-11",
-    "lastModified": "2025-01-11",
+    "designIntent": ["introduce_balloon_splitting", "teach_split_mechanics"],
+    "expectedPlaytime": 55,
+    "difficultyRating": 2,
+    "targetRetryRate": 0.15,
+    "targetCompletionRate": 0.85,
+    "createdDate": "2025-01-14",
+    "lastModified": "2025-01-14",
     "createdBy": "system",
-    "balanceNotes": "Tutorial level designed for 95% completion rate with gentle introduction to mechanics"
+    "balanceNotes": "First introduction to splitting mechanic"
   }
 }

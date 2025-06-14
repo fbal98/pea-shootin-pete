@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2025-01-11",
-  "totalLevels": 2,
+  "lastUpdated": "2025-01-14",
+  "totalLevels": 5,
 
   "levels": [
     {
@@ -16,15 +16,48 @@
       "tags": ["beginner", "introduction", "basic_mechanics"]
     },
     {
+      "id": "1b",
+      "name": "Two Balloons",
+      "filename": "level_001b.json",
+      "difficulty": "tutorial",
+      "unlocked": false,
+      "estimatedDuration": 50,
+      "prerequisites": [1],
+      "category": "tutorial",
+      "tags": ["multiple_targets", "practice"]
+    },
+    {
+      "id": "1c",
+      "name": "First Split",
+      "filename": "level_001c.json",
+      "difficulty": "tutorial",
+      "unlocked": false,
+      "estimatedDuration": 55,
+      "prerequisites": ["1b"],
+      "category": "tutorial",
+      "tags": ["splitting", "mechanics_introduction"]
+    },
+    {
+      "id": "1d",
+      "name": "Combo Time",
+      "filename": "level_001d.json",
+      "difficulty": "tutorial",
+      "unlocked": false,
+      "estimatedDuration": 60,
+      "prerequisites": ["1c"],
+      "category": "tutorial",
+      "tags": ["combo_introduction", "optional_objectives"]
+    },
+    {
       "id": 2,
       "name": "Balloon Bouncer",
       "filename": "level_002.json",
       "difficulty": "easy",
       "unlocked": false,
       "estimatedDuration": 60,
-      "prerequisites": [1],
+      "prerequisites": ["1d"],
       "category": "progression",
-      "tags": ["combo_introduction", "fast_enemies", "skill_building"]
+      "tags": ["combo_mastery", "fast_enemies", "skill_building"]
     }
   ],
 
@@ -32,7 +65,7 @@
     "tutorial": {
       "name": "Tutorial",
       "description": "Learn the basics of Pea Shootin' Pete",
-      "levels": [1]
+      "levels": [1, "1b", "1c", "1d"]
     },
     "progression": {
       "name": "Adventure",
@@ -81,7 +114,7 @@
   },
 
   "remoteConfig": {
-    "enabledLevels": [1, 2],
+    "enabledLevels": [1, "1b", "1c", "1d", 2],
     "globalDifficultyMultiplier": 1.0,
     "globalSpeedMultiplier": 1.0,
     "features": {

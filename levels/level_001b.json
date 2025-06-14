@@ -1,15 +1,15 @@
 {
-  "id": 1,
-  "name": "First Pop",
+  "id": "1b",
+  "name": "Two Balloons",
   "version": "1.0.0",
   "difficulty": "tutorial",
-  "estimatedDuration": 45,
+  "estimatedDuration": 50,
 
   "objectives": [
     {
       "type": "eliminate_all_enemies",
-      "target": 1,
-      "description": "Pop the balloon to win!",
+      "target": 2,
+      "description": "Pop both balloons!",
       "isOptional": false,
       "rewardMultiplier": 1.0
     }
@@ -24,15 +24,15 @@
 
   "enemyWaves": [
     {
-      "id": "tutorial_wave_1",
-      "startTime": 3.0,
-      "duration": 0.5,
+      "id": "tutorial_wave_two",
+      "startTime": 1.0,
+      "duration": 0.8,
       "enemies": [
         {
           "type": "basic",
-          "count": 1,
+          "count": 2,
           "sizeLevel": 3,
-          "spawnInterval": 0.1,
+          "spawnInterval": 0.3,
           "movementType": "physics_normal",
           "movementSpeed": 1.0,
           "splitBehavior": {
@@ -50,7 +50,7 @@
     }
   ],
 
-  "totalEnemyCount": 1,
+  "totalEnemyCount": 2,
 
   "environment": {
     "gravity": 500.0,
@@ -107,17 +107,17 @@
   },
 
   "rewards": {
-    "baseScore": 100,
+    "baseScore": 150,
     "perfectionBonus": 50,
     "speedBonus": 25,
     "unlocksNextLevel": true,
-    "coinsAwarded": 10,
+    "coinsAwarded": 12,
     "unlocksPowerup": null,
-    "unlocksAchievement": "first_pop",
+    "unlocksAchievement": null,
     "masteryThresholds": {
-      "goldTimeThreshold": 30000,
+      "goldTimeThreshold": 35000,
       "goldAccuracyThreshold": 90,
-      "goldStyleThreshold": 500,
+      "goldStyleThreshold": 400,
       "perfectCompletionMultiplier": 2.0
     }
   },
@@ -125,14 +125,14 @@
   "metadata": {
     "testGroup": "tutorial_flow",
     "variant": "standard",
-    "designIntent": ["teach_basic_shooting", "introduce_balloon_physics", "demonstrate_splitting"],
-    "expectedPlaytime": 45,
-    "difficultyRating": 1,
+    "designIntent": ["introduce_multiple_balloons", "practice_basic_mechanics"],
+    "expectedPlaytime": 50,
+    "difficultyRating": 1.5,
     "targetRetryRate": 0.1,
-    "targetCompletionRate": 0.95,
-    "createdDate": "2025-01-11",
-    "lastModified": "2025-01-11",
+    "targetCompletionRate": 0.90,
+    "createdDate": "2025-01-14",
+    "lastModified": "2025-01-14",
     "createdBy": "system",
-    "balanceNotes": "Tutorial level designed for 95% completion rate with gentle introduction to mechanics"
+    "balanceNotes": "Gentle introduction to multiple targets"
   }
 }

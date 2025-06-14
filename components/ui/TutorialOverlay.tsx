@@ -26,7 +26,6 @@ import {
   TutorialOverlayProps,
   TutorialTooltipProps,
   TutorialSpotlightProps,
-  HighlightArea,
 } from '@/types/TutorialTypes';
 import { UI_PALETTE } from '@/constants/GameColors';
 import { Typography, Spacing, BorderRadius, Layout } from '@/constants/DesignTokens';
@@ -272,12 +271,12 @@ export const TutorialSpotlight: React.FC<TutorialSpotlightProps> = ({
   targetArea,
   onInteraction,
 }) => {
-  const [spotlightDimensions, setSpotlightDimensions] = useState({
+  const spotlightDimensions = {
     width: 100,
     height: 100,
     x: 0,
     y: 0,
-  });
+  };
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
