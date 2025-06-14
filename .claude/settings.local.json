@@ -77,7 +77,9 @@
       "Bash(gh repo edit:*)",
       "Bash(git stash:*)",
       "Bash(timeout 30s npm start)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(git merge:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
