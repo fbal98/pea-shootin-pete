@@ -507,12 +507,6 @@ export const useGameLogic = (screenWidth: number, gameAreaHeight: number) => {
         waveSpawnTimers.current.set(waveKey, 0);
       }
 
-      // Debug timing info for first wave
-      if (waveKey === 'tutorial_wave_1' && !activeWaves.current.has(waveKey)) {
-        console.log(
-          `Wave ${waveKey}: levelDuration=${levelDuration}ms, waveStart=${waveStartTime}ms, waveEnd=${waveEndTime}ms, levelStartTime=${levelStateRef.current.levelStartTime}`
-        );
-      }
 
       // Deactivate wave if time is up
       if (levelDuration > waveEndTime && activeWaves.current.has(waveKey)) {
