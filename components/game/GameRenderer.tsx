@@ -1,31 +1,21 @@
 /**
- * Optimized game renderer with dynamic quality adjustment and viewport culling
+ * Game renderer with viewport culling
  */
 
 import React, { memo, useMemo, useCallback } from 'react';
 import { View } from 'react-native';
-import { PerformanceMonitor } from '@/utils/PerformanceMonitor';
-import OptimizedPete from './OptimizedPete';
-import OptimizedEnemy from './OptimizedEnemy';
-import OptimizedProjectile from './OptimizedProjectile';
-import ViewportCuller from './ViewportCuller';
+import Pete from './Pete';
+import Enemy from './Enemy';
+import Projectile from './Projectile';
+import ViewportCuller from '../optimized/ViewportCuller';
+import { RenderableGameObject } from '@/types/GameTypes';
 
-interface GameObject {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  type?: string;
-  sizeLevel?: number;
-}
-
-interface OptimizedGameRendererProps {
+interface GameRendererProps {
   // Game objects
   pete: { x: number; y: number; color: string };
-  enemies: GameObject[];
-  projectiles: GameObject[];
-  mysteryBalloons: GameObject[];
+  enemies: RenderableGameObject[];
+  projectiles: RenderableGameObject[];
+  mysteryBalloons: RenderableGameObject[];
   
   // Screen dimensions
   screenWidth: number;
@@ -38,16 +28,23 @@ interface OptimizedGameRendererProps {
   
   // Performance settings
   enableViewportCulling?: boolean;
-  enableDynamicQuality?: boolean;
   maxVisibleEnemies?: number;
   maxVisibleProjectiles?: number;
   
   // Game state for prioritization
   isPlaying?: boolean;
   isPaused?: boolean;
+  
+  // Enhanced game state for visual effects
+  gameState?: {
+    combo?: number;
+    recentlyHit?: boolean;
+    peteVelocity?: { x: number; y: number };
+    lastShotTime?: number;
+  };
 }
 
-const OptimizedGameRendererComponent: React.FC<OptimizedGameRendererProps> = ({
+const GameRendererComponent: React.FC<GameRendererProps> = ({
   pete,
   enemies,
   projectiles,
@@ -58,32 +55,12 @@ const OptimizedGameRendererComponent: React.FC<OptimizedGameRendererProps> = ({
   projectileColor,
   mysteryBalloonColor,
   enableViewportCulling = true,
-  enableDynamicQuality = true,
   maxVisibleEnemies = 50,
   maxVisibleProjectiles = 30,
-  isPlaying = true,
-  isPaused = false
+  isPlaying: _isPlaying = true,
+  isPaused: _isPaused = false,
+  gameState
 }) => {
-  // Get current performance metrics for dynamic quality adjustment
-  const performanceMonitor = PerformanceMonitor.getInstance();
-  const performanceMetrics = performanceMonitor.getMetrics();
-  
-  // Calculate dynamic quality based on performance
-  const renderQuality = useMemo((): 'high' | 'medium' | 'low' => {
-    if (!enableDynamicQuality) return 'high';
-    
-    const fps = performanceMetrics.fps;
-    const memoryPressure = performanceMetrics.memoryPressure || 'low';
-    
-    // Adjust quality based on performance
-    if (fps < 30 || memoryPressure === 'high') {
-      return 'low';
-    } else if (fps < 45 || memoryPressure === 'medium') {
-      return 'medium';
-    } else {
-      return 'high';
-    }
-  }, [enableDynamicQuality, performanceMetrics.fps, performanceMetrics.memoryPressure]);
   
   // Priority center for LOD (Level of Detail) - usually Pete's position
   const priorityCenter = useMemo(() => ({
@@ -92,28 +69,32 @@ const OptimizedGameRendererComponent: React.FC<OptimizedGameRendererProps> = ({
   }), [pete.x, pete.y]);
   
   // Render Pete (always visible, highest priority)
-  const renderPete = useCallback(() => (
-    <OptimizedPete
-      x={pete.x}
-      y={pete.y}
-      color={pete.color}
-      screenWidth={screenWidth}
-      screenHeight={screenHeight}
-      isVisible={true}
-      quality={renderQuality}
-    />
-  ), [pete, screenWidth, screenHeight, renderQuality]);
-  
-  // Render individual enemy
-  const renderEnemy = useCallback((enemy: GameObject, index: number, isVisible: boolean) => {
-    // Calculate distance for LOD
-    const distance = Math.sqrt(
-      Math.pow(enemy.x - priorityCenter.x, 2) + 
-      Math.pow(enemy.y - priorityCenter.y, 2)
-    );
-    
+  const renderPete = useCallback(() => {
+    // Calculate if Pete is moving based on position changes
+    const isMoving = !gameState?.peteVelocity ? false :
+      Math.abs(gameState.peteVelocity.x) > 0.1 || Math.abs(gameState.peteVelocity.y) > 0.1;
+
     return (
-      <OptimizedEnemy
+      <Pete
+        x={pete.x}
+        y={pete.y}
+        color={pete.color}
+        screenWidth={screenWidth}
+        screenHeight={screenHeight}
+        isVisible={true}
+        gameState={{
+          isMoving,
+          recentlyHit: gameState?.recentlyHit || false,
+          combo: gameState?.combo || 0,
+        }}
+      />
+    );
+  }, [pete, screenWidth, screenHeight, gameState]);
+  
+  // Render individual enemy with enhanced data
+  const renderEnemy = useCallback((enemy: RenderableGameObject, index: number, isVisible: boolean) => {
+    return (
+      <Enemy
         key={enemy.id}
         id={enemy.id}
         x={enemy.x}
@@ -126,15 +107,17 @@ const OptimizedGameRendererComponent: React.FC<OptimizedGameRendererProps> = ({
         screenWidth={screenWidth}
         screenHeight={screenHeight}
         isVisible={isVisible}
-        quality={renderQuality}
-        distanceFromCenter={distance}
+        // Enhanced enemy properties
+        velocity={enemy.velocity || { x: 0, y: 0 }}
+        health={enemy.health || 100}
+        maxHealth={enemy.maxHealth || 100}
       />
     );
-  }, [enemyColor, screenWidth, screenHeight, renderQuality, priorityCenter]);
+  }, [enemyColor, screenWidth, screenHeight]);
   
-  // Render individual projectile
-  const renderProjectile = useCallback((projectile: GameObject, index: number, isVisible: boolean) => (
-    <OptimizedProjectile
+  // Render individual projectile with enhanced data
+  const renderProjectile = useCallback((projectile: RenderableGameObject, index: number, isVisible: boolean) => (
+    <Projectile
       key={projectile.id}
       id={projectile.id}
       x={projectile.x}
@@ -143,13 +126,18 @@ const OptimizedGameRendererComponent: React.FC<OptimizedGameRendererProps> = ({
       screenWidth={screenWidth}
       screenHeight={screenHeight}
       isVisible={isVisible}
-      quality={renderQuality}
+      // Enhanced projectile properties
+      velocity={projectile.velocity}
+      powerUpType={projectile.powerUpType}
+      age={projectile.age}
+      penetration={projectile.penetration}
+      explosion={projectile.explosion}
     />
-  ), [projectileColor, screenWidth, screenHeight, renderQuality]);
+  ), [projectileColor, screenWidth, screenHeight]);
   
   // Render individual mystery balloon
-  const renderMysteryBalloon = useCallback((balloon: GameObject, index: number, isVisible: boolean) => (
-    <OptimizedEnemy
+  const renderMysteryBalloon = useCallback((balloon: RenderableGameObject, index: number, isVisible: boolean) => (
+    <Enemy
       key={balloon.id}
       id={balloon.id}
       x={balloon.x}
@@ -162,26 +150,9 @@ const OptimizedGameRendererComponent: React.FC<OptimizedGameRendererProps> = ({
       screenWidth={screenWidth}
       screenHeight={screenHeight}
       isVisible={isVisible}
-      quality={renderQuality}
-      distanceFromCenter={0} // Mystery balloons are always high priority
     />
-  ), [mysteryBalloonColor, screenWidth, screenHeight, renderQuality]);
+  ), [mysteryBalloonColor, screenWidth, screenHeight]);
   
-  // Don't render anything if game is paused and quality is low (performance mode)
-  if (isPaused && renderQuality === 'low') {
-    return (
-      <View style={{ 
-        position: 'absolute', 
-        width: screenWidth, 
-        height: screenHeight,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}>
-        {renderPete()}
-      </View>
-    );
-  }
   
   return (
     <View style={{ 
@@ -222,35 +193,14 @@ const OptimizedGameRendererComponent: React.FC<OptimizedGameRendererProps> = ({
         projectiles.map((projectile, index) => renderProjectile(projectile, index, true))
       )}
       
-      {/* Mystery balloons - always rendered (high priority) */}
+      {/* Mystery balloons - always rendered */}
       {mysteryBalloons.map((balloon, index) => renderMysteryBalloon(balloon, index, true))}
-      
-      {/* Performance indicator in development */}
-      {__DEV__ && (
-        <View style={{
-          position: 'absolute',
-          top: 10,
-          right: 10,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          padding: 5,
-          borderRadius: 5,
-        }}>
-          <View style={{
-            width: 10,
-            height: 10,
-            borderRadius: 5,
-            backgroundColor: 
-              renderQuality === 'high' ? '#00ff00' :
-              renderQuality === 'medium' ? '#ffff00' : '#ff0000'
-          }} />
-        </View>
-      )}
     </View>
   );
 };
 
 // Memoize the entire renderer to prevent unnecessary re-renders
-const OptimizedGameRenderer = memo(OptimizedGameRendererComponent, (prevProps, nextProps) => {
+const GameRenderer = memo(GameRendererComponent, (prevProps, nextProps) => {
   // Check if any props have actually changed
   const peteChanged = (
     prevProps.pete.x !== nextProps.pete.x ||
@@ -271,7 +221,6 @@ const OptimizedGameRenderer = memo(OptimizedGameRendererComponent, (prevProps, n
     prevProps.projectileColor !== nextProps.projectileColor ||
     prevProps.mysteryBalloonColor !== nextProps.mysteryBalloonColor ||
     prevProps.enableViewportCulling !== nextProps.enableViewportCulling ||
-    prevProps.enableDynamicQuality !== nextProps.enableDynamicQuality ||
     prevProps.isPlaying !== nextProps.isPlaying ||
     prevProps.isPaused !== nextProps.isPaused
   );
@@ -280,6 +229,6 @@ const OptimizedGameRenderer = memo(OptimizedGameRendererComponent, (prevProps, n
   return !peteChanged && !objectsChanged && !settingsChanged;
 });
 
-OptimizedGameRenderer.displayName = 'OptimizedGameRenderer';
+GameRenderer.displayName = 'GameRenderer';
 
-export default OptimizedGameRenderer;
+export default GameRenderer;

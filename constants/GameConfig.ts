@@ -527,6 +527,7 @@ export const getSpawnYPosition = (index: number, gameAreaHeight: number): number
   return gameAreaHeight * positions[positionIndex];
 };
 
+
 // =============================================================================
 // TYPE DEFINITIONS
 // =============================================================================
@@ -610,3 +611,34 @@ export const GAME_CONFIG = {
   STAR_LAYERS: STARFIELD_CONFIG.STAR_LAYERS,
   STAR_LAYER_DISTRIBUTION: STARFIELD_CONFIG.STAR_LAYER_DISTRIBUTION,
 } as const;
+
+// =============================================================================
+// HELPER FUNCTIONS FOR LEVEL THEMING
+// =============================================================================
+
+/**
+ * Get Pete's color from level theme or default
+ * @param level - Current level object (nullable)
+ * @returns Pete's color as hex string
+ */
+export const getPeteColor = (level: any): string => {
+  // Try to get color from level theme
+  if (level?.theme?.colorScheme?.peteColor) {
+    return level.theme.colorScheme.peteColor;
+  }
+  
+  // Try to get color from level config overrides
+  if (level?.colorScheme?.peteColor) {
+    return level.colorScheme.peteColor;
+  }
+  
+  // Get color from level-based color schemes (fallback)
+  if (level?.id && typeof level.id === 'number') {
+    const { getColorScheme } = require('@/constants/GameColors');
+    const colorScheme = getColorScheme(level.id);
+    return colorScheme.primary;
+  }
+  
+  // Default to the primary game color (pea green) instead of white
+  return '#50C878'; // UI_PALETTE.primary - vibrant pea green
+};

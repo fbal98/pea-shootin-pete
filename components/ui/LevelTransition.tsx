@@ -147,7 +147,7 @@ export const LevelTransition: React.FC<LevelTransitionProps> = ({
   // Get theme colors from current level
   const primaryColor = currentLevel.theme.colorScheme.primary;
   const backgroundColor = 'rgba(0, 0, 0, 0.8)';
-  const colorScheme = getColorScheme(currentLevel.id);
+  const colorScheme = getColorScheme(typeof currentLevel.id === 'string' ? parseInt(currentLevel.id) || 1 : currentLevel.id);
 
   return (
     <View style={[styles.overlay, { backgroundColor }]}>

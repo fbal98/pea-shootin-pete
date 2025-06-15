@@ -66,6 +66,9 @@ export const useLevelManager = () => {
     isLoading.current = true;
     
     try {
+      // CRITICAL FIX: Initialize LevelManager singleton first
+      await levelManager.initialize();
+      
       // Load level 1 if no level is currently loaded
       if (!currentLevel) {
         await levelActions.loadLevel(1);

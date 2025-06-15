@@ -6,6 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Pea Shootin' Pete is a React Native professional mobile game built with Expo. Originally a modern remaster of the 1994 DOS game, it has evolved into a polished, professional mobile experience with comprehensive progression systems, social features, and monetization. The player controls Pete who shoots peas at bouncing balloon-like enemies that split into smaller pieces when hit.
 
+**Recent Major Enhancements (January 2025):**
+- **AI Analytics System**: Comprehensive autonomous gameplay analytics for data-driven optimization
+- **Advanced Feature Flag System**: Hyper-casual focus with configurable complexity levels
+- **Performance Optimization**: High-performance caching and mobile-specific optimizations
+- **Enhanced Audio Integration**: Professional audio system with music and sound effects
+
 ## Essential Commands
 
 ```bash
@@ -14,6 +20,17 @@ npm start                # Start Expo dev server (or expo start)
 npm run ios             # Run on iOS simulator
 npm run android         # Run on Android emulator  
 npm run web             # Run in web browser
+
+# AI Testing & Analytics (ENHANCED)
+npm run start:ai         # Start with AI mode enabled for testing
+npm run ios:ai          # Run iOS with AI analytics enabled
+npm run android:ai      # Run Android with AI analytics enabled
+
+# Balance Testing & Analytics (NEW - PRODUCTION READY)
+npm run balance:test     # Run comprehensive balance testing suite
+npm run balance:test:all # Run balance tests with full reporting (JSON, CSV, Markdown)
+npm run balance:test:quick # Quick balance test (3 runs, levels 1-2)
+npm run balance:test:dry # Show test plan without execution
 
 # Code Quality (ALWAYS run before committing)
 npm run lint            # Run ESLint
@@ -28,6 +45,45 @@ npx expo install --fix  # Fix dependency issues
 
 # Project Management
 npm run reset-project   # Reset to fresh project state
+```
+
+## CLI Balance Testing Suite (REAL AI TESTING) 🚨 CRITICAL FIX APPLIED
+
+The game now includes a production-ready CLI tool for **AUTHENTIC** balance testing using real AI across all levels and personas:
+
+**🚨 MAJOR BUG FIXED**: This tool was previously generating completely fake data - it now uses REAL AI testing via HeadlessGameSimulator!
+
+### Quick Start
+```bash
+# Run comprehensive balance tests
+npm run balance:test
+
+# Generate all report formats with verbose output
+npm run balance:test:all
+
+# Quick test for development (3 runs, levels 1-2)
+npm run balance:test:quick
+
+# See test plan without execution
+npm run balance:test:dry
+```
+
+### Advanced Usage
+```bash
+# Test specific levels
+node testing/runBalanceSuite.js --levels=1,2,3 --runs=5
+
+# Test specific personas
+node testing/runBalanceSuite.js --personas=nervous_newbie,focused_gamer
+
+# Generate CSV reports for external analysis
+node testing/runBalanceSuite.js --format=csv --output=reports
+
+# Parallel testing with custom worker count
+node testing/runBalanceSuite.js --parallel=5 --timeout=300
+
+# Full help
+node testing/runBalanceSuite.js --help
 ```
 
 ## Architecture
@@ -85,6 +141,7 @@ components/
 │   ├── InWorldTutorial.tsx    # In-world tutorial guidance
 │   ├── ParticleSystem.tsx     # Particle effects system
 │   ├── AtmosphericBackground.tsx # Enhanced background effects
+│   ├── AnalyticsDashboard.tsx # AI analytics display and controls (NEW)
 │   └── [Other UI components]   # Various UI elements
 ├── social/                     # Social features
 │   └── SocialSharingModal.tsx # Social sharing functionality
@@ -111,7 +168,7 @@ systems/                        # Core game systems and managers
 ├── SpecialEventsManager.ts    # Special events handling
 ├── DeepLinkManager.ts         # Deep linking system
 ├── ViralTrackingManager.ts    # Viral growth tracking
-├── AudioManager.ts            # Audio system with music and sound effects
+├── AudioManager.ts            # Audio system with music and sound effects (ENHANCED)
 └── SpatialGrid.ts             # Spatial partitioning for collision optimization
 
 store/                          # State management (Zustand)
@@ -123,10 +180,12 @@ store/                          # State management (Zustand)
 └── celebrationStore.ts        # Celebration system state
 
 hooks/                          # Custom React hooks
-├── useGameLogic.ts           # Wave-based enemy spawning and level physics
+├── useGameLogicRefactored.ts # Primary game logic with wave spawning and level physics (CURRENT)
 ├── useGameInput.ts           # Smooth swipe controls for Pete
+├── useOptimizedGameInputBridge.ts # Optimized input handling with debouncing
 ├── useCelebrationManager.ts   # Celebration system integration
 ├── useTutorialIntegration.ts  # Tutorial system hooks
+├── useAIPlayer.ts            # AI player system for automated testing (ENHANCED)
 └── core/                     # Core game hooks (isolated systems)
     ├── useGameLoop.ts        # Main game loop management
     ├── useLevelManager.ts    # Level loading and management
@@ -148,7 +207,7 @@ constants/                      # Configuration and constants
 ├── GameConfig.ts             # Level-configurable game parameters
 ├── GameColors.ts             # Professional game color schemes
 ├── DesignTokens.ts           # Design system tokens and themes
-├── FeatureFlagConfig.ts      # Feature flags for hyper-casual vs full features
+├── FeatureFlagConfig.ts      # Feature flags for hyper-casual vs full features (ENHANCED)
 └── Colors.ts                 # Standard Expo color definitions
 
 utils/                          # Utility functions and helpers
@@ -157,37 +216,30 @@ utils/                          # Utility functions and helpers
 ├── ObjectPool.ts             # Performance optimization
 ├── PerformanceMonitor.ts     # Performance tracking
 ├── errorLogger.ts            # Error logging and reporting
-├── GameCache.ts              # High-performance caching system
+├── GameCache.ts              # High-performance caching system (ENHANCED)
 ├── MobileOptimizer.ts        # Mobile-specific optimizations
-└── StateOptimizer.ts         # State management optimizations
+├── StateOptimizer.ts         # State management optimizations
+├── AIAnalytics.ts            # AI gameplay analytics and data collection (ENHANCED)
+├── HeadlessGameSimulator.ts  # Real AI testing engine for balance analysis (NEW)
+└── BalanceAnalyzer.ts        # Persona-based balance reporting system (ENHANCED)
+
+AI System Files                # Autonomous AI testing and analytics (NEW)
+├── pete_ai.ts                # Core AI logic for automated gameplay testing
+└── AI_ANALYTICS_IMPLEMENTATION.md # Comprehensive AI analytics documentation
 
 testing/                        # Testing and development tools
 ├── GameTester.ts             # Game testing utilities
 ├── analyzeGame.js            # Game analysis tools
 ├── iosTestSession.js         # iOS testing helpers
-└── runGameTests.ts           # Test runner
+├── runGameTests.ts           # Test runner
+├── runBalanceSuite.js        # CLI balance testing suite with parallel execution (NEW)
+└── reports/                  # Generated balance testing reports directory
 
 ios/                           # iOS-specific build files
 └── [Standard iOS project structure]
 ```
 
 ### Critical Architecture Patterns
-
-#### Level Progression System (NEW)
-- **Data-driven design**: All levels defined in JSON with full configurability
-- **Hot-reloadable**: Remote config support for live updates without app releases
-- **Wave-based spawning**: Complex enemy patterns with timing and positioning control
-- **Victory conditions**: Flexible objectives (eliminate all, score targets, time limits)
-- **Analytics integration**: Comprehensive tracking per publishing checklist requirements
-- **A/B testing ready**: Easy configuration variants and balance testing
-
-#### Professional Mobile Game Design Philosophy
-- **Polished user experience**: Professional UI with smooth animations and transitions
-- **Intuitive controls**: Tap to shoot, swipe to move Pete with responsive feedback
-- **Comprehensive progression**: Multiple progression systems including levels, achievements, and meta-progression
-- **Visual variety**: Professional themes and color schemes that enhance gameplay
-- **Player retention**: Daily challenges, social features, and long-term goals
-
 #### Authentic DOS Game Physics System ⭐ CORE GAME PHILOSOPHY ⭐
 **CRITICAL**: We ALWAYS want precise, predictable physics with enemies spawning at specific heights and bouncing in consistent patterns. This is based on analysis of the original 1994 DOS game.
 
@@ -216,11 +268,6 @@ ios/                           # iOS-specific build files
 - **High-frequency data in refs**: Position data stored in `useRef` to avoid React re-render overhead
 - **Analytics integration**: Real-time event tracking with offline queuing
 
-#### Enhanced Touch Controls System
-- **Smooth swipe movement**: Pete follows finger with interpolation and smoothing
-- **Tap to shoot**: Instant projectile firing with level progression tracking
-- **Combo system**: Consecutive hits build multipliers with visual feedback
-- **Responsive feedback**: Level-aware visual and haptic responses
 
 #### Hyper-Casual Feature Flag System (NEW)
 - **Focus on core gameplay**: Feature flags disable complex meta-systems for launch
@@ -230,38 +277,6 @@ ios/                           # iOS-specific build files
 - **Categories**: Core, Tutorial, Meta-progression, Social, Economy, Events, Advanced, Debug
 - **Helper functions**: `isFeatureEnabled()` and `getFeatureCategory()` for conditional rendering
 - **Development overrides**: Runtime feature flag modification in development mode
-
-### Key Game Systems
-1. **Authentic Physics**: Original 1994 DOS game physics with fixed spawn positions and predictable patterns
-2. **Level Progression**: Data-driven level loading with JSON configuration
-3. **Wave Management**: Original game wave patterns (TWO_SMALL, THREE_SMALL_WIDE, PIPES, etc.)
-4. **Victory Conditions**: Flexible objective system (eliminate all, score, time, combo)
-5. **Size-Based Movement**: Enemy speed determined by balloon size (Small=80, Medium=64, Large=50)
-6. **Analytics Tracking**: Comprehensive event tracking for publishing compliance
-7. **Theme System**: Level-based color schemes and visual customization
-8. **Player Progress**: Level unlocking, completion tracking, and statistics
-9. **Collision Detection**: Optimized system with enemy splitting mechanics
-10. **UI Transitions**: Professional level start/victory/failure screens
-11. **Remote Configuration**: Hot-reloadable level parameters for live updates
-12. **Meta-Progression**: Long-term player advancement beyond individual levels
-13. **Social Features**: Friends lists, leaderboards, and social sharing
-14. **Tutorial System**: Contextual onboarding and progressive skill introduction
-15. **Celebration System**: Dynamic victory celebrations and reward presentations
-16. **Mystery Balloons**: Special balloon mechanics with surprise rewards
-17. **Daily Challenges**: Time-limited objectives for player retention
-18. **Combo System**: Consecutive hit mechanics with multiplier rewards
-19. **In-App Purchases**: Monetization through character customization and power-ups
-20. **Performance Monitoring**: Real-time FPS tracking and optimization tools
-21. **Error Handling**: Comprehensive error logging and crash reporting
-22. **Deep Linking**: URL-based navigation for marketing and user acquisition
-23. **Viral Tracking**: Social sharing and referral system analytics
-24. **Audio System**: Full audio manager with music, sound effects, and user controls
-25. **Power-Up System**: Temporary gameplay modifiers with visual feedback and effects
-26. **Feature Flags**: Hyper-casual focus with ability to toggle complex features
-27. **Game Caching**: High-performance caching for calculations and frame rate optimization
-28. **Spatial Partitioning**: Optimized collision detection using spatial grid system
-29. **Trail Effects**: Enhanced visual feedback for projectiles and gameplay elements
-30. **Mobile Optimization**: Platform-specific optimizations for touch devices
 
 ## Important Technical Details
 
@@ -321,17 +336,6 @@ LevelConfigOverrides # Level-specific parameter modifications
 - Enemy speeds by size: Small=80px/s, Medium=64px/s, Large=50px/s
 - Projectile speed: 900px/s with no gravity (straight lines)
 
-**Touch Input:**
-- Movement smoothing: 20% interpolation factor
-- Smoothing threshold: 0.5px minimum distance
-- Update interval: 16ms (60fps)
-
-**Scoring & Progression:**
-- Small balloons: 30 points
-- Medium balloons: 20 points  
-- Large balloons: 10 points
-- Level up threshold: 100 points
-
 ### Level Management Functions
 ```typescript
 // Level Loading and Management
@@ -352,24 +356,6 @@ trackLevelComplete(levelId, levelName, score, duration, accuracy)
 trackLevelFailed(levelId, levelName, reason, score, duration)
 ```
 
-## Visual Design
-
-### Professional Color Themes
-The game uses a sophisticated design system with multiple themes:
-
-1. **Default Theme**: Professional blue/purple gradient with clean UI
-2. **Dark Theme**: Sophisticated dark mode with high contrast
-3. **Colorful Theme**: Vibrant colors for engaging gameplay
-4. **Level-specific Themes**: Dynamic themes that adapt to level content
-
-### Professional UI Elements
-- **Main Menu**: Polished menu with animated elements and clear navigation
-- **World Map**: 3D-inspired level selection with progression tracking
-- **Settings**: Professional settings screen with custom styled components
-- **About**: Comprehensive about screen with credits and version info
-- **Game HUD**: Multi-section HUD with score, level, lives, and objectives
-- **Victory Modal**: Engaging completion screen with rewards and progression
-- **Transitions**: Smooth, professional animations between screens
 
 ### Entity Appearances
 - **Pete**: Colored circle with subtle white eyes, matches level color scheme
@@ -380,134 +366,48 @@ The game uses a sophisticated design system with multiple themes:
 - **Projectiles**: Simple colored dots matching level particle color
 - **Background**: Gradient with floating geometric shapes
 
-## Performance Optimizations
-- **Simplified rendering**: Minimal draw calls with basic shapes
-- **Collision optimization**: Set-based duplicate prevention
-- **Smooth animations**: 60fps game loop with deltaTime calculations
-- **Memory efficient**: Direct array management instead of object pools for simplicity
-- **Mobile optimized**: Light physics and minimal particle effects
+## Recent Major Improvements
 
-## Recent Improvements
-
-### Expert Review Follow-up & Audio Integration (Latest - January 2025) ⭐ NEW FEATURES ⭐
-- **Audio System Integration**: Complete AudioManager implementation with background music and sound effects
-- **Power-Up System**: Full power-up mechanics with visual HUD, effects, and gameplay integration
-- **Feature Flag System**: Hyper-casual focus configuration with ability to toggle complex features
-- **Performance Caching**: GameCache system for optimized calculations and reduced frame drops
-- **Enhanced UI Components**: SoundToggle with animations, PowerUpHUD with real-time tracking
-- **Advanced Input System**: Optimized touch handling with improved responsiveness
-- **Trail Effects**: Enhanced projectile visual trails for better gameplay feedback
-
-### Professional Mobile Game Transformation (Previous - January 2025) ⭐ MAJOR ACHIEVEMENT ⭐
-- **Professional UI overhaul**: Complete redesign with modern mobile game aesthetics
-- **Enhanced world map**: 3D-inspired level selection with dynamic paths and animations
-- **Design system**: Implemented comprehensive design tokens and theming system
-- **Component architecture**: Modular UI components for consistent design language
-- **Performance optimization**: Added specialized optimized components for smooth 60fps gameplay
-- **Professional HUD**: Multi-section game HUD with clear information hierarchy
-- **Polished menus**: Animated menu screens with professional transitions
-- **Custom components**: StyledSwitch, MenuButton, and other reusable UI elements
-
-### Original DOS Game Physics Implementation (Previous - January 2025)
-- **Authentic physics system**: Reverse-engineered 1994 DOS game physics through binary analysis
-- **Fixed spawn positions**: Enemies spawn at exact Y positions (28.5%, 37.5%, 38.5%) like original
-- **Original wave patterns**: TWO_SMALL, THREE_SMALL_WIDE, PIPES, CRAZY, ENTRAP with precise X positions
-- **Size-based speeds**: Small=80px/s, Medium=64px/s, Large=50px/s (extracted from original game data)
-- **Predictable physics**: 500px/s² gravity, no air resistance, consistent bounce patterns
-- **Straight-line projectiles**: 900px/s with no gravity, matching original game behavior
-- **Complete level system**: Data-driven JSON configuration with comprehensive TypeScript types
-- **LevelManager singleton**: Handles loading, validation, player progress, and remote config
-- **Dual state management**: Separated basic game state from level progression state
-- **Victory condition system**: Flexible objectives with "eliminate all enemies" implementation
-- **Analytics integration**: Full event tracking for publishing checklist compliance
-- **UI transitions**: Professional level start/victory/failure screens with animations
-- **Level HUD**: Progress tracking, objectives display, and combo system
-- **Hot-reloadable config**: Remote configuration support for live balance updates
-
-### Configuration Centralization & Navigation (Previous)
-- **Centralized game configuration**: All 47+ scattered constants moved to single `GameConfig.ts`  
-- **Level-specific overrides**: Physics and behavior can be modified per level
-- **Navigation enhancement**: Added Settings and About screens with hyper-casual design
-- **Helper functions**: Easy access functions for balloon sizes, points, and physics
-- **A/B testing ready**: Multiple configuration layers for testing and balance
-
-### Clean Architecture Implementation (Previous)
-- **Repository cleanup**: Removed obsolete files and documentation
-- **Code organization**: Structured components into logical directories
-- **Type safety**: Enhanced TypeScript definitions throughout
-- **Performance patterns**: Implemented optimized rendering components
-- **State management**: Refined Zustand stores for better performance
-- **Component modularity**: Created reusable UI components
-
-### Previous Fixes
-- **Game loop stability**: Resolved freezing issues with ref-based game loop
-- **UI rendering**: Fixed font loading and layout issues
-- **Touch responsiveness**: Optimized input handling for mobile devices
-
-## Common Debugging Patterns
-
-### Level System Issues
-- **Level not loading**: Check JSON syntax in level files and LevelManager initialization
-- **Victory not triggering**: Verify all enemies eliminated and wave completion logic
-- **Analytics not tracking**: Ensure analytics initialization and event queue processing
-- **Progress not saving**: Check AsyncStorage permissions and LevelManager persistence
-- **Wrong level showing**: Verify levelProgressionStore current level state
-
-### Game Loop Issues  
-- **Game not animating**: Check if game loop started and `isPlaying` state is true
-- **Wave spawning broken**: Verify wave timing logic and enemy spawn definitions
-- **Collision issues**: Check collision detection between projectiles and enemies
-- **Physics feeling wrong**: Adjust level-specific physics overrides in JSON config
-- **Touch not working**: Check touch responder setup and Pete position updates
-
-### Configuration Issues
-- **Level config not applying**: Ensure `createLevelConfig()` called with correct overrides
-- **Colors not changing**: Verify level theme application in components
-- **Performance issues**: Monitor enemy count and wave spawning frequency
-- **Type errors**: Run `npm run type-check` and verify LevelTypes compliance
-
+### AI Analytics System (Production Ready)
+- **Real AI Testing**: HeadlessGameSimulator provides authentic game physics simulation
+- **CLI Testing Suite**: Production-ready balance testing with 5 player personas
+- **Performance Optimized**: Reduced object creation from 600+/sec to <50/sec
+- **ML-Optimized Export**: Enhanced data format for machine learning analysis
+- **Comprehensive Metrics**: 25+ performance indicators including accuracy and reaction times
 
 ## Development Notes
-- **⭐ PROFESSIONAL QUALITY ⭐**: Maintain high standards for UI, UX, and code quality
-- **Physics fidelity**: Preserve precise, predictable physics from original DOS game
-- **Component-driven**: Use modular, reusable components for consistent design
-- **Performance-first**: Optimize for smooth 60fps gameplay on all devices
-- **Type-safe**: Comprehensive TypeScript coverage throughout the codebase
-- **Analytics-ready**: Track all player interactions for optimization
-- **Mobile-optimized**: Design for touch controls and mobile performance
-- **Publishing ready**: Follows 2025 mobile game best practices
-- **Clean architecture**: Maintain organized, scalable code structure
+- **Primary game logic**: Use `useGameLogicRefactored.ts` as the main game hook
+- **State management**: ALWAYS use individual primitive selectors, NEVER composite object selectors
+- **Visual rendering**: Pete and enemies render as circles with proper theming (squares = bug)
+- **AI testing integration**: Use real AI testing via `HeadlessGameSimulator` - never fake data
 - **ALWAYS run code quality checks**: Use `npm run validate` before any commit
-- **Feature flag driven**: Use `isFeatureEnabled()` for conditional feature rendering
+- **Component optimization**: Use memoization in OptimizedPete/Enemy/Projectile for performance
+- **Cache optimization**: Leverage GameCache for balloon size, speed, and coordinate calculations
+- **Environment-based features**: Conditionally enable AI and analytics via `EXPO_PUBLIC_AI_MODE`
+- **Level management**: Use LevelManager singleton for all level loading and progression
 - **Audio integration**: Initialize AudioManager in app startup for music and sound effects
-- **Power-up effects**: Use `usePowerUpSystem()` hook for gameplay modifications
-- **Cache optimization**: Leverage GameCache for expensive calculations and better performance
-- **Isolated systems**: Keep core game hooks in `hooks/core/` for modularity
+- **Error prevention**: Monitor for Zustand infinite loop warnings and fix immediately
+
+## AI Analytics Best Practices
+- **Real testing only**: Always use HeadlessGameSimulator for authentic balance testing - never fake data
+- **Performance optimization**: Use object caching and throttling in useAIPlayer to maintain <50 object creations/sec
+- **Batch testing workflow**: Use `npm run balance:test:quick` during development, full suite for final validation
+- **Persona-based analysis**: Test all 5 player personas for comprehensive insights
+- **Report analysis**: Monitor level health scores (>80% = balanced, <60% = needs attention)
 
 ## Level Development Best Practices
 - **Start with JSON**: Define levels in `levels/level_XXX.json` using the established schema
 - **Use LevelManager**: Load and validate levels through the centralized manager
-- **Track everything**: Implement analytics events for all player actions and level events
 - **Test thoroughly**: Validate JSON schema compliance and level progression flow
-- **Document levels**: Update `levels/README.md` when adding new mechanics or patterns
 - **Balance iteratively**: Use level-specific overrides to fine-tune difficulty without code changes
 
-## Configuration Best Practices
-- **Level-specific overrides**: Use JSON config to modify physics, behavior, and visuals per level
-- **Type safety**: All level configurations validated against TypeScript types
-- **Analytics integration**: Every level event automatically tracked for optimization
-- **Remote config ready**: Architecture supports Firebase Remote Config for live updates
-- **A/B testing support**: Easy configuration variants through level metadata
-
 ## Audio System Integration
-The game now includes a comprehensive audio system with background music and sound effects:
 
 ### AudioManager Features
 - **Singleton pattern**: Global access through `audioManager` instance
 - **Music management**: Background music with loop control and volume management
 - **Sound effects**: Individual sound loading and playback with error handling
 - **User controls**: Sound and music toggle functionality with state persistence
-- **Error resilience**: Graceful fallback when audio files fail to load
 
 ### Audio Implementation
 ```typescript
@@ -559,29 +459,128 @@ if (powerUpSystem.isActive) {
 - **Visual effects**: Pulsing animations and color-coded power-up indicators
 - **Duration tracking**: Percentage-based progress indicators
 
-## Key Features & Systems
+## AI Analytics & Data Collection System ⭐ NEW MAJOR FEATURE ⭐
 
-### Professional Game Features
-1. **World Map System**: 3D-inspired level selection with progression tracking
-2. **Design Token System**: Comprehensive theming with DesignTokens.ts
-3. **Professional HUD**: Multi-section display with GameHeader, LevelSection, ScoreSection, StatusSection
-4. **Optimized Rendering**: Dedicated performance components in components/optimized/
-5. **Custom UI Components**: StyledSwitch, MenuButton, and other reusable elements
-6. **Smooth Animations**: Professional transitions and visual feedback
-7. **Responsive Design**: Adapts to different screen sizes and orientations
+### Overview
+The AI Analytics system provides comprehensive autonomous gameplay data collection for:
+- **Data-driven game optimization** and balance tuning
+- **Automated regression testing** through AI gameplay sessions
+- **Performance monitoring** and technical optimization
+- **Game balance insights** and difficulty assessment
+- **Machine learning data collection** for predictive modeling
 
-### Core Systems Integration
-- **LevelManager**: Centralized level loading and progression
-- **Analytics**: Comprehensive event tracking throughout
-- **State Management**: Multiple Zustand stores for different concerns
-- **Performance Monitoring**: Built-in FPS tracking and optimization
-- **Error Handling**: Comprehensive error boundaries and logging
+### Core Components
 
-## Critical Issues & Troubleshooting
+#### 1. AI Player System (`pete_ai.ts`, `hooks/useAIPlayer.ts`)
+- **Autonomous gameplay**: AI player that can complete levels independently
+- **Configurable behavior**: Multiple presets (aggressive, defensive, stationary, chaotic)
+- **Real-time decision making**: 100ms decision intervals with threat assessment
+- **Performance tracking**: All actions tracked with timing and accuracy metrics
 
-### Zustand State Management Issues (RESOLVED - January 2025)
+#### 2. Analytics Engine (`utils/AIAnalytics.ts`)
+- **Session management**: Complete lifecycle tracking of AI gameplay sessions
+- **Real-time data collection**: 25+ performance metrics captured during gameplay
+- **Performance monitoring**: FPS, memory usage, thermal state, and battery impact
+- **Data export**: JSON format optimized for machine learning analysis
 
-#### The Problem: Infinite Loop from Composite Selectors
+#### 3. AI Debug Panel (Integrated in GameScreen)
+- **Live session monitoring**: Real-time display of AI performance metrics in development mode
+- **AI controls**: Toggle AI on/off, switch between presets, view live analytics
+- **Performance tracking**: Display FPS, enemy count, accuracy, and other key metrics
+- **Export controls**: One-click data export and session management
+
+#### 4. Environment-Based Activation
+AI features are conditionally enabled based on environment flags:
+```typescript
+// Enable AI mode with environment variable
+export EXPO_PUBLIC_AI_MODE=true
+npm run start:ai    # AI-enabled development mode
+```
+
+### Key Metrics Collected
+- **Basic Performance**: Total shots, hits, misses, accuracy percentage
+- **Movement Analysis**: Movement efficiency, dodge success rate, positioning
+- **Timing & Reactions**: Average/fastest/slowest reaction times to threats
+- **Threat Assessment**: Threats detected/avoided/hit ratios
+- **Performance Metrics**: FPS consistency, frame drops, memory usage
+- **Game Balance**: Level completion rates, optimal vs suboptimal decisions
+
+### Usage Examples
+
+```typescript
+// Enable AI Analytics
+import { useAIPlayer } from '@/hooks/useAIPlayer';
+const aiPlayer = useAIPlayer(petePosition, enemies, projectiles, screenWidth, gameAreaHeight, gameLogic, {
+  enabled: true,
+  enableAnalytics: true,
+  preset: 'aggressive'
+});
+
+// Access Analytics Data
+import { aiAnalytics } from '@/utils/AIAnalytics';
+const currentMetrics = aiAnalytics.getCurrentSessionAnalytics();
+const exportData = aiAnalytics.exportAnalyticsData();
+```
+
+### Data Output Format
+```json
+{
+  "sessionId": "ai_session_1640995200000_abc123def",
+  "metrics": {
+    "totalShots": 45, "hits": 38, "accuracy": 84.4,
+    "averageReactionTime": 156, "averageFPS": 58.2, "levelCompleted": true
+  },
+  "insights": {
+    "levelDifficulty": { "difficultyRating": "balanced", "completionRate": 100 },
+    "recommendations": ["Game balance appears optimal based on AI performance"]
+  }
+}
+```
+
+### Benefits
+- **Data-Driven Optimization**: Make informed game balance decisions
+- **Automated Testing**: Continuous regression testing through AI gameplay
+- **Performance Monitoring**: Real-time technical performance tracking
+
+## Enhanced Feature Flag System
+
+### Hyper-Casual Focus Configuration
+The feature flag system (`constants/FeatureFlagConfig.ts`) enables precise control over game complexity:
+```typescript
+// Hyper-casual launch configuration
+export const HYPER_CASUAL_FLAGS: FeatureFlags = {
+  core: { gamePlay: true, basicUI: true, levelProgression: true, scoring: true },
+  tutorial: { modalOverlays: false, animatedCues: true, complexTutorial: false },
+  metaProgression: { dailyChallenges: false, achievements: false, battlePass: false },
+  social: { friendsSystem: false, leaderboards: false, socialSharing: false },
+  economy: { inAppPurchases: false, characterCustomization: false, powerUpShop: false }
+};
+
+// Check feature availability
+if (isFeatureEnabled('metaProgression.achievements')) {
+  // Show achievements UI
+}
+```
+
+## High-Performance Caching System
+
+### GameCache Optimization (`utils/GameCache.ts`)
+```typescript
+import { gameCache } from '@/utils/GameCache';
+
+// Cache balloon calculations
+const balloonSize = gameCache.getBalloonSize(sizeLevel);
+const balloonPoints = gameCache.getBalloonPoints(sizeLevel);
+const enemySpeed = gameCache.getEnemySpeed(sizeLevel);
+
+// Monitor cache performance  
+const stats = gameCache.getCacheStats();
+console.log(`Cache hit rate: ${stats.hitRate}%`);
+```
+
+## Critical State Management Issues (RESOLVED)
+
+### Problem: Infinite Loop from Composite Selectors
 **Error**: `"Warning: The result of getSnapshot should be cached to avoid an infinite loop"` followed by `"Maximum update depth exceeded"`
 
 **Root Cause**: Zustand selectors that return new objects on every render cause infinite React re-render loops.
@@ -591,23 +590,12 @@ if (powerUpSystem.isActive) {
 export const useUIState = (): UIStateSnapshot => {
   const score = useGameStore(state => state.score);
   const highScore = useGameStore(state => state.highScore);
-  // ... other selectors
   
   return { score, highScore, level, lives, gameOver, isPlaying, isPaused }; // NEW OBJECT EVERY TIME
 };
-
-// ❌ DANGEROUS - Same issue with level progression
-export const useLevelProgress = () => 
-  useLevelProgressionStore(state => ({
-    enemiesRemaining: state.enemiesRemaining,
-    totalEnemies: state.totalEnemies,
-    currentScore: state.currentScore,
-    accuracy: calculateAccuracy(state.shotsHit, state.shotsFired),
-    currentCombo: state.currentCombo
-  })); // NEW OBJECT EVERY TIME
 ```
 
-#### The Solution: Individual Primitive Selectors
+### Solution: Individual Primitive Selectors
 **Fix**: Use granular selectors that return primitive values (strings, numbers, booleans) instead of objects.
 
 ```typescript
@@ -615,63 +603,29 @@ export const useLevelProgress = () =>
 export const useScore = () => useGameStore(state => state.score);
 export const useHighScore = () => useGameStore(state => state.highScore);
 export const useLevel = () => useGameStore(state => state.level);
-export const useLives = () => useGameStore(state => state.lives);
-export const useGameOver = () => useGameStore(state => state.gameOver);
-export const useIsPlaying = () => useGameStore(state => state.isPlaying);
-export const useIsPaused = () => useGameStore(state => state.isPaused);
-
-// ✅ SAFE - Level progression individual selectors
-export const useEnemiesRemaining = () => useLevelProgressionStore(state => state.enemiesRemaining);
-export const useTotalEnemies = () => useLevelProgressionStore(state => state.totalEnemies);
-export const useCurrentScore = () => useLevelProgressionStore(state => state.currentScore);
-export const useCurrentCombo = () => useLevelProgressionStore(state => state.currentCombo);
-// ... etc for all state values
 ```
 
-#### Files That Were Fixed
-1. **`store/gameStore.ts`**: Added deprecation warning to `useUIState()` hook
-2. **`store/levelProgressionStore.ts`**: Added individual selectors for all state values
-3. **`hooks/useGameLogic.ts`**: Replaced composite selectors with individual ones
-4. **`hooks/useGameLogic.ts`**: Applied same fixes to legacy hook
-5. **`components/ui/LevelHUD.tsx`**: Replaced `useLevelProgress()` with individual selectors
-
-#### Prevention Guidelines
+### Prevention Guidelines
 - **Never return objects from Zustand selectors** - Always return primitive values
 - **Use individual selectors** - Create separate hooks for each state value
-- **Deprecate composite selectors** - Mark object-returning selectors as deprecated with clear warnings
-- **Test with React DevTools** - Watch for excessive re-renders in components
 - **Monitor console warnings** - The "getSnapshot should be cached" warning is an early indicator
 
-#### Performance Impact
-- **Before fix**: Infinite loops causing app crashes and 100% CPU usage
-- **After fix**: Stable 60fps performance, minimal re-renders
-- **Component optimization**: Components now only re-render when their specific data changes
+### Current Architecture State (January 2025) ✅ STABLE
 
-#### Warning Signs to Watch For
-1. `"Warning: The result of getSnapshot should be cached to avoid an infinite loop"`
-2. `"Maximum update depth exceeded"`
-3. App becomes unresponsive or crashes
-4. Excessive re-renders in React DevTools profiler
-5. High CPU usage in development
+#### ✅ **WORKING SYSTEMS**
+- **Game Startup**: App initializes properly with professional navigation
+- **Enemy Spawning**: Wave management fully functional in `useGameLogicRefactored.ts`
+- **Visual Rendering**: Pete and enemies appear as proper circles with level theming
+- **State Management**: Individual primitive selectors prevent infinite loops
+- **AI Analytics**: Real testing produces authentic balance data
+- **Performance**: Simplified optimization provides stable 60fps
+- **Level System**: 10 levels with JSON configuration
+- **Audio System**: Background music and sound effects integrated
+- **Professional UI**: Complete mobile game UI with world map and HUD
 
-#### Best Practices for Zustand Selectors
-```typescript
-// ✅ DO: Individual primitive selectors
-const useSpecificValue = () => useStore(state => state.specificValue);
-
-// ✅ DO: Memoized object selectors (when absolutely necessary)
-const useComplexData = () => useStore(
-  useCallback(state => ({
-    computed: state.a + state.b,
-    formatted: state.value.toUpperCase()
-  }), [])
-);
-
-// ❌ DON'T: Object-returning selectors without memoization
-const useBadSelector = () => useStore(state => ({ 
-  multiple: state.values,
-  in: state.object 
-}));
-```
-
-This issue was critical because it prevented the game from running at all. The fix ensures stable performance and proper React rendering patterns throughout the application.
+#### 🔧 **ARCHITECTURAL DECISIONS**
+- **Primary Hook**: `useGameLogicRefactored.ts` is the main game logic
+- **Optimization Strategy**: Simplified approach without dynamic quality adjustment
+- **State Pattern**: Individual primitive selectors only (no composite objects)
+- **Rendering Strategy**: OptimizedGameRenderer with viewport culling
+- **AI Integration**: Environment-based activation via `EXPO_PUBLIC_AI_MODE`

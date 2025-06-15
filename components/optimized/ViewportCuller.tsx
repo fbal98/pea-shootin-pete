@@ -1,179 +1,101 @@
 /**
- * Viewport culling utility for optimizing rendering performance
- * Only renders children that are within the visible viewport
+ * ViewportCuller - Performance optimization component that only renders objects within the viewport
+ * 
+ * Filters objects by screen bounds and optionally limits the number of rendered objects
+ * using distance-based prioritization from a priority center (usually Pete's position).
  */
 
-import React, { memo, useMemo } from 'react';
-import { View } from 'react-native';
-
-interface ViewportBounds {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-}
-
-interface CullableObject {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+import React, { useMemo } from 'react';
+import { RenderableGameObject } from '@/types/GameTypes';
 
 interface ViewportCullerProps {
+  // Screen dimensions
   screenWidth: number;
   screenHeight: number;
-  cullMargin?: number;
-  objects: CullableObject[];
-  renderObject: (object: CullableObject, index: number, isVisible: boolean) => React.ReactNode;
-  maxVisibleObjects?: number;
-  priorityCenter?: { x: number; y: number }; // Prioritize objects near this point
+  
+  // Culling configuration
+  cullMargin?: number; // Extra margin around screen bounds (default: 50px)
+  
+  // Objects to cull
+  objects: RenderableGameObject[];
+  
+  // Render function for visible objects
+  renderObject: (object: RenderableGameObject, index: number, isVisible: boolean) => React.ReactElement;
+  
+  // Performance limits
+  maxVisibleObjects?: number; // Maximum objects to render (default: unlimited)
+  
+  // Priority center for distance-based culling (usually Pete's position)
+  priorityCenter?: { x: number; y: number };
+  
+  // Enable distance-based sorting (default: true when priorityCenter is provided)
+  enableDistanceSorting?: boolean;
 }
 
-const ViewportCullerComponent: React.FC<ViewportCullerProps> = ({
+const ViewportCuller: React.FC<ViewportCullerProps> = ({
   screenWidth,
   screenHeight,
   cullMargin = 50,
   objects,
   renderObject,
-  maxVisibleObjects = Infinity,
-  priorityCenter
+  maxVisibleObjects,
+  priorityCenter,
+  enableDistanceSorting = true
 }) => {
-  // Calculate viewport bounds with margin
-  const viewportBounds: ViewportBounds = useMemo(() => ({
+  
+  // Calculate visible bounds with margin
+  const visibleBounds = useMemo(() => ({
     left: -cullMargin,
-    top: -cullMargin,
     right: screenWidth + cullMargin,
+    top: -cullMargin,
     bottom: screenHeight + cullMargin
   }), [screenWidth, screenHeight, cullMargin]);
-
-  // Check if object is within viewport
-  const isInViewport = (obj: CullableObject): boolean => {
-    return (
-      obj.x + obj.width >= viewportBounds.left &&
-      obj.x <= viewportBounds.right &&
-      obj.y + obj.height >= viewportBounds.top &&
-      obj.y <= viewportBounds.bottom
-    );
-  };
-
-  // Calculate distance from priority center (for LOD)
-  const getDistanceFromCenter = (obj: CullableObject): number => {
-    if (!priorityCenter) return 0;
+  
+  // Filter and sort objects for optimal performance
+  const visibleObjects = useMemo(() => {
+    // Step 1: Filter objects within viewport bounds
+    const inBounds = objects.filter(obj => {
+      const objRight = obj.x + (obj.width || 0);
+      const objBottom = obj.y + (obj.height || 0);
+      
+      return (
+        objRight >= visibleBounds.left &&
+        obj.x <= visibleBounds.right &&
+        objBottom >= visibleBounds.top &&
+        obj.y <= visibleBounds.bottom
+      );
+    });
     
-    const objCenterX = obj.x + obj.width / 2;
-    const objCenterY = obj.y + obj.height / 2;
-    
-    return Math.sqrt(
-      Math.pow(objCenterX - priorityCenter.x, 2) +
-      Math.pow(objCenterY - priorityCenter.y, 2)
-    );
-  };
-
-  // Process objects for culling and prioritization
-  const processedObjects = useMemo(() => {
-    // First pass: determine visibility
-    const visibleObjects = objects.filter(isInViewport);
-    const invisibleObjects = objects.filter(obj => !isInViewport(obj));
-    
-    // If we have too many visible objects, prioritize by distance
-    let finalVisibleObjects = visibleObjects;
-    if (visibleObjects.length > maxVisibleObjects && priorityCenter) {
-      finalVisibleObjects = visibleObjects
-        .map(obj => ({
-          ...obj,
-          distance: getDistanceFromCenter(obj)
-        }))
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, maxVisibleObjects);
-    } else if (visibleObjects.length > maxVisibleObjects) {
-      // No priority center, just take first N objects
-      finalVisibleObjects = visibleObjects.slice(0, maxVisibleObjects);
+    // Step 2: Sort by distance from priority center if enabled
+    let sortedObjects = inBounds;
+    if (enableDistanceSorting && priorityCenter) {
+      sortedObjects = [...inBounds].sort((a, b) => {
+        const aDistance = Math.sqrt(
+          Math.pow(a.x + (a.width || 0) / 2 - priorityCenter.x, 2) +
+          Math.pow(a.y + (a.height || 0) / 2 - priorityCenter.y, 2)
+        );
+        const bDistance = Math.sqrt(
+          Math.pow(b.x + (b.width || 0) / 2 - priorityCenter.x, 2) +
+          Math.pow(b.y + (b.height || 0) / 2 - priorityCenter.y, 2)
+        );
+        return aDistance - bDistance; // Closest first
+      });
     }
     
-    return {
-      visible: finalVisibleObjects,
-      invisible: invisibleObjects,
-      totalCulled: objects.length - finalVisibleObjects.length
-    };
-  }, [objects, viewportBounds, maxVisibleObjects, priorityCenter]);
-
+    // Step 3: Limit number of visible objects
+    if (maxVisibleObjects && sortedObjects.length > maxVisibleObjects) {
+      sortedObjects = sortedObjects.slice(0, maxVisibleObjects);
+    }
+    
+    return sortedObjects;
+  }, [objects, visibleBounds, enableDistanceSorting, priorityCenter, maxVisibleObjects]);
+  
   // Render visible objects
-  const visibleElements = processedObjects.visible.map((obj, index) => {
-    const distance = priorityCenter ? getDistanceFromCenter(obj) : 0;
-    return (
-      <React.Fragment key={obj.id}>
-        {renderObject(obj, index, true)}
-      </React.Fragment>
-    );
-  });
-
-  // In development, show culling statistics
-  if (__DEV__ && processedObjects.totalCulled > 0) {
-    console.log(`Viewport culler: ${processedObjects.totalCulled}/${objects.length} objects culled`);
-  }
-
-  return <>{visibleElements}</>;
-};
-
-// Memoize the viewport culler to prevent unnecessary recalculations
-const ViewportCuller = memo(ViewportCullerComponent, (prevProps, nextProps) => {
-  // Only re-render if screen dimensions, objects array, or cull margin changes
   return (
-    prevProps.screenWidth === nextProps.screenWidth &&
-    prevProps.screenHeight === nextProps.screenHeight &&
-    prevProps.cullMargin === nextProps.cullMargin &&
-    prevProps.objects === nextProps.objects && // Reference equality check
-    prevProps.maxVisibleObjects === nextProps.maxVisibleObjects &&
-    prevProps.priorityCenter === nextProps.priorityCenter
+    <>
+      {visibleObjects.map((obj, index) => renderObject(obj, index, true))}
+    </>
   );
-});
-
-ViewportCuller.displayName = 'ViewportCuller';
+};
 
 export default ViewportCuller;
-
-/**
- * Hook for calculating object visibility and distance
- */
-export const useViewportCulling = (
-  screenWidth: number,
-  screenHeight: number,
-  cullMargin: number = 50
-) => {
-  const viewportBounds = useMemo(() => ({
-    left: -cullMargin,
-    top: -cullMargin,
-    right: screenWidth + cullMargin,
-    bottom: screenHeight + cullMargin
-  }), [screenWidth, screenHeight, cullMargin]);
-
-  const isObjectVisible = useMemo(() => (obj: CullableObject): boolean => {
-    return (
-      obj.x + obj.width >= viewportBounds.left &&
-      obj.x <= viewportBounds.right &&
-      obj.y + obj.height >= viewportBounds.top &&
-      obj.y <= viewportBounds.bottom
-    );
-  }, [viewportBounds]);
-
-  const getObjectDistance = useMemo(() => (
-    obj: CullableObject, 
-    center: { x: number; y: number }
-  ): number => {
-    const objCenterX = obj.x + obj.width / 2;
-    const objCenterY = obj.y + obj.height / 2;
-    
-    return Math.sqrt(
-      Math.pow(objCenterX - center.x, 2) +
-      Math.pow(objCenterY - center.y, 2)
-    );
-  }, []);
-
-  return {
-    viewportBounds,
-    isObjectVisible,
-    getObjectDistance
-  };
-};

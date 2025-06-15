@@ -1,63 +1,84 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { getColorScheme } from '@/constants/GameColors';
+import { ENTITY_CONFIG } from '@/constants/GameConfig';
+import { getColorScheme } from '@/constants/HyperCasualColors';
+import { useLevel } from '@/store/gameStore';
 
 interface ProjectileProps {
+  id: string;
   x: number;
   y: number;
-  size: number;
-  level: number;
+  color?: string; // Keep for compatibility but will use level-based colors
+  screenWidth: number;
+  screenHeight: number;
+  isVisible?: boolean;
+  velocity?: { x: number; y: number };
+  powerUpType?: string;
+  age?: number;
+  penetration?: boolean;
+  explosion?: boolean;
 }
 
-export const Projectile: React.FC<ProjectileProps> = ({ x, y, size, level }) => {
+const ProjectileComponent: React.FC<ProjectileProps> = ({ 
+  x, 
+  y, 
+  screenWidth,
+  screenHeight,
+  isVisible = true,
+}) => {
+  const level = useLevel();
   const colorScheme = getColorScheme(level);
 
+  // Safety checks for props
+  if (isNaN(x) || isNaN(y) || !screenWidth || !screenHeight || 
+      typeof x !== 'number' || typeof y !== 'number' || 
+      typeof screenWidth !== 'number' || typeof screenHeight !== 'number') {
+    return null;
+  }
+  
+  // Viewport culling
+  if (!isVisible || x < -ENTITY_CONFIG.PROJECTILE.SIZE || x > screenWidth || 
+      y < -ENTITY_CONFIG.PROJECTILE.SIZE || y > screenHeight) {
+    return null;
+  }
+
   return (
-    <View style={[styles.container, { left: x, top: y }]}>
-      {/* TODO: Add a proper particle trail system here for more juice */}
-      <View
-        style={[
-          styles.trail,
-          {
-            top: size / 2,
-            borderRadius: size / 4,
-            width: size / 2,
-            height: size,
-            backgroundColor: colorScheme.particle,
-            opacity: 0.5,
-          },
-        ]}
-      />
-      <LinearGradient
-        colors={[`${colorScheme.particle}ff`, `${colorScheme.particle}00`]}
-        style={[
-          styles.projectile,
-          {
-            width: size,
-            height: size,
-            shadowColor: colorScheme.shadow,
-          },
-        ]}
-      />
-    </View>
+    <View
+      style={[
+        styles.projectile,
+        {
+          left: x,
+          top: y,
+          width: ENTITY_CONFIG.PROJECTILE.SIZE,
+          height: ENTITY_CONFIG.PROJECTILE.SIZE,
+          backgroundColor: colorScheme.particle,
+          shadowColor: colorScheme.shadow,
+        },
+      ]}
+    />
   );
 };
 
+// Simple memoization
+const Projectile = memo(ProjectileComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.x === nextProps.x &&
+    prevProps.y === nextProps.y &&
+    prevProps.isVisible === nextProps.isVisible
+  );
+});
+
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
   projectile: {
+    position: 'absolute',
     borderRadius: 50,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
   },
-  trail: {
-    position: 'absolute',
-    // top and borderRadius are now set inline where the trail is rendered
-  }
 });
+
+Projectile.displayName = 'Projectile';
+
+export default Projectile;

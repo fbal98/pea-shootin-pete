@@ -8,7 +8,7 @@
  * - Data-driven game tuning
  */
 
-import { AIAnalyticsEvent, AIMetrics, GameBalanceInsights, GameState, AIAction } from '@/pete_ai';
+import { AIAnalyticsEvent, AIMetrics, GameBalanceInsights, GameState, AIAction, calculateAIMetrics } from '@/pete_ai';
 
 export interface AnalyticsSession {
   sessionId: string;
@@ -64,6 +64,13 @@ export class AIAnalyticsEngine {
       AIAnalyticsEngine.instance = new AIAnalyticsEngine();
     }
     return AIAnalyticsEngine.instance;
+  }
+
+  /**
+   * Reset singleton instance for testing
+   */
+  public static resetInstance(): void {
+    AIAnalyticsEngine.instance = new AIAnalyticsEngine();
   }
 
   /**
@@ -339,18 +346,77 @@ export class AIAnalyticsEngine {
   }
 
   /**
-   * Export analytics data for external analysis
+   * Export analytics data for external analysis with ML-optimized format
    */
-  public exportAnalyticsData(): {
-    sessions: AnalyticsSession[];
-    summary: {
-      totalSessions: number;
-      totalPlaytime: number;
-      averageAccuracy: number;
-      averageFPS: number;
-      recommendations: string[];
+  public exportAnalyticsData(options?: {
+    includeRawEvents?: boolean;
+    includeSessionDetails?: boolean;
+    format?: 'complete' | 'ml-optimized' | 'summary';
+  }): any {
+    const opts = {
+      includeRawEvents: true,
+      includeSessionDetails: true,
+      format: 'complete' as const,
+      ...options
     };
-  } {
+
+    const exportData: any = {
+      metadata: {
+        timestamp: Date.now(),
+        exportFormat: opts.format,
+        version: '2.0',
+        totalSessions: this.sessionHistory.length,
+        totalEvents: this.sessionHistory.reduce((sum, session) => sum + session.events.length, 0)
+      },
+      summary: this.calculateSummaryStats()
+    };
+
+    // Format data based on requested format
+    switch (opts.format) {
+      case 'ml-optimized':
+        exportData.data = this.generateMLOptimizedData();
+        break;
+      case 'summary':
+        exportData.sessions = this.sessionHistory.map(session => ({
+          sessionId: session.sessionId,
+          startTime: session.startTime,
+          endTime: session.endTime,
+          duration: session.endTime ? session.endTime - session.startTime : 0,
+          metrics: session.metrics,
+          insights: session.insights
+        }));
+        break;
+      case 'complete':
+      default:
+        exportData.sessions = this.sessionHistory.map(session => ({
+          sessionId: session.sessionId,
+          startTime: session.startTime,
+          endTime: session.endTime,
+          duration: session.endTime ? session.endTime - session.startTime : 0,
+          aiConfig: session.aiConfig,
+          metrics: session.metrics,
+          insights: session.insights,
+          ...(opts.includeRawEvents && { events: session.events }),
+          ...(opts.includeSessionDetails && { gameHistory: this.getSessionGameHistory(session.sessionId) })
+        }));
+        break;
+    }
+
+    console.log('📊 Exporting analytics data:', {
+      format: opts.format,
+      totalSessions: exportData.metadata.totalSessions,
+      totalEvents: exportData.metadata.totalEvents,
+      includeRawEvents: opts.includeRawEvents,
+      dataSize: JSON.stringify(exportData).length
+    });
+
+    return exportData;
+  }
+
+  /**
+   * Calculate summary statistics (legacy compatibility)
+   */
+  private calculateSummaryStats() {
     const totalSessions = this.sessionHistory.length;
     const totalPlaytime = this.sessionHistory.reduce((sum, session) => 
       sum + ((session.endTime || Date.now()) - session.startTime), 0
@@ -371,15 +437,148 @@ export class AIAnalyticsEngine {
     const recommendations = this.generateGlobalRecommendations();
     
     return {
-      sessions: this.sessionHistory,
-      summary: {
-        totalSessions,
-        totalPlaytime,
-        averageAccuracy,
-        averageFPS,
-        recommendations,
-      },
+      totalSessions,
+      totalPlaytime,
+      averageAccuracy,
+      averageFPS,
+      recommendations,
     };
+  }
+
+  /**
+   * Generate ML-optimized data format with features and labels
+   */
+  private generateMLOptimizedData(): any {
+    const mlData: {
+      features: number[][];
+      labels: Array<{
+        level_completed: number;
+        satisfaction_score: number;
+        difficulty_rating: number;
+        performance_score: number;
+      }>;
+      eventSequences: Array<{
+        sessionId: string;
+        sequence: Array<{
+          timestamp: number;
+          type: string;
+          features: number[];
+        }>;
+      }>;
+      featureNames: string[];
+    } = {
+      features: [],
+      labels: [],
+      eventSequences: [],
+      featureNames: [
+        'session_duration', 'total_shots', 'accuracy', 'average_reaction_time',
+        'dodge_success_rate', 'threats_detected', 'movement_efficiency',
+        'average_distance_from_center', 'optimal_decisions', 'suboptimal_decisions',
+        'survival_time', 'level_id', 'enemy_count_avg', 'projectile_count_avg'
+      ]
+    };
+
+    for (const session of this.sessionHistory) {
+      if (!session.metrics) continue;
+
+      const m = session.metrics;
+      
+      // Extract features for ML models
+      const features = [
+        session.endTime ? session.endTime - session.startTime : 0, // session_duration
+        m.totalShots,
+        m.accuracy,
+        m.averageReactionTime,
+        m.dodgeSuccessRate,
+        m.threatsDetected,
+        m.movementEfficiency,
+        m.averageDistanceFromCenter,
+        m.optimalDecisions,
+        m.suboptimalDecisions,
+        m.survivalTime,
+        m.level,
+        // Calculate average enemy/projectile counts from events
+        this.calculateAverageFromEvents(session.events, 'enemyCount'),
+        this.calculateAverageFromEvents(session.events, 'projectileCount')
+      ];
+
+      // Labels for supervised learning (level completion, satisfaction, etc.)
+      const labels = {
+        level_completed: m.levelCompleted ? 1 : 0,
+        satisfaction_score: m.balanceMetrics?.engagementQuality?.satisfactionScore || 0,
+        difficulty_rating: session.insights?.levelDifficulty?.difficultyRating === 'balanced' ? 1 : 0,
+        performance_score: m.score
+      };
+
+      mlData.features.push(features);
+      mlData.labels.push(labels);
+
+      // Event sequences for sequence modeling
+      const eventSequence = session.events.map(event => ({
+        timestamp: event.timestamp,
+        type: event.type,
+        features: this.extractEventFeatures(event)
+      }));
+
+      mlData.eventSequences.push({
+        sessionId: session.sessionId,
+        sequence: eventSequence
+      });
+    }
+
+    return mlData;
+  }
+
+  /**
+   * Extract features from individual events
+   */
+  private extractEventFeatures(event: AIAnalyticsEvent): number[] {
+    const features = [
+      event.timestamp,
+      this.getEventTypeEncoding(event.type),
+      event.data.reactionTime || 0,
+      event.data.threatLevel || 0,
+      event.data.fps || 60,
+      event.data.memoryMB || 0
+    ];
+
+    return features;
+  }
+
+  /**
+   * Encode event types as numbers for ML models
+   */
+  private getEventTypeEncoding(type: string): number {
+    const encodings: { [key: string]: number } = {
+      'shot': 1,
+      'hit': 2,
+      'miss': 3,
+      'dodge': 4,
+      'threat_detected': 5,
+      'decision': 6,
+      'performance': 7
+    };
+    return encodings[type] || 0;
+  }
+
+  /**
+   * Calculate average value from event data
+   */
+  private calculateAverageFromEvents(events: AIAnalyticsEvent[], field: string): number {
+    const values = events
+      .filter(e => e.data[field] !== undefined)
+      .map(e => e.data[field]);
+    
+    return values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : 0;
+  }
+
+  /**
+   * Get game history for a specific session
+   */
+  private getSessionGameHistory(sessionId: string): any[] {
+    // This would need to be implemented to store game history per session
+    // For now, return empty array
+    return [];
   }
 
   /**
@@ -452,100 +651,17 @@ export class AIAnalyticsEngine {
   }
 
   private calculateSessionMetrics(gameHistory: Array<{ state: GameState; action: AIAction; timestamp: number }>, finalGameState: GameState): AIMetrics {
-    // Calculate metrics using the same logic as pete_ai.ts but inline to avoid import issues
+    // Use the comprehensive calculateAIMetrics function from pete_ai.ts instead of duplicate logic
     const analyticsEvents = this.currentSession?.events || [];
     
-    const totalShots = gameHistory.filter(entry => entry.action.type === 'shoot').length;
-    const movements = gameHistory.filter(entry => entry.action.type === 'move');
+    console.log('📊 Calculating session metrics using centralized function', {
+      gameHistoryLength: gameHistory.length,
+      analyticsEventsLength: analyticsEvents.length,
+      finalScore: finalGameState.score
+    });
     
-    // Calculate hits and misses from analytics events
-    const hitEvents = analyticsEvents.filter(e => e.type === 'hit');
-    const missEvents = analyticsEvents.filter(e => e.type === 'miss');
-    const hits = hitEvents.length;
-    const misses = missEvents.length;
-    const accuracy = totalShots > 0 ? (hits / totalShots) * 100 : 0;
-    
-    // Calculate movement efficiency and center distance
-    const centerX = finalGameState.screenWidth / 2;
-    const avgDistanceFromCenter = gameHistory.reduce((sum, entry) => 
-      sum + Math.abs(entry.state.peteX - centerX), 0
-    ) / gameHistory.length;
-    
-    // Calculate reaction times
-    const reactionTimes = analyticsEvents
-      .filter(e => e.data.reactionTime)
-      .map(e => e.data.reactionTime!);
-    const averageReactionTime = reactionTimes.length > 0 ? 
-      reactionTimes.reduce((sum, time) => sum + time, 0) / reactionTimes.length : 0;
-    
-    // Calculate threat detection and avoidance
-    const threatEvents = analyticsEvents.filter(e => e.type === 'threat_detected');
-    const dodgeEvents = analyticsEvents.filter(e => e.type === 'dodge');
-    const threatsDetected = threatEvents.length;
-    const dodgeSuccessRate = threatsDetected > 0 ? (dodgeEvents.length / threatsDetected) * 100 : 0;
-    
-    // Calculate decision quality
-    const decisionEvents = analyticsEvents.filter(e => e.type === 'decision');
-    const optimalDecisions = decisionEvents.filter(e => e.data.decisionQuality === 'optimal').length;
-    const suboptimalDecisions = decisionEvents.filter(e => e.data.decisionQuality === 'poor').length;
-    
-    // Calculate performance metrics
-    const performanceEvents = analyticsEvents.filter(e => e.type === 'performance');
-    const fpsValues = performanceEvents.map(e => e.data.fps!).filter(fps => fps > 0);
-    const averageFPS = fpsValues.length > 0 ? 
-      fpsValues.reduce((sum, fps) => sum + fps, 0) / fpsValues.length : 60;
-    const frameDrops = fpsValues.filter(fps => fps < 55).length;
-    
-    // Calculate survival time
-    const startTime = gameHistory[0]?.timestamp || 0;
-    const endTime = gameHistory[gameHistory.length - 1]?.timestamp || 0;
-    const survivalTime = endTime - startTime;
-    
-    return {
-      // Basic Performance
-      totalShots,
-      hits,
-      misses,
-      accuracy,
-      
-      // Movement Analysis
-      totalMovements: movements.length,
-      averageDistanceFromCenter: avgDistanceFromCenter,
-      movementEfficiency: 0, // Simple implementation
-      dodgeSuccessRate,
-      
-      // Timing & Reactions
-      averageReactionTime,
-      fastestReaction: reactionTimes.length > 0 ? Math.min(...reactionTimes) : 0,
-      slowestReaction: reactionTimes.length > 0 ? Math.max(...reactionTimes) : 0,
-      
-      // Threat Assessment
-      threatsDetected,
-      threatsAvoided: dodgeEvents.length,
-      threatsHit: threatsDetected - dodgeEvents.length,
-      
-      // Game Progression
-      survivalTime,
-      score: finalGameState.score,
-      level: finalGameState.level || 1,
-      levelCompleted: !finalGameState.gameOver && finalGameState.score > 0,
-      
-      // Decision Quality
-      optimalDecisions,
-      suboptimalDecisions,
-      decisionSpeed: decisionEvents.length > 0 ? survivalTime / decisionEvents.length : 0,
-      
-      // Enemy Interaction
-      enemiesDestroyed: hitEvents.length,
-      enemiesMissed: missEvents.length,
-      powerUpsCollected: 0, // Will be enhanced later
-      
-      // Performance Metrics
-      averageFPS,
-      frameDrops,
-      memoryUsage: performanceEvents.length > 0 ? 
-        performanceEvents[performanceEvents.length - 1].data.memoryMB || 0 : 0,
-    };
+    // Call the comprehensive metrics calculation function
+    return calculateAIMetrics(gameHistory, analyticsEvents, finalGameState);
   }
 
   private generateBalanceInsights(metrics: AIMetrics): GameBalanceInsights {

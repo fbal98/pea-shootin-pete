@@ -1,77 +1,84 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
-import { getColorScheme } from '@/constants/GameColors';
-import { ENTITY_CONFIG, getBalloonOpacity } from '@/constants/GameConfig';
+import React, { memo } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { getColorScheme } from '@/constants/HyperCasualColors';
+import { useLevel } from '@/store/gameStore';
 
 interface EnemyProps {
+  id: string;
   x: number;
   y: number;
-  size: number;
+  width: number;
+  height: number;
+  color?: string; // Keep for compatibility but will use level-based colors
   type?: 'basic' | 'fast' | 'strong' | 'bouncer' | 'splitter' | 'ghost';
   sizeLevel?: number;
-  level: number;
-  onHit?: () => void; // Prop to trigger flash
+  screenWidth: number;
+  screenHeight: number;
+  isVisible?: boolean;
+  velocity?: { x: number; y: number };
+  health?: number;
+  maxHealth?: number;
 }
 
-export const Enemy: React.FC<EnemyProps> = ({
-  x,
-  y,
-  size,
-  type = 'basic',
+const EnemyComponent: React.FC<EnemyProps> = ({ 
+  id,
+  x, 
+  y, 
+  width,
+  height,
+  type = 'basic', 
   sizeLevel = 3,
-  level,
-  onHit
+  screenWidth,
+  screenHeight,
+  isVisible = true,
 }) => {
+  const level = useLevel();
   const colorScheme = getColorScheme(level);
-  const hitFlashAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (onHit) {
-      onHit(); // This can be used to trigger animations from parent
-    }
-  }, [onHit]);
   
-  const triggerHitFlash = () => {
-    Animated.sequence([
-      Animated.timing(hitFlashAnim, { toValue: 1, duration: 50, useNativeDriver: false }),
-      Animated.timing(hitFlashAnim, { toValue: 0, duration: 100, useNativeDriver: false }),
-    ]).start();
-  };
+  // Safety checks for props
+  if (isNaN(x) || isNaN(y) || !screenWidth || !screenHeight || 
+      typeof x !== 'number' || typeof y !== 'number' || 
+      typeof screenWidth !== 'number' || typeof screenHeight !== 'number') {
+    return null;
+  }
   
-  // Expose method to parent if needed, though direct prop change is better
-  // useImperativeHandle(ref, () => ({ triggerHitFlash }));
-
+  // Viewport culling
+  if (!isVisible || x < -width || x > screenWidth || 
+      y < -height || y > screenHeight) {
+    return null;
+  }
 
   // Minimal visual differentiation
   const getOpacity = () => {
-    return getBalloonOpacity(sizeLevel as 1 | 2 | 3);
+    switch (sizeLevel) {
+      case 3: return 1;      // Large
+      case 2: return 0.85;   // Medium
+      case 1: return 0.7;    // Small
+      default: return 1;
+    }
   };
 
   const getShapeStyle = () => {
+    const size = Math.min(width, height);
     switch (type) {
       case 'fast':
         // Diamond shape (rotated square)
         return {
           transform: [{ rotate: '45deg' }],
-          borderRadius: size * ENTITY_CONFIG.BALLOON.BORDER_RADIUS.DIAMOND,
+          borderRadius: size * 0.1,
         };
       case 'strong':
         // Square with rounded corners
         return {
-          borderRadius: size * ENTITY_CONFIG.BALLOON.BORDER_RADIUS.STRONG,
+          borderRadius: size * 0.2,
         };
       default:
         // Circle
         return {
-          borderRadius: (size * ENTITY_CONFIG.BALLOON.BORDER_RADIUS.CIRCLE) / 2,
+          borderRadius: size / 2,
         };
     }
   };
-
-  const flashColor = hitFlashAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['transparent', 'rgba(255, 255, 255, 0.7)'],
-  });
 
   return (
     <View
@@ -81,18 +88,29 @@ export const Enemy: React.FC<EnemyProps> = ({
         {
           left: x,
           top: y,
-          width: size,
-          height: size,
+          width: width,
+          height: height,
           backgroundColor: colorScheme.secondary,
           opacity: getOpacity(),
           shadowColor: colorScheme.shadow,
-        }
+        },
       ]}
-    >
-      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: flashColor, borderRadius: getShapeStyle().borderRadius }]} />
-    </View>
+    />
   );
 };
+
+// Simple memoization
+const Enemy = memo(EnemyComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.x === nextProps.x &&
+    prevProps.y === nextProps.y &&
+    prevProps.width === nextProps.width &&
+    prevProps.height === nextProps.height &&
+    prevProps.type === nextProps.type &&
+    prevProps.sizeLevel === nextProps.sizeLevel &&
+    prevProps.isVisible === nextProps.isVisible
+  );
+});
 
 const styles = StyleSheet.create({
   enemy: {
@@ -103,3 +121,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 });
+
+Enemy.displayName = 'Enemy';
+
+export default Enemy;

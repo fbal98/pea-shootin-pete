@@ -24,7 +24,7 @@ export interface ShareConversionData {
 class ViralTrackingManager {
   private static instance: ViralTrackingManager;
   private shareConversions: Map<string, ShareConversionData> = new Map();
-  private metricsUpdateInterval: NodeJS.Timeout | null = null;
+  private metricsUpdateInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {
     this.startMetricsTracking();

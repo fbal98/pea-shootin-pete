@@ -307,6 +307,75 @@ export interface AIMetrics {
   averageFPS: number;
   frameDrops: number;
   memoryUsage: number;
+  
+  // Balance-Focused Metrics (NEW)
+  balanceMetrics: BalanceMetrics;
+}
+
+/**
+ * Enhanced balance-focused metrics for manual level tuning
+ */
+export interface BalanceMetrics {
+  // Sweet Spot Ratio - The core of fun balancing
+  sweetSpotRatio: {
+    almostWinRate: number;      // % of attempts that reach 90%+ completion but fail
+    clutchWinRate: number;      // % of wins with <10% health/time remaining
+    dominantWinRate: number;    // % of wins with >50% resources remaining
+  };
+  
+  // Emotional Pulse Tracking
+  emotionalPulse: {
+    tensionBuildupRate: number;     // Rate of threat accumulation (threats/second)
+    reliefMomentCount: number;      // Number of low-stress periods
+    reliefMomentDuration: number;   // Average duration of relief periods
+    panicEventCount: number;        // Times when performance drops >30%
+    peakTensionMoments: number;     // Times with 5+ simultaneous threats
+  };
+  
+  // Cognitive Load Assessment
+  cognitiveLoad: {
+    averageSimultaneousThreats: number;  // Average enemy count during gameplay
+    peakSimultaneousThreats: number;     // Maximum enemies at once
+    decisionComplexityScore: number;     // Average options per decision point
+    reactionTimeUnderPressure: number;   // Reaction time with 3+ enemies
+    overwhelmEvents: number;             // Times with >6 simultaneous threats
+  };
+  
+  // Player Agency vs Chaos Balance
+  agencyBalance: {
+    skillBasedFailureRate: number;    // % of failures due to player skill
+    randomFailureRate: number;        // % of failures due to unpredictable events
+    playerInfluenceScore: number;     // How much player decisions affect outcome (0-1)
+    predictabilityIndex: number;      // How predictable outcomes are (0-1)
+    comebackPotential: number;        // Ability to recover from bad situations
+  };
+  
+  // Learning Curve Indicators
+  learningCurve: {
+    improvementRate: number;          // Performance increase over attempts
+    plateauDetection: boolean;        // Whether improvement has stopped
+    skillBreakthroughEvents: number;  // Sudden performance jumps
+    retentionBetweenSessions: number; // Skill retained between plays
+    masteryIndicators: number;        // Signs of deep game understanding
+  };
+  
+  // Flow State Indicators
+  flowState: {
+    consistentPerformanceWindows: number;  // Periods of stable performance
+    distractionEvents: number;             // Performance drops from external factors
+    immersionScore: number;                // How "in the zone" the player seems
+    timePerceptionDistortion: number;      // Longer sessions = better flow
+    effortlessExecutionPeriods: number;    // Times when actions seem automatic
+  };
+  
+  // Engagement Quality Score
+  engagementQuality: {
+    skillExpressionOpportunities: number;  // Chances to show mastery
+    strategicDepth: number;                // Number of viable strategies
+    momentToMomentEngagement: number;      // Constant meaningful decisions
+    replayMotivation: number;              // Desire to play again after session
+    satisfactionScore: number;             // Overall enjoyment estimate (0-1)
+  };
 }
 
 /**
@@ -416,6 +485,9 @@ export function calculateAIMetrics(
   const endTime = gameHistory[gameHistory.length - 1]?.timestamp || 0;
   const survivalTime = endTime - startTime;
   
+  // Calculate balance-focused metrics
+  const balanceMetrics = calculateBalanceMetrics(gameHistory, analyticsEvents, finalState);
+
   return {
     // Basic Performance
     totalShots,
@@ -460,5 +532,282 @@ export function calculateAIMetrics(
     frameDrops,
     memoryUsage: performanceEvents.length > 0 ? 
       performanceEvents[performanceEvents.length - 1].data.memoryMB || 0 : 0,
+    
+    // Balance-Focused Metrics (NEW)
+    balanceMetrics,
   };
+}
+
+/**
+ * Calculate enhanced balance-focused metrics for manual level tuning
+ */
+function calculateBalanceMetrics(
+  gameHistory: Array<{ state: GameState; action: AIAction; timestamp: number }>,
+  analyticsEvents: AIAnalyticsEvent[],
+  finalState: GameState
+): BalanceMetrics {
+  const totalTime = gameHistory.length > 0 ? 
+    gameHistory[gameHistory.length - 1].timestamp - gameHistory[0].timestamp : 0;
+  const isWin = !finalState.gameOver && finalState.score > 0;
+  
+  // Calculate Sweet Spot Ratio
+  const progressionEvents = gameHistory.map((entry, index) => ({
+    progress: calculateProgressPercentage(entry.state, finalState),
+    timestamp: entry.timestamp,
+    index
+  }));
+  
+  const maxProgress = Math.max(...progressionEvents.map(e => e.progress));
+  const almostWin = maxProgress >= 90 && !isWin;
+  const clutchWin = isWin && (finalState.lives <= 1 || maxProgress >= 85);
+  const dominantWin = isWin && finalState.lives > 2 && maxProgress < 70;
+  
+  // Calculate Emotional Pulse
+  const threatCounts = gameHistory.map(entry => entry.state.enemies.length);
+  const avgThreats = threatCounts.reduce((sum, count) => sum + count, 0) / threatCounts.length;
+  const peakThreats = Math.max(...threatCounts);
+  const tensionSpikes = threatCounts.filter(count => count >= 5).length;
+  const reliefPeriods = findReliefPeriods(threatCounts);
+  const panicMoments = findPerformanceDrops(gameHistory, analyticsEvents);
+  
+  // Calculate Cognitive Load
+  const decisionPoints = analyticsEvents.filter(e => e.type === 'decision').length;
+  const pressureReactions = analyticsEvents
+    .filter(e => e.type === 'decision' && e.data.reactionTime)
+    .filter((_, index) => threatCounts[index] >= 3);
+  const avgPressureReaction = pressureReactions.length > 0 ?
+    pressureReactions.reduce((sum, e) => sum + (e.data.reactionTime || 0), 0) / pressureReactions.length : 0;
+  
+  // Calculate Agency Balance
+  const skillBasedEvents = analyticsEvents.filter(e => 
+    e.data.decisionQuality === 'optimal' || e.data.decisionQuality === 'good'
+  ).length;
+  const randomEvents = analyticsEvents.filter(e => 
+    e.type === 'performance' && e.data.fps && e.data.fps < 30
+  ).length; // Poor performance as proxy for "unfair" events
+  const playerInfluence = decisionPoints > 0 ? skillBasedEvents / decisionPoints : 0;
+  
+  // Calculate Learning Curve (simplified for single session)
+  const performanceOverTime = calculatePerformanceTrend(gameHistory, analyticsEvents);
+  const improvementDetected = performanceOverTime.slope > 0.1;
+  const breakthroughs = detectBreakthroughs(performanceOverTime.values);
+  
+  // Calculate Flow State
+  const consistentPeriods = findConsistentPerformancePeriods(gameHistory, analyticsEvents);
+  const distractions = analyticsEvents.filter(e => 
+    e.type === 'performance' && e.data.fps && e.data.fps < 45
+  ).length;
+  
+  // Calculate Engagement Quality
+  const uniqueStrategies = countUniqueStrategies(gameHistory);
+  const skillfulMoments = analyticsEvents.filter(e => 
+    e.data.decisionQuality === 'optimal'
+  ).length;
+  
+  return {
+    sweetSpotRatio: {
+      almostWinRate: almostWin ? 1 : 0,  // Single session, so 1 or 0
+      clutchWinRate: clutchWin ? 1 : 0,
+      dominantWinRate: dominantWin ? 1 : 0,
+    },
+    
+    emotionalPulse: {
+      tensionBuildupRate: totalTime > 0 ? tensionSpikes / (totalTime / 1000) : 0,
+      reliefMomentCount: reliefPeriods.count,
+      reliefMomentDuration: reliefPeriods.avgDuration,
+      panicEventCount: panicMoments,
+      peakTensionMoments: tensionSpikes,
+    },
+    
+    cognitiveLoad: {
+      averageSimultaneousThreats: avgThreats,
+      peakSimultaneousThreats: peakThreats,
+      decisionComplexityScore: decisionPoints > 0 ? avgThreats : 0,
+      reactionTimeUnderPressure: avgPressureReaction,
+      overwhelmEvents: threatCounts.filter(count => count > 6).length,
+    },
+    
+    agencyBalance: {
+      skillBasedFailureRate: !isWin && skillBasedEvents > randomEvents ? 0.8 : 0.3,
+      randomFailureRate: !isWin && randomEvents > skillBasedEvents ? 0.7 : 0.2,
+      playerInfluenceScore: playerInfluence,
+      predictabilityIndex: avgThreats > 0 ? Math.min(1, 2 / avgThreats) : 0,
+      comebackPotential: isWin && maxProgress > 85 ? 0.8 : 0.4,
+    },
+    
+    learningCurve: {
+      improvementRate: performanceOverTime.slope,
+      plateauDetection: Math.abs(performanceOverTime.slope) < 0.05,
+      skillBreakthroughEvents: breakthroughs,
+      retentionBetweenSessions: 0, // Requires multiple sessions
+      masteryIndicators: skillfulMoments,
+    },
+    
+    flowState: {
+      consistentPerformanceWindows: consistentPeriods,
+      distractionEvents: distractions,
+      immersionScore: totalTime > 180000 ? 0.8 : totalTime / 180000, // 3+ min = good flow
+      timePerceptionDistortion: Math.min(1, totalTime / 300000), // 5+ min = excellent flow
+      effortlessExecutionPeriods: Math.floor(consistentPeriods / 2),
+    },
+    
+    engagementQuality: {
+      skillExpressionOpportunities: skillfulMoments,
+      strategicDepth: uniqueStrategies,
+      momentToMomentEngagement: decisionPoints / (totalTime / 1000),
+      replayMotivation: isWin ? 0.7 : 0.4,
+      satisfactionScore: calculateSatisfactionScore(isWin, maxProgress, skillfulMoments, totalTime),
+    },
+  };
+}
+
+// Helper functions for balance metrics calculation
+function calculateProgressPercentage(state: GameState, finalState: GameState): number {
+  // Simplified progress calculation based on score and survival time
+  const scoreProgress = finalState.score > 0 ? (state.score / finalState.score) * 100 : 0;
+  return Math.min(100, scoreProgress);
+}
+
+function findReliefPeriods(threatCounts: number[]): { count: number; avgDuration: number } {
+  let reliefCount = 0;
+  let totalReliefDuration = 0;
+  let currentReliefDuration = 0;
+  
+  for (const count of threatCounts) {
+    if (count <= 2) {
+      currentReliefDuration++;
+    } else {
+      if (currentReliefDuration >= 3) { // 3+ frames of low threat = relief period
+        reliefCount++;
+        totalReliefDuration += currentReliefDuration;
+      }
+      currentReliefDuration = 0;
+    }
+  }
+  
+  return {
+    count: reliefCount,
+    avgDuration: reliefCount > 0 ? totalReliefDuration / reliefCount : 0,
+  };
+}
+
+function findPerformanceDrops(
+  gameHistory: Array<{ state: GameState; action: AIAction; timestamp: number }>,
+  analyticsEvents: AIAnalyticsEvent[]
+): number {
+  // Look for periods where reaction time increases significantly
+  const reactionTimes = analyticsEvents
+    .filter(e => e.data.reactionTime)
+    .map(e => e.data.reactionTime!);
+  
+  if (reactionTimes.length < 5) return 0;
+  
+  const avgReaction = reactionTimes.reduce((sum, time) => sum + time, 0) / reactionTimes.length;
+  return reactionTimes.filter(time => time > avgReaction * 1.5).length;
+}
+
+function calculatePerformanceTrend(
+  gameHistory: Array<{ state: GameState; action: AIAction; timestamp: number }>,
+  analyticsEvents: AIAnalyticsEvent[]
+): { slope: number; values: number[] } {
+  const windowSize = Math.floor(gameHistory.length / 5); // 5 windows
+  const values: number[] = [];
+  
+  for (let i = 0; i < 5; i++) {
+    const start = i * windowSize;
+    const end = Math.min(start + windowSize, gameHistory.length);
+    const windowEvents = analyticsEvents.filter((_, index) => index >= start && index < end);
+    const hits = windowEvents.filter(e => e.type === 'hit').length;
+    const total = windowEvents.filter(e => e.type === 'shot').length;
+    const accuracy = total > 0 ? hits / total : 0;
+    values.push(accuracy);
+  }
+  
+  // Calculate simple linear regression slope
+  const n = values.length;
+  const sumX = (n * (n - 1)) / 2;
+  const sumY = values.reduce((sum, val) => sum + val, 0);
+  const sumXY = values.reduce((sum, val, index) => sum + index * val, 0);
+  const sumX2 = values.reduce((sum, _, index) => sum + index * index, 0);
+  
+  const slope = n > 1 ? (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX) : 0;
+  
+  return { slope, values };
+}
+
+function detectBreakthroughs(performanceValues: number[]): number {
+  let breakthroughs = 0;
+  for (let i = 1; i < performanceValues.length; i++) {
+    if (performanceValues[i] - performanceValues[i - 1] > 0.2) {
+      breakthroughs++;
+    }
+  }
+  return breakthroughs;
+}
+
+function findConsistentPerformancePeriods(
+  gameHistory: Array<{ state: GameState; action: AIAction; timestamp: number }>,
+  analyticsEvents: AIAnalyticsEvent[]
+): number {
+  // Count periods where performance variance is low
+  const windowSize = Math.floor(gameHistory.length / 10);
+  let consistentWindows = 0;
+  
+  for (let i = 0; i < 10; i++) {
+    const start = i * windowSize;
+    const end = Math.min(start + windowSize, analyticsEvents.length);
+    const windowEvents = analyticsEvents.slice(start, end);
+    
+    const reactionTimes = windowEvents
+      .filter(e => e.data.reactionTime)
+      .map(e => e.data.reactionTime!);
+    
+    if (reactionTimes.length >= 3) {
+      const avg = reactionTimes.reduce((sum, time) => sum + time, 0) / reactionTimes.length;
+      const variance = reactionTimes.reduce((sum, time) => sum + Math.pow(time - avg, 2), 0) / reactionTimes.length;
+      
+      if (variance < avg * 0.3) { // Low variance = consistent performance
+        consistentWindows++;
+      }
+    }
+  }
+  
+  return consistentWindows;
+}
+
+function countUniqueStrategies(
+  gameHistory: Array<{ state: GameState; action: AIAction; timestamp: number }>
+): number {
+  // Simplified strategy detection based on action patterns
+  const strategies = new Set<string>();
+  
+  for (let i = 0; i < gameHistory.length - 2; i++) {
+    const pattern = `${gameHistory[i].action.type}-${gameHistory[i + 1].action.type}-${gameHistory[i + 2].action.type}`;
+    strategies.add(pattern);
+  }
+  
+  return strategies.size;
+}
+
+function calculateSatisfactionScore(
+  isWin: boolean,
+  maxProgress: number,
+  skillfulMoments: number,
+  totalTime: number
+): number {
+  let score = 0;
+  
+  // Win bonus
+  if (isWin) score += 0.4;
+  
+  // Progress bonus (even if they didn't win)
+  score += Math.min(0.3, maxProgress / 100 * 0.3);
+  
+  // Skill expression bonus
+  score += Math.min(0.2, skillfulMoments / 10 * 0.2);
+  
+  // Engagement duration bonus
+  score += Math.min(0.1, totalTime / 300000 * 0.1); // 5 min = max bonus
+  
+  return Math.min(1, score);
 }

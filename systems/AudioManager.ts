@@ -19,6 +19,12 @@ class AudioManager {
   }
 
   async loadSounds(soundFiles: { [key: string]: any }) {
+    // ✅ FIX: Add null check for soundFiles parameter
+    if (!soundFiles || typeof soundFiles !== 'object') {
+      console.warn('AudioManager: soundFiles is null, undefined, or not an object');
+      return;
+    }
+
     for (const key in soundFiles) {
       try {
         const { sound } = await Audio.Sound.createAsync(soundFiles[key]);
@@ -40,6 +46,12 @@ class AudioManager {
   }
 
   async playMusic(soundFile: any, loop = true) {
+    // ✅ FIX: Add null check for soundFile parameter
+    if (!soundFile) {
+      console.warn('AudioManager: soundFile is null or undefined');
+      return;
+    }
+
     if (this.music) {
       await this.music.stopAsync();
       await this.music.unloadAsync();

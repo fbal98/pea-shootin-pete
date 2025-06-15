@@ -109,7 +109,7 @@ class SpecialEventsManager {
   private events: Map<string, SpecialEvent> = new Map();
   private participations: Map<string, EventParticipation> = new Map();
   private flashSales: Map<string, FlashSale> = new Map();
-  private eventUpdateInterval: NodeJS.Timeout | null = null;
+  private eventUpdateInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {
     this.loadEvents();

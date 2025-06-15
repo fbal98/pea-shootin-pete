@@ -1,0 +1,359 @@
+{
+  "summary": {
+    "totalTests": 20,
+    "completedTests": 20,
+    "failedTests": 0,
+    "startTime": "2025-06-15T10:06:33.232Z",
+    "endTime": "2025-06-15T10:06:33.245Z",
+    "duration": 0.012432292000000001
+  },
+  "levelReports": [
+    {
+      "levelId": 1,
+      "levelName": "Level 1",
+      "personaResults": {
+        "nervous_newbie": {
+          "persona": {
+            "id": "nervous_newbie",
+            "name": "Nervous Newbie"
+          },
+          "runs": [
+            {
+              "testId": "L1_nervous_newbie_R1",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            },
+            {
+              "testId": "L1_nervous_newbie_R2",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            }
+          ],
+          "averageScore": 0,
+          "completionRate": 0,
+          "healthScore": 0
+        },
+        "twitchy_speedrunner": {
+          "persona": {
+            "id": "twitchy_speedrunner",
+            "name": "Twitchy Speedrunner"
+          },
+          "runs": [
+            {
+              "testId": "L1_twitchy_speedrunner_R2",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            },
+            {
+              "testId": "L1_twitchy_speedrunner_R1",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.245Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            }
+          ],
+          "averageScore": 0,
+          "completionRate": 0,
+          "healthScore": 0
+        },
+        "methodical_strategist": {
+          "persona": {
+            "id": "methodical_strategist",
+            "name": "Methodical Strategist"
+          },
+          "runs": [
+            {
+              "testId": "L1_methodical_strategist_R1",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            },
+            {
+              "testId": "L1_methodical_strategist_R2",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            }
+          ],
+          "averageScore": 0,
+          "completionRate": 0,
+          "healthScore": 0
+        },
+        "casual_commuter": {
+          "persona": {
+            "id": "casual_commuter",
+            "name": "Casual Commuter"
+          },
+          "runs": [
+            {
+              "testId": "L1_casual_commuter_R1",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            },
+            {
+              "testId": "L1_casual_commuter_R2",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            }
+          ],
+          "averageScore": 0,
+          "completionRate": 0,
+          "healthScore": 0
+        },
+        "focused_gamer": {
+          "persona": {
+            "id": "focused_gamer",
+            "name": "Focused Gamer"
+          },
+          "runs": [
+            {
+              "testId": "L1_focused_gamer_R1",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            },
+            {
+              "testId": "L1_focused_gamer_R2",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.245Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            }
+          ],
+          "averageScore": 0,
+          "completionRate": 0,
+          "healthScore": 0
+        }
+      },
+      "overallHealthScore": 0,
+      "testCount": 10
+    },
+    {
+      "levelId": 2,
+      "levelName": "Level 2",
+      "personaResults": {
+        "focused_gamer": {
+          "persona": {
+            "id": "focused_gamer",
+            "name": "Focused Gamer"
+          },
+          "runs": [
+            {
+              "testId": "L2_focused_gamer_R1",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            },
+            {
+              "testId": "L2_focused_gamer_R2",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            }
+          ],
+          "averageScore": 0,
+          "completionRate": 0,
+          "healthScore": 0
+        },
+        "twitchy_speedrunner": {
+          "persona": {
+            "id": "twitchy_speedrunner",
+            "name": "Twitchy Speedrunner"
+          },
+          "runs": [
+            {
+              "testId": "L2_twitchy_speedrunner_R1",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            },
+            {
+              "testId": "L2_twitchy_speedrunner_R2",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            }
+          ],
+          "averageScore": 0,
+          "completionRate": 0,
+          "healthScore": 0
+        },
+        "nervous_newbie": {
+          "persona": {
+            "id": "nervous_newbie",
+            "name": "Nervous Newbie"
+          },
+          "runs": [
+            {
+              "testId": "L2_nervous_newbie_R1",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            },
+            {
+              "testId": "L2_nervous_newbie_R2",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            }
+          ],
+          "averageScore": 0,
+          "completionRate": 0,
+          "healthScore": 0
+        },
+        "methodical_strategist": {
+          "persona": {
+            "id": "methodical_strategist",
+            "name": "Methodical Strategist"
+          },
+          "runs": [
+            {
+              "testId": "L2_methodical_strategist_R1",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.244Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            },
+            {
+              "testId": "L2_methodical_strategist_R2",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.245Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            }
+          ],
+          "averageScore": 0,
+          "completionRate": 0,
+          "healthScore": 0
+        },
+        "casual_commuter": {
+          "persona": {
+            "id": "casual_commuter",
+            "name": "Casual Commuter"
+          },
+          "runs": [
+            {
+              "testId": "L2_casual_commuter_R1",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.245Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            },
+            {
+              "testId": "L2_casual_commuter_R2",
+              "completed": false,
+              "accuracy": 0,
+              "score": 0,
+              "duration": 0,
+              "attempts": 0,
+              "timestamp": "2025-06-15T10:06:33.245Z",
+              "error": "FAKE_DATA_FALLBACK - Real AI testing not available",
+              "realAITesting": false
+            }
+          ],
+          "averageScore": 0,
+          "completionRate": 0,
+          "healthScore": 0
+        }
+      },
+      "overallHealthScore": 0,
+      "testCount": 10
+    }
+  ],
+  "errors": []
+}

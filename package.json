@@ -23,7 +23,11 @@
     "test:coverage": "jest testing/tests/ --coverage",
     "test:performance": "jest testing/tests/ --testNamePattern=\"Performance\"",
     "test:gameplay": "jest testing/tests/basic-gameplay.test.ts",
-    "test:ai": "EXPO_PUBLIC_AI_MODE=true npm run test:gameplay"
+    "test:ai": "EXPO_PUBLIC_AI_MODE=true npm run test:gameplay",
+    "balance:test": "node testing/runBalanceSuite.js",
+    "balance:test:all": "node testing/runBalanceSuite.js --format=all --verbose",
+    "balance:test:quick": "node testing/runBalanceSuite.js --runs=3 --levels=1,2",
+    "balance:test:dry": "node testing/runBalanceSuite.js --dry-run"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",

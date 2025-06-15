@@ -46,10 +46,10 @@ export interface LevelAnalyticsEvent {
 
 // Player progression data
 export interface PlayerProgress {
-  currentLevel: number;
-  completedLevels: Set<number>;
-  unlockedLevels: Set<number>;
-  levelStats: Record<number, LevelStats>;
+  currentLevel: LevelID;
+  completedLevels: Set<LevelID>;
+  unlockedLevels: Set<LevelID>;
+  levelStats: Record<string, LevelStats>; // Use string keys for mixed ID types
   totalPlaytime: number;
   totalScore: number;
   achievementsUnlocked: string[];
@@ -67,12 +67,12 @@ export interface LevelStats {
 
 // Level loading cache for performance
 interface LevelCache {
-  [levelId: number]: Level;
+  [levelId: string]: Level; // Use string to handle both number and string IDs
 }
 
 // Remote config interface
 interface RemoteConfigData {
-  enabledLevels: number[];
+  enabledLevels: LevelID[]; // Support both number and string IDs
   globalDifficultyMultiplier: number;
   globalSpeedMultiplier: number;
   testConfigs: Record<string, any>;
@@ -93,14 +93,38 @@ export class LevelManager {
   private initialized = false;
 
   // Static level data mapping
-  private static LEVEL_DATA_MAP: Record<number, any> = {
-    1: Level001,
-    2: Level002,
+  private static LEVEL_DATA_MAP: Record<string, any> = {
+    '1': Level001,
+    '2': Level002,
+    '1b': null, // Will be loaded dynamically
+    '1c': null, // Will be loaded dynamically
+    '1d': null, // Will be loaded dynamically
     // Add more levels here as they're created
   };
 
   private constructor() {
     // Private constructor for singleton pattern
+  }
+
+  /**
+   * Get the next level ID based on level progression logic
+   */
+  private getNextLevelId(currentLevelId: LevelID): LevelID | null {
+    // Define level progression mapping
+    const levelProgression: Record<string, LevelID> = {
+      '1': '1b',    // Level 1 → Level 1b
+      '1b': '1c',   // Level 1b → Level 1c  
+      '1c': '1d',   // Level 1c → Level 1d
+      '1d': 2,      // Level 1d → Level 2
+      '2': 3,       // Level 2 → Level 3
+      '3': 4,       // Level 3 → Level 4
+      '4': 5,       // Level 4 → Level 5
+      '5': 6,       // Level 5 → Level 6
+      // Add more as needed
+    };
+
+    const currentKey = String(currentLevelId);
+    return levelProgression[currentKey] || null;
   }
 
   /**
@@ -146,16 +170,19 @@ export class LevelManager {
    */
   public async loadLevel(levelId: LevelID): Promise<LevelLoadResult> {
     try {
+      // Convert levelId to string for consistent key access
+      const levelKey = String(levelId);
+      
       // Check cache first
-      if (this.levelCache[levelId]) {
+      if (this.levelCache[levelKey]) {
         return {
           success: true,
-          level: this.levelCache[levelId],
+          level: this.levelCache[levelKey],
         };
       }
 
       // Check if level exists in our data map
-      const levelData = LevelManager.LEVEL_DATA_MAP[levelId];
+      const levelData = LevelManager.LEVEL_DATA_MAP[levelKey];
       if (!levelData) {
         return {
           success: false,
@@ -176,7 +203,7 @@ export class LevelManager {
       const level = this.applyRemoteConfig(levelData as Level);
 
       // Cache the level
-      this.levelCache[levelId] = level;
+      this.levelCache[levelKey] = level;
 
       return {
         success: true,
@@ -321,7 +348,8 @@ export class LevelManager {
     this.playerProgress.completedLevels.add(levelId);
 
     // Update level stats
-    const currentStats = this.playerProgress.levelStats[levelId] || {
+    const levelKey = String(levelId);
+    const currentStats = this.playerProgress.levelStats[levelKey] || {
       attempts: 0,
       completions: 0,
       bestScore: 0,
@@ -331,7 +359,7 @@ export class LevelManager {
       averageRetries: 0,
     };
 
-    this.playerProgress.levelStats[levelId] = {
+    this.playerProgress.levelStats[levelKey] = {
       ...currentStats,
       completions: currentStats.completions + 1,
       bestScore: Math.max(currentStats.bestScore, stats.bestScore || 0),
@@ -346,7 +374,10 @@ export class LevelManager {
     // Unlock next levels based on current level's rewards
     const levelResult = await this.loadLevel(levelId);
     if (levelResult.success && levelResult.level?.rewards.unlocksNextLevel) {
-      this.playerProgress.unlockedLevels.add(levelId + 1);
+      const nextLevelId = this.getNextLevelId(levelId);
+      if (nextLevelId !== null) {
+        this.playerProgress.unlockedLevels.add(nextLevelId);
+      }
     }
 
     // Update totals
@@ -359,7 +390,7 @@ export class LevelManager {
     // Track analytics
     this.trackAnalyticsEvent({
       type: 'level_complete',
-      levelId,
+      levelId: typeof levelId === 'string' ? parseInt(levelId) || 1 : levelId,
       timestamp: Date.now(),
       data: {
         score: stats.bestScore || 0,
@@ -380,7 +411,8 @@ export class LevelManager {
     if (!this.playerProgress) return;
 
     // Initialize or update level stats
-    const currentStats = this.playerProgress.levelStats[levelId] || {
+    const levelKey = String(levelId);
+    const currentStats = this.playerProgress.levelStats[levelKey] || {
       attempts: 0,
       completions: 0,
       bestScore: 0,
@@ -394,7 +426,7 @@ export class LevelManager {
     currentStats.totalPlaytime += stats.totalPlaytime || 0;
     currentStats.lastPlayed = Date.now();
 
-    this.playerProgress.levelStats[levelId] = currentStats;
+    this.playerProgress.levelStats[levelKey] = currentStats;
 
     // Save progress
     await this.savePlayerProgress();
@@ -402,7 +434,7 @@ export class LevelManager {
     // Track analytics
     this.trackAnalyticsEvent({
       type: success ? 'level_complete' : 'level_failed',
-      levelId,
+      levelId: typeof levelId === 'string' ? parseInt(levelId) || 1 : levelId,
       timestamp: Date.now(),
       data: {
         attempts: currentStats.attempts,
@@ -423,7 +455,8 @@ export class LevelManager {
    */
   public getLevelStats(levelId: LevelID): LevelStats | null {
     if (!this.playerProgress) return null;
-    return this.playerProgress.levelStats[levelId] || null;
+    const levelKey = String(levelId);
+    return this.playerProgress.levelStats[levelKey] || null;
   }
 
   /**

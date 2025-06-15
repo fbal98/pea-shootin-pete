@@ -10,6 +10,7 @@ import {
   getBalloonPoints, 
   getEnemySpeedBySize 
 } from '@/constants/GameConfig';
+import { LevelID } from '@/types/LevelTypes';
 
 export interface CacheEntry<T> {
   value: T;
@@ -46,10 +47,29 @@ export class GameCache {
   }
 
   /**
+   * Convert LevelID to number for caching
+   * String IDs are converted to hash codes for cache keys
+   */
+  private levelIdToNumber(levelId: LevelID): number {
+    if (typeof levelId === 'number') {
+      return levelId;
+    }
+    // Convert string to consistent number for caching
+    let hash = 0;
+    for (let i = 0; i < levelId.length; i++) {
+      const char = levelId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  /**
    * Cache level configuration to avoid recreation
    */
-  cacheLevel(levelId: number, config: any): void {
-    this.levelConfigCache.set(levelId, {
+  cacheLevel(levelId: LevelID, config: any): void {
+    const numericId = this.levelIdToNumber(levelId);
+    this.levelConfigCache.set(numericId, {
       value: config,
       timestamp: Date.now(),
       accessCount: 0
@@ -59,8 +79,9 @@ export class GameCache {
   /**
    * Get cached level configuration
    */
-  getLevel(levelId: number): any | null {
-    const cached = this.levelConfigCache.get(levelId);
+  getLevel(levelId: LevelID): any | null {
+    const numericId = this.levelIdToNumber(levelId);
+    const cached = this.levelConfigCache.get(numericId);
     if (cached) {
       cached.accessCount++;
       this.cacheHits++;

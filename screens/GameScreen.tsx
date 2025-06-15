@@ -1,14 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Components
-import { Enemy } from '@/components/game/Enemy';
-import { GameBackground } from '@/components/game/GameBackground';
-import { MysteryBalloon } from '@/components/game/MysteryBalloon';
-import { Pete } from '@/components/game/Pete';
-import { Projectile } from '@/components/game/Projectile';
+// Components - OPTIMIZED VERSIONS ONLY!
+import { GameBackground } from '@/components/ui/GameBackground';
+import GameRenderer from '@/components/game/GameRenderer';
 import {
   CelebrationManager,
 } from '@/components/ui/CelebrationSystem';
@@ -18,11 +15,13 @@ import { MysteryRewardDisplay } from '@/components/ui/MysteryRewardDisplay';
 import { PowerUpHUD } from '@/components/ui/PowerUpHUD';
 import { ProgressionHUD } from '@/components/ui/ProgressionHUD';
 import { VictoryModal } from '@/components/ui/VictoryModal';
+import AdvancedParticleSystem from '@/components/effects/AdvancedParticleSystem';
 import { isFeatureEnabled } from '@/constants/FeatureFlagConfig';
+import { MysteryReward } from '@/types/MetaProgressionTypes';
 
-// Hooks
+// Hooks - REFACTORED VERSION ONLY!
 import { useCelebrationManager } from '@/hooks/useCelebrationManager';
-import { useGameLogic } from '@/hooks/useGameLogic';
+import { useGameLogicRefactored } from '@/hooks/useGameLogicRefactored';
 import { useOptimizedGameInputBridge } from '@/hooks/useOptimizedGameInputBridge';
 import { useTutorialIntegration } from '@/hooks/useTutorialIntegration';
 import { useAIPlayer, AI_MODE_ENABLED, DEFAULT_AI_OPTIONS } from '@/hooks/useAIPlayer';
@@ -45,7 +44,7 @@ import {
 
 // Constants
 import { UI_PALETTE } from '@/constants/GameColors';
-import { GAME_CONFIG } from '@/constants/GameConfig';
+import { GAME_CONFIG, ENTITY_CONFIG, getPeteColor } from '@/constants/GameConfig';
 
 interface GameScreenProps {
   onBackToMenu?: () => void;
@@ -66,17 +65,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   const isPlaying = useIsPlaying();
   const actions = useGameActions();
   
-  // Debug game state changes
-  useEffect(() => {
-    console.log('🎮 Game State Changed:', {
-      score,
-      level,
-      lives,
-      gameOver,
-      isPlaying,
-      timestamp: Date.now()
-    });
-  }, [score, level, lives, gameOver, isPlaying]);
+  // Debug game state changes (removed for performance)
+  // Performance-sensitive: Console logging on every state change was causing significant slowdown
 
   // Level progression state
   const showVictoryScreen = useShowVictoryScreen();
@@ -108,13 +98,23 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   // Mystery reward display state
   const [mysteryRewards, setMysteryRewards] = useState<{
     id: string;
-    reward: unknown;
+    reward: MysteryReward;
     x: number;
     y: number;
   }[]>([]);
   
   // Save Me state (one per level)
   const [saveMeUsed, setSaveMeUsed] = useState(false);
+
+  // Particle effect system state
+  const [activeParticleEffects, setActiveParticleEffects] = useState<Array<{
+    id: string;
+    type: 'explosion' | 'impact' | 'power_up' | 'trail';
+    position: { x: number; y: number };
+    intensity: number;
+    duration: number;
+    startTime: number;
+  }>>([]);
 
   // AI Player state (only when AI mode is enabled via environment)
   const isAIModeEnabled = AI_MODE_ENABLED;
@@ -124,29 +124,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   const [currentSession, setCurrentSession] = useState<AnalyticsSession | null>(null);
   const [analyticsData, setAnalyticsData] = useState<AIMetrics | null>(null);
   
-  // Debug AI state changes
-  useEffect(() => {
-    console.log('🎮 GameScreen AI State:', {
-      aiEnabled,
-      aiPreset,
-      AI_MODE_ENABLED,
-      envVar: process.env.EXPO_PUBLIC_AI_MODE,
-      __DEV__
-    });
-  }, [aiEnabled, aiPreset]);
+  // Debug AI state changes (removed for performance)
+  // Performance-sensitive: Console logging was causing render cycle slowdown
 
-  // Debug AI Player initialization
-  useEffect(() => {
-    console.log('🎮 AI Player State:', {
-      aiEnabled,
-      aiPreset,
-      peteXPosition: petePosition.current,
-      enemyCount: enemies?.length || 0,
-      projectileCount: projectiles?.length || 0,
-      screenDimensions: { width: screenWidth, height: gameAreaHeight },
-      gameState: { isPlaying, gameOver, score, lives }
-    });
-  }, [aiEnabled, aiPreset, enemies?.length, projectiles?.length, isPlaying, gameOver]);
+  // Calculate positions first
+  const peteY = gameAreaHeight - GAME_CONFIG.PETE_SIZE - GAME_CONFIG.BOTTOM_PADDING;
 
   // Game logic hook
   const {
@@ -157,7 +139,15 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     gameAreaHeightRef,
     updatePetePosition,
     shootProjectile,
-  } = useGameLogic(screenWidth, gameAreaHeight);
+    // New optimized systems from refactored hook
+    gameLoop,
+    levelManager,
+    powerUpSystem,
+    debugInfo,
+  } = useGameLogicRefactored(screenWidth, gameAreaHeight);
+
+  // Debug AI Player initialization (removed for performance)
+  // Performance-sensitive: This was logging on every entity count change, causing significant slowdown
 
   // Update game area height ref
   useEffect(() => {
@@ -177,13 +167,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   // Game Over animation
   useEffect(() => {
     if (gameOver) {
-      Animated.sequence([
-        Animated.timing(gameOverAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
-        Animated.timing(gameOverAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
-        Animated.timing(gameOverAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
-        Animated.timing(gameOverAnim, { toValue: 0, duration: 100, useNativeDriver: true }),
-        Animated.spring(gameOverAnim, { toValue: 1, friction: 3, useNativeDriver: true })
-      ]).start();
+      Animated.timing(gameOverAnim, { 
+        toValue: 1, 
+        duration: 300, 
+        useNativeDriver: true 
+      }).start();
     } else {
       gameOverAnim.setValue(0);
     }
@@ -193,7 +181,18 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   const enhancedShootProjectile = useCallback(() => {
     shootProjectile();
     trackTutorialProgress('tap');
-  }, [shootProjectile, trackTutorialProgress]);
+    
+    // Add muzzle flash particle effect
+    const effectId = `shoot-${Date.now()}`;
+    setActiveParticleEffects(prev => [...prev, {
+      id: effectId,
+      type: 'impact',
+      position: { x: petePosition.x, y: peteY - 20 },
+      intensity: 0.5,
+      duration: 300,
+      startTime: Date.now(),
+    }]);
+  }, [shootProjectile, trackTutorialProgress, petePosition.x, peteY]);
 
   // Enhanced position update to track tutorial progress
   const enhancedUpdatePetePosition = useCallback((x: number) => {
@@ -202,8 +201,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   }, [updatePetePosition, trackTutorialProgress]);
 
   // AI Player integration (only when AI mode is enabled via environment)
-  const aiPlayer = isAIModeEnabled ? useAIPlayer(
-    petePosition,
+  // Create ref wrapper for AI Player compatibility
+  const petePositionRef = useRef({ current: petePosition.x });
+  petePositionRef.current.current = petePosition.x;
+  
+  // Always call useAIPlayer hook, but disable it when not needed
+  const aiPlayer = useAIPlayer(
+    petePositionRef.current,
     enemies,
     projectiles,
     screenWidth,
@@ -213,13 +217,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
       shootProjectile: enhancedShootProjectile,
     },
     {
-      enabled: aiEnabled,
+      enabled: isAIModeEnabled && aiEnabled,
       preset: aiPreset,
       decisionInterval: 100,
-      enableAnalytics: true,
-      enablePerformanceMonitoring: true,
+      enableAnalytics: isAIModeEnabled,
+      enablePerformanceMonitoring: isAIModeEnabled,
       onAction: (action, gameState) => {
-        console.log('🎮 AI Action Executed:', action.type, 'with', gameState.enemies.length, 'enemies');
+        // AI Action Executed (logging removed for performance)
         
         // Update current session for real-time analytics display
         const session = aiPlayer?.getAnalyticsSession();
@@ -228,7 +232,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
         }
       }
     }
-  ) : null;
+  );
 
   // Optimized game input handling (disabled when AI is active)
   const { handleTouchStart, handleTouchMove, handleTouchEnd } = useOptimizedGameInputBridge(
@@ -237,7 +241,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     enhancedUpdatePetePosition,
     {
       debounceMs: 16, // 60fps throttling
-      disabled: isAIModeEnabled && aiEnabled, // Disable touch input only when AI mode is enabled AND AI is controlling
+      disabled: isAIModeEnabled && aiEnabled, // Disable touch input when AI is controlling
     }
   );
 
@@ -355,14 +359,108 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     return stars;
   }, [currentLevel, accuracy, levelDuration]);
 
-  // Calculate positions
-  const peteY = gameAreaHeight - GAME_CONFIG.PETE_SIZE - GAME_CONFIG.BOTTOM_PADDING;
+  // Positions already calculated above
+
+  // Particle effect cleanup and management
+  useEffect(() => {
+    const cleanup = () => {
+      const now = Date.now();
+      setActiveParticleEffects(prev => 
+        prev.filter(effect => now - effect.startTime < effect.duration + 1000) // Keep for extra 1s for trail fadeout
+      );
+    };
+
+    const interval = setInterval(cleanup, 500); // Cleanup every 500ms
+    return () => clearInterval(interval);
+  }, []);
+
+  // Add particle effects for enemy hits (example integration point)
+  const addEnemyHitEffect = useCallback((position: { x: number; y: number }, powerUpType?: string) => {
+    const effectId = `hit-${Date.now()}-${Math.random()}`;
+    const effectType = powerUpType === 'explosive_shot' ? 'explosion' : 'impact';
+    const intensity = powerUpType ? 1.0 : 0.7;
+    
+    setActiveParticleEffects(prev => [...prev, {
+      id: effectId,
+      type: effectType,
+      position,
+      intensity,
+      duration: effectType === 'explosion' ? 1500 : 800,
+      startTime: Date.now(),
+    }]);
+  }, []);
+
+  // Add power-up activation effect
+  const addPowerUpEffect = useCallback((position: { x: number; y: number }) => {
+    const effectId = `powerup-${Date.now()}`;
+    setActiveParticleEffects(prev => [...prev, {
+      id: effectId,
+      type: 'power_up',
+      position,
+      intensity: 1.0,
+      duration: 2000,
+      startTime: Date.now(),
+    }]);
+  }, []);
+
+  // Enhanced game state for visual effects
+  const enhancedGameState = useMemo(() => ({
+    combo: currentCombo,
+    recentlyHit: lives < 3, // Simple heuristic for recent damage
+    intensity: Math.min(1, currentCombo / 10), // Intensity based on combo
+    peteVelocity: { x: 0, y: 0 }, // Could be calculated from position changes
+    lastShotTime: Date.now(), // Would need to track actual shot timing
+  }), [currentCombo, lives]);
+
+  // Memoized entity arrays - MOVED TO TOP LEVEL TO FIX HOOKS ERROR
+  // These must be at the component's top level, not inside conditional rendering
+  const memoizedEnemies = useMemo(() => 
+    enemies.map(enemy => ({
+      id: enemy.id,
+      x: enemy.x,
+      y: enemy.y,
+      width: enemy.size,
+      height: enemy.size,
+      type: enemy.type,
+      sizeLevel: enemy.sizeLevel,
+      velocity: { x: enemy.velocityX || 0, y: enemy.velocityY || 0 },
+      health: 100,
+      maxHealth: 100
+    })), [enemies]);
+
+  const memoizedProjectiles = useMemo(() => 
+    projectiles.map(projectile => ({
+      id: projectile.id,
+      x: projectile.x,
+      y: projectile.y,
+      width: ENTITY_CONFIG.PROJECTILE.SIZE,
+      height: ENTITY_CONFIG.PROJECTILE.SIZE,
+      velocity: { x: projectile.velocityX || 0, y: projectile.velocityY || -900 },
+      powerUpType: projectile.powerUpType,
+      age: projectile.age || 0,
+      penetration: projectile.penetration || false,
+      explosion: projectile.explosion || false
+    })), [projectiles]);
+
+  const memoizedMysteryBalloons = useMemo(() => 
+    mysteryBalloons.map(mysteryBalloon => ({
+      id: mysteryBalloon.id,
+      x: mysteryBalloon.position.x,
+      y: mysteryBalloon.position.y,
+      width: 30,
+      height: 30
+    })), [mysteryBalloons]);
 
   return (
     <CelebrationManager>
       <View style={styles.container}>
-        {/* Gradient background with floating shapes */}
-        <GameBackground level={level} isPlaying={isPlaying} />
+        {/* Enhanced procedural background */}
+        <GameBackground 
+          level={level} 
+          isPlaying={isPlaying}
+          playerPosition={{ x: petePosition.x, y: peteY }}
+          gameState={enhancedGameState}
+        />
 
         {/* Game area */}
         <View
@@ -384,92 +482,61 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
             onPause={() => actions.setIsPaused(true)}
           />
 
-          {/* Game entities */}
+          {/* Game entities - All entities now rendered by GameRenderer */}
           {isPlaying && !gameOver && (
             <>
-              {/* Pete */}
-              <Pete x={petePosition.current} y={peteY} size={GAME_CONFIG.PETE_SIZE} level={level} />
+              {/* Performance optimization: Memoized entity arrays to prevent unnecessary re-renders */}
+              <GameRenderer
+                // Game objects
+                pete={{ 
+                  x: petePosition.x, 
+                  y: peteY, 
+                  color: getPeteColor(currentLevel) 
+                }}
+                enemies={memoizedEnemies}
+                projectiles={memoizedProjectiles}
+                mysteryBalloons={memoizedMysteryBalloons}
+            
+            // Screen dimensions
+            screenWidth={screenWidth}
+            screenHeight={gameAreaHeight}
+            
+            // Colors and theme
+            enemyColor={UI_PALETTE.primary}
+            projectileColor={UI_PALETTE.accent}
+            mysteryBalloonColor={UI_PALETTE.secondary}
+            
+            // Performance settings - Simplified without dynamic quality
+            enableViewportCulling={true}
+            maxVisibleEnemies={20}
+            maxVisibleProjectiles={15}
+            
+            // Game state
+            isPlaying={isPlaying}
+            isPaused={gameOver}
+            
+                // Enhanced game state for visual effects
+                gameState={enhancedGameState}
+              />
 
-              {/* Enemies */}
-              {enemies.map(enemy => (
-                <Enemy
-                  key={enemy.id}
-                  x={enemy.x}
-                  y={enemy.y}
-                  size={enemy.size}
-                  type={enemy.type}
-                  sizeLevel={enemy.sizeLevel}
-                  level={level}
-                />
-              ))}
-
-              {/* Projectiles */}
-              {projectiles.map(projectile => (
-                <Projectile
-                  key={projectile.id}
-                  x={projectile.x}
-                  y={projectile.y}
-                  size={GAME_CONFIG.PROJECTILE_SIZE}
-                  level={level}
-                />
-              ))}
-
-              {/* Mystery Balloons */}
-              {mysteryBalloons.map(mysteryBalloon => (
-                <MysteryBalloon
-                  key={mysteryBalloon.id}
-                  x={mysteryBalloon.x}
-                  y={mysteryBalloon.y}
-                  size={mysteryBalloon.width}
-                  level={level}
-                  mysteryBalloon={mysteryBalloon.mysteryBalloon}
-                  onPopped={(balloonId, reward) => {
-                    // === ENHANCED MYSTERY BALLOON CELEBRATION ===
-                    const centerX = mysteryBalloon.x + mysteryBalloon.width / 2;
-                    const centerY = mysteryBalloon.y + mysteryBalloon.width / 2;
-                    
-                    // === POWER-UP SYSTEM: ACTIVATE POWER-UPS FROM MYSTERY BALLOONS ===
-                    if (reward && typeof reward === 'object' && 'type' in reward) {
-                      const mysteryReward = reward as any;
-                      if (mysteryReward.type === 'power_boost') {
-                        // Activate power-up with duration based on rarity
-                        const duration = mysteryReward.rarity === 'epic' ? 15000 : // 15 seconds for epic
-                                        mysteryReward.rarity === 'rare' ? 12000 : // 12 seconds for rare  
-                                        mysteryReward.rarity === 'uncommon' ? 10000 : // 10 seconds for uncommon
-                                        8000; // 8 seconds for common
-                        
-                        actions.activatePowerUp(mysteryReward.value, duration);
-                        console.log(`Power-up activated: ${mysteryReward.value} for ${duration}ms`);
-                      }
-                    }
-                    
-                    // High-priority celebration for mystery balloon pop
-                    queueCelebration({
-                      type: 'mystery_reward',
-                      priority: 15, // Very high priority - interrupts other celebrations
-                      props: {
-                        position: { x: centerX, y: centerY },
-                        theme: 'volcano',
-                        intensity: 'high',
-                        message: 'MYSTERY BONUS!',
-                      },
-                    });
-
-                    // Show reward celebration after a brief delay
-                    setTimeout(() => {
-                      setMysteryRewards(prev => [
-                        ...prev,
-                        {
-                          id: `reward_${Date.now()}`,
-                          reward: reward as any, // TODO: Fix reward type compatibility
-                          x: centerX,
-                          y: centerY,
-                        },
-                      ]);
-                    }, 500); // Small delay to let the main celebration play first
+              {/* Advanced Particle System for Visual Effects */}
+              {activeParticleEffects.map(effect => (
+                <AdvancedParticleSystem
+                  key={effect.id}
+                  emissionPoint={{ x: effect.position.x, y: effect.position.y }}
+                  particleType={effect.type}
+                  intensity={effect.intensity}
+                  duration={effect.duration}
+                  maxParticles={effect.type === 'explosion' ? 150 : 50}
+                  onComplete={() => {
+                    setActiveParticleEffects(prev => 
+                      prev.filter(e => e.id !== effect.id)
+                    );
                   }}
                 />
               ))}
+
+              {/* TODO: Mystery Balloon interaction will be integrated into GameRenderer in future */}
             </>
           )}
 
@@ -488,14 +555,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                 colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.98)']}
                 style={styles.gameOverContainer}
               >
-                <Animated.Text style={[styles.gameOverTitle, {
-                  transform: [{
-                    translateX: gameOverAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [Math.random() * 10 - 5, 0]
-                    })
-                  }]
-                }]}>GAME OVER</Animated.Text>
+                <Text style={styles.gameOverTitle}>GAME OVER</Text>
                 <Text style={styles.finalScore}>{score}</Text>
 
                 {/* Save Me Button - Only show if not used yet */}
@@ -548,7 +608,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                 <TouchableOpacity
                   style={[styles.aiToggle, aiEnabled && styles.aiToggleActive]}
                   onPress={() => {
-                    console.log('🎮 AI Toggle Pressed - changing from', aiEnabled, 'to', !aiEnabled);
+                    // AI Toggle Pressed (logging removed for performance)
                     setAIEnabled(!aiEnabled);
                   }}
                 >
@@ -576,7 +636,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                       const presets = Object.keys(AI_PRESETS) as (keyof typeof AI_PRESETS)[];
                       const currentIndex = presets.indexOf(aiPreset);
                       const nextIndex = (currentIndex + 1) % presets.length;
-                      console.log('🎮 AI Preset changing from', aiPreset, 'to', presets[nextIndex]);
+                      // AI Preset changing (logging removed for performance)
                       setAIPreset(presets[nextIndex]);
                     }}
                   >
@@ -588,7 +648,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
               {/* Game State Debug Info */}
               <View style={styles.aiDebugInfoRow}>
                 <Text style={styles.aiDebugInfo}>
-                  Game: {isPlaying ? 'Playing' : 'Stopped'} | Enemies: {enemies?.length || 0} | Pete: {Math.round(petePosition.current)}
+                  Game: {isPlaying ? 'Playing' : 'Stopped'} | Enemies: {enemies?.length || 0} | Pete: {Math.round(petePosition.x)}
                 </Text>
               </View>
               
@@ -639,7 +699,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                       if (aiPlayer) {
                         const data = aiPlayer.exportAnalytics();
                         setAnalyticsData(data.summary as any);
-                        console.log('🎯 Analytics Export:', data);
+                        // Analytics Export (logging removed for performance)
                       }
                     }}
                   >
@@ -653,7 +713,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                         aiPlayer.clearAnalytics();
                         setCurrentSession(null);
                         setAnalyticsData(null);
-                        console.log('🎯 Analytics cleared');
+                        // Analytics cleared (logging removed for performance)
                       }
                     }}
                   >

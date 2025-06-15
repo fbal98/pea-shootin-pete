@@ -32,7 +32,7 @@ export const GameHeader: React.FC<GameHeaderProps> = ({
       <LevelSection level={level} scoreInLevel={scoreInLevel} nextLevelScore={nextLevelScore} />
 
       {/* Right side - Lives/Special */}
-      <StatusSection lives={lives} specialCharge={specialCharge} />
+      <StatusSection lives={lives} />
     </View>
   );
 };

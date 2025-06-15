@@ -9,6 +9,15 @@ import { useGameStore } from '@/store/gameStore';
 import { useLevelProgressionStore } from '@/store/levelProgressionStore';
 import { aiAnalytics } from '@/utils/AIAnalytics';
 
+// Debug mode for AI logging (only in development with explicit flag)
+const AI_DEBUG_MODE = __DEV__ && process.env.EXPO_PUBLIC_AI_DEBUG === 'true';
+
+const debugLog = (message: string, data?: any) => {
+  if (AI_DEBUG_MODE) {
+    console.log(message, data);
+  }
+};
+
 interface UseAIPlayerOptions {
   enabled: boolean;
   config?: AIConfig;
@@ -17,6 +26,18 @@ interface UseAIPlayerOptions {
   onAction?: (action: AIAction, gameState: GameState) => void;
   enableAnalytics?: boolean; // Enable comprehensive analytics collection
   enablePerformanceMonitoring?: boolean; // Enable FPS and memory tracking
+}
+
+// Maximum history size to prevent memory leaks
+const MAX_HISTORY_SIZE = 100;
+
+// Performance optimizations
+interface EnemyAnalysis {
+  shootable: any[];
+  threatening: any[];
+  closest: any | null;
+  averageDistance: number;
+  totalCount: number;
 }
 
 export function useAIPlayer(
@@ -31,12 +52,17 @@ export function useAIPlayer(
   },
   options: UseAIPlayerOptions
 ) {
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
-  const performanceIntervalRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const performanceIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const gameHistoryRef = useRef<Array<{ state: GameState; action: AIAction; timestamp: number }>>([]);
   const sessionIdRef = useRef<string | null>(null);
   const decisionStartTimeRef = useRef<number>(0);
   const shotCounterRef = useRef<number>(0);
+  const lastAnalyticsRecordRef = useRef<number>(0);
+  
+  // Object caching for performance
+  const enemyTransformCacheRef = useRef(new WeakMap());
+  const projectileTransformCacheRef = useRef(new WeakMap());
   
   // Get game state from stores
   const isPlaying = useGameStore(state => state.isPlaying);
@@ -83,60 +109,89 @@ export function useAIPlayer(
     aiConfig,
     options
   };
-  
-  const makeAIDecision = useCallback(() => {
-    const state = latestStateRef.current;
-    decisionStartTimeRef.current = Date.now();
-    
-    console.log('🤖 AI Decision Cycle Starting...', {
-      enabled: state.options.enabled,
-      isPlaying: state.isPlaying,
-      isPaused: state.isPaused,
-      peteX: state.petePosition.current,
-      enemyCount: state.enemies?.length || 0,
-      projectileCount: state.projectiles?.length || 0
+
+  /**
+   * Optimized enemy analysis - single pass through enemies array
+   */
+  const analyzeEnemies = useCallback((enemies: any[], peteX: number, config: AIConfig): EnemyAnalysis => {
+    const analysis: EnemyAnalysis = {
+      shootable: [],
+      threatening: [],
+      closest: null,
+      averageDistance: 0,
+      totalCount: enemies.length
+    };
+
+    if (enemies.length === 0) {
+      return analysis;
+    }
+
+    let totalDistance = 0;
+    let minDistance = Infinity;
+
+    // Single pass through enemies array for all calculations
+    for (const enemy of enemies) {
+      const distance = Math.abs(enemy.x - peteX);
+      totalDistance += distance;
+
+      // Check shootability
+      if (distance <= config.shootThreshold) {
+        analysis.shootable.push(enemy);
+      }
+      
+      // Check if threatening
+      if (distance <= config.avoidThreshold) {
+        analysis.threatening.push(enemy);
+      }
+
+      // Track closest enemy
+      if (distance < minDistance) {
+        minDistance = distance;
+        analysis.closest = enemy;
+      }
+    }
+
+    analysis.averageDistance = totalDistance / enemies.length;
+    return analysis;
+  }, []);
+
+  /**
+   * Create optimized game state with object caching
+   */
+  const createOptimizedGameState = useCallback((state: any, enemyAnalysis: EnemyAnalysis): GameState => {
+    // Use cached transformations where possible
+    const optimizedEnemies = state.enemies.map((enemy: any) => {
+      if (!enemyTransformCacheRef.current.has(enemy)) {
+        enemyTransformCacheRef.current.set(enemy, {
+          x: enemy.x,
+          y: enemy.y,
+          vx: enemy.vx || 0,
+          vy: enemy.vy || 0,
+          size: enemy.size || 30,
+          id: enemy.id || Math.random().toString(),
+        });
+      }
+      return enemyTransformCacheRef.current.get(enemy);
     });
-    
-    if (!state.options.enabled) {
-      console.log('🤖 AI DISABLED - options.enabled =', state.options.enabled);
-      return;
-    }
-    
-    if (!state.isPlaying) {
-      console.log('🤖 AI SKIPPING - Game not playing. isPlaying =', state.isPlaying);
-      return;
-    }
-    
-    if (state.isPaused) {
-      console.log('🤖 AI SKIPPING - Game paused. isPaused =', state.isPaused);
-      return;
-    }
-    
-    console.log('🤖 AI ACTIVE - Making decision...', {
-      petePosition: state.petePosition.current,
-      screenDimensions: { width: state.screenWidth, height: state.screenHeight },
-      gameState: { isPlaying: state.isPlaying, isPaused: state.isPaused, score: state.score, lives: state.lives }
+
+    const optimizedProjectiles = state.projectiles.map((projectile: any) => {
+      if (!projectileTransformCacheRef.current.has(projectile)) {
+        projectileTransformCacheRef.current.set(projectile, {
+          x: projectile.x,
+          y: projectile.y,
+          id: projectile.id || Math.random().toString(),
+        });
+      }
+      return projectileTransformCacheRef.current.get(projectile);
     });
-    
-    // Prepare game state for AI
-    const gameState: GameState = {
+
+    return {
       peteX: state.petePosition.current,
-      peteY: state.screenHeight - 50, // Approximate Pete Y position
+      peteY: state.screenHeight - 50,
       screenWidth: state.screenWidth,
       screenHeight: state.screenHeight,
-      enemies: (state.enemies || []).map(enemy => ({
-        x: enemy.x,
-        y: enemy.y,
-        vx: enemy.vx || 0,
-        vy: enemy.vy || 0,
-        size: enemy.size || 30,
-        id: enemy.id || Math.random().toString(),
-      })),
-      projectiles: (state.projectiles || []).map(projectile => ({
-        x: projectile.x,
-        y: projectile.y,
-        id: projectile.id || Math.random().toString(),
-      })),
+      enemies: optimizedEnemies,
+      projectiles: optimizedProjectiles,
       isPlaying: state.isPlaying,
       isPaused: state.isPaused,
       score: state.score,
@@ -144,86 +199,115 @@ export function useAIPlayer(
       gameOver: gameOver,
       level: level,
     };
+  }, [gameOver, level]);
+
+  /**
+   * Check if analytics should be recorded (throttled)
+   */
+  const shouldRecordAnalytics = useCallback((): boolean => {
+    if (!options.enableAnalytics) return false;
     
-    // Detect threats for analytics
-    if (state.options.enableAnalytics) {
-      const closeEnemies = gameState.enemies.filter(enemy => 
-        Math.abs(enemy.x - gameState.peteX) < 80
-      );
-      
-      if (closeEnemies.length > 0) {
-        const closestEnemy = closeEnemies.reduce((closest, enemy) => 
-          Math.abs(enemy.x - gameState.peteX) < Math.abs(closest.x - gameState.peteX) ? enemy : closest
-        );
-        
-        const threatLevel = Math.max(1, 100 - Math.abs(closestEnemy.x - gameState.peteX));
-        aiAnalytics.recordThreatDetected(threatLevel, { x: closestEnemy.x, y: closestEnemy.y });
-      }
+    const now = Date.now();
+    if (now - lastAnalyticsRecordRef.current < 500) return false; // Throttle to 2Hz
+    lastAnalyticsRecordRef.current = now;
+    return true;
+  }, [options.enableAnalytics]);
+
+  /**
+   * Add entry to game history with size management
+   */
+  const addToHistory = useCallback((state: GameState, action: AIAction) => {
+    const entry = { state, action, timestamp: Date.now() };
+    
+    if (gameHistoryRef.current.length >= MAX_HISTORY_SIZE) {
+      // Remove oldest 50% when limit reached
+      gameHistoryRef.current = gameHistoryRef.current.slice(-50);
     }
     
-    console.log('🤖 AI Game State:', {
+    gameHistoryRef.current.push(entry);
+  }, []);
+  
+  const makeAIDecision = useCallback(() => {
+    const state = latestStateRef.current;
+    decisionStartTimeRef.current = Date.now();
+    
+    debugLog('🤖 AI Decision Cycle Starting...', {
+      enabled: state.options.enabled,
+      isPlaying: state.isPlaying,
+      isPaused: state.isPaused,
+      enemyCount: state.enemies?.length || 0
+    });
+    
+    // Early returns for performance
+    if (!state.options.enabled || !state.isPlaying || state.isPaused) {
+      return;
+    }
+    
+    debugLog('🤖 AI ACTIVE - Making decision...', {
+      petePosition: state.petePosition.current,
+      enemyCount: state.enemies?.length || 0
+    });
+    
+    // Use optimized enemy analysis
+    const enemyAnalysis = analyzeEnemies(state.enemies, state.petePosition.current, state.aiConfig);
+    
+    // Only perform expensive analytics if enabled and throttled
+    let analyticsData = null;
+    if (shouldRecordAnalytics() && enemyAnalysis.closest) {
+      const threatLevel = Math.max(1, 100 - Math.abs(enemyAnalysis.closest.x - state.petePosition.current));
+      aiAnalytics.recordThreatDetected(threatLevel, { x: enemyAnalysis.closest.x, y: enemyAnalysis.closest.y });
+      analyticsData = { threatLevel, closestEnemy: enemyAnalysis.closest };
+    }
+    
+    // Create optimized game state using cached objects
+    const gameState = createOptimizedGameState(state, enemyAnalysis);
+    
+    debugLog('🤖 AI Game State:', {
       peteX: gameState.peteX,
       enemyCount: gameState.enemies.length,
-      projectileCount: gameState.projectiles.length,
-      enemies: gameState.enemies.map(e => ({ x: e.x, y: e.y, size: e.size })),
-      projectiles: gameState.projectiles.map(p => ({ x: p.x, y: p.y }))
+      shootableEnemies: enemyAnalysis.shootable.length,
+      threateningEnemies: enemyAnalysis.threatening.length
     });
     
     // Get AI decision
-    console.log('🤖 Calling peteAI with config:', state.aiConfig);
+    debugLog('🤖 Calling peteAI with config:', state.aiConfig);
     const action = peteAI(gameState, state.aiConfig);
-    console.log('🤖 AI Decision Result:', action);
+    debugLog('🤖 AI Decision Result:', action);
     
     // Calculate reaction time and record decision for analytics
     const reactionTime = Date.now() - decisionStartTimeRef.current;
-    if (state.options.enableAnalytics) {
+    if (shouldRecordAnalytics()) {
       aiAnalytics.recordDecision(action, gameState, reactionTime);
     }
     
-    // Record for analytics
-    gameHistoryRef.current.push({
-      state: gameState,
-      action,
-      timestamp: Date.now(),
-    });
+    // Add to history with size management
+    addToHistory(gameState, action);
     
     // Execute AI action
-    console.log('🤖 Executing AI action:', action.type);
+    debugLog('🤖 Executing AI action:', action.type);
     switch (action.type) {
       case 'shoot':
-        console.log('🤖 SHOOTING projectile');
+        debugLog('🤖 SHOOTING projectile');
         // Record shot for analytics before shooting
-        if (state.options.enableAnalytics) {
-          const targetEnemy = gameState.enemies
-            .filter(e => Math.abs(e.x - gameState.peteX) < 100)
-            .reduce((closest, enemy) => 
-              Math.abs(enemy.x - gameState.peteX) < Math.abs(closest.x - gameState.peteX) ? enemy : closest
-            , gameState.enemies[0]);
-          
-          if (targetEnemy) {
-            const shotId = aiAnalytics.recordShot(targetEnemy.x, targetEnemy.y);
-            shotCounterRef.current = shotId;
-          }
+        if (shouldRecordAnalytics() && enemyAnalysis.shootable.length > 0) {
+          const targetEnemy = enemyAnalysis.shootable[0]; // Use pre-analyzed closest shootable enemy
+          const shotId = aiAnalytics.recordShot(targetEnemy.x, targetEnemy.y);
+          shotCounterRef.current = shotId;
         }
         state.gameLogic.shootProjectile();
         break;
       case 'move':
         if (action.x !== undefined) {
-          console.log('🤖 MOVING Pete to X:', action.x);
+          debugLog('🤖 MOVING Pete to X:', action.x);
           // Record dodge for analytics if moving away from threat
-          if (state.options.enableAnalytics) {
-            const wasAvoidingThreat = gameState.enemies.some(e => 
-              Math.abs(e.x - gameState.peteX) < 60
-            );
-            if (wasAvoidingThreat) {
-              aiAnalytics.recordDodge(action.x);
-            }
+          if (shouldRecordAnalytics() && enemyAnalysis.threatening.length > 0) {
+            aiAnalytics.recordDodge(action.x);
           }
           state.gameLogic.updatePetePosition(action.x);
         }
         break;
       case 'idle':
-        console.log('🤖 IDLE - no action taken');
+        debugLog('🤖 IDLE - no action taken');
         break;
     }
     
@@ -240,7 +324,7 @@ export function useAIPlayer(
         preset: options.preset,
         level: level,
       });
-      console.log('🎯 Analytics session started:', sessionIdRef.current);
+      debugLog('🎯 Analytics session started:', sessionIdRef.current);
     }
   }, [options.enabled, options.enableAnalytics, isPlaying, isPaused]);
   
@@ -264,10 +348,11 @@ export function useAIPlayer(
       
       const session = aiAnalytics.endSession(finalGameState, gameHistoryRef.current);
       if (session) {
-        console.log('🎯 Analytics session completed:', {
+        debugLog('🎯 Analytics session completed:', {
           sessionId: session.sessionId,
-          metrics: session.metrics,
-          insights: session.insights,
+          score: session.metrics?.score,
+          accuracy: session.metrics?.accuracy,
+          duration: session.endTime ? session.endTime - session.startTime : 0
         });
       }
       
@@ -299,7 +384,7 @@ export function useAIPlayer(
   
   // Set up AI decision interval
   useEffect(() => {
-    console.log('🤖 AI Interval Effect Triggered:', {
+    debugLog('🤖 AI Interval Effect Triggered:', {
       enabled: options.enabled,
       isPlaying,
       isPaused,
@@ -308,7 +393,7 @@ export function useAIPlayer(
     
     if (options.enabled && isPlaying && !isPaused) {
       const interval = options.decisionInterval || 100; // 10 decisions per second
-      console.log('🤖 STARTING AI Interval with', interval, 'ms');
+      debugLog(`🤖 STARTING AI Interval with ${interval} ms`);
       
       intervalRef.current = setInterval(() => {
         // Call the decision function directly to avoid stale closure issues
@@ -316,15 +401,15 @@ export function useAIPlayer(
       }, interval);
       
       return () => {
-        console.log('🤖 STOPPING AI Interval');
+        debugLog('🤖 STOPPING AI Interval');
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
         }
       };
     } else {
-      console.log('🤖 AI Interval NOT started - conditions not met');
+      debugLog('🤖 AI Interval NOT started - conditions not met');
       if (intervalRef.current) {
-        console.log('🤖 Clearing existing interval');
+        debugLog('🤖 Clearing existing interval');
         clearInterval(intervalRef.current);
         intervalRef.current = undefined as any;
       }
@@ -411,7 +496,7 @@ export function useAIPlayer(
 }
 
 // Environment variable or feature flag to enable AI mode
-export const AI_MODE_ENABLED = process.env.EXPO_PUBLIC_AI_MODE === 'true' || __DEV__;
+export const AI_MODE_ENABLED = process.env.EXPO_PUBLIC_AI_MODE === 'true';
 
 // Default options for comprehensive analytics
 export const DEFAULT_AI_OPTIONS: UseAIPlayerOptions = {

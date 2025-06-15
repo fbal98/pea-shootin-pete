@@ -1,0 +1,409 @@
+{
+  "summary": {
+    "totalTests": 30,
+    "completedTests": 30,
+    "failedTests": 0,
+    "startTime": "2025-06-15T09:42:23.225Z",
+    "endTime": "2025-06-15T09:42:45.523Z",
+    "duration": 22.297961375
+  },
+  "levelReports": [
+    {
+      "levelId": 2,
+      "levelName": "Level 2",
+      "personaResults": {
+        "casual_commuter": {
+          "persona": {
+            "id": "casual_commuter",
+            "name": "Casual Commuter"
+          },
+          "runs": [
+            {
+              "testId": "L2_casual_commuter_R3",
+              "completed": true,
+              "accuracy": 53.853050348240494,
+              "score": 538,
+              "duration": 142610.80069368175,
+              "attempts": 3,
+              "timestamp": "2025-06-15T09:42:24.703Z"
+            },
+            {
+              "testId": "L2_casual_commuter_R1",
+              "completed": true,
+              "accuracy": 65.95488652690219,
+              "score": 659,
+              "duration": 36351.140299225954,
+              "attempts": 3,
+              "timestamp": "2025-06-15T09:42:41.863Z"
+            },
+            {
+              "testId": "L2_casual_commuter_R2",
+              "completed": true,
+              "accuracy": 52.85103673480999,
+              "score": 528,
+              "duration": 39177.97090676915,
+              "attempts": 1,
+              "timestamp": "2025-06-15T09:42:43.640Z"
+            }
+          ],
+          "averageScore": 575,
+          "completionRate": 1,
+          "healthScore": 1
+        },
+        "focused_gamer": {
+          "persona": {
+            "id": "focused_gamer",
+            "name": "Focused Gamer"
+          },
+          "runs": [
+            {
+              "testId": "L2_focused_gamer_R1",
+              "completed": true,
+              "accuracy": 84.41472598445189,
+              "score": 844,
+              "duration": 48827.21894146152,
+              "attempts": 3,
+              "timestamp": "2025-06-15T09:42:27.645Z"
+            },
+            {
+              "testId": "L2_focused_gamer_R2",
+              "completed": true,
+              "accuracy": 76.02475532773376,
+              "score": 760,
+              "duration": 148451.96078735546,
+              "attempts": 1,
+              "timestamp": "2025-06-15T09:42:29.940Z"
+            },
+            {
+              "testId": "L2_focused_gamer_R3",
+              "completed": true,
+              "accuracy": 86.79379980610136,
+              "score": 867,
+              "duration": 40539.74562355938,
+              "attempts": 3,
+              "timestamp": "2025-06-15T09:42:31.823Z"
+            }
+          ],
+          "averageScore": 823.6666666666666,
+          "completionRate": 1,
+          "healthScore": 1
+        },
+        "twitchy_speedrunner": {
+          "persona": {
+            "id": "twitchy_speedrunner",
+            "name": "Twitchy Speedrunner"
+          },
+          "runs": [
+            {
+              "testId": "L2_twitchy_speedrunner_R1",
+              "completed": true,
+              "accuracy": 95.66727762782548,
+              "score": 956,
+              "duration": 116678.62197760881,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:33.974Z"
+            },
+            {
+              "testId": "L2_twitchy_speedrunner_R2",
+              "completed": true,
+              "accuracy": 88.57151939844115,
+              "score": 885,
+              "duration": 112772.48783397346,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:36.323Z"
+            },
+            {
+              "testId": "L2_twitchy_speedrunner_R3",
+              "completed": false,
+              "accuracy": 95.36155939356054,
+              "score": 953,
+              "duration": 72697.25525950053,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:38.681Z"
+            }
+          ],
+          "averageScore": 931.3333333333334,
+          "completionRate": 0.6666666666666666,
+          "healthScore": 1
+        },
+        "nervous_newbie": {
+          "persona": {
+            "id": "nervous_newbie",
+            "name": "Nervous Newbie"
+          },
+          "runs": [
+            {
+              "testId": "L2_nervous_newbie_R1",
+              "completed": false,
+              "accuracy": 36.86442964588389,
+              "score": 368,
+              "duration": 135086.85313457117,
+              "attempts": 1,
+              "timestamp": "2025-06-15T09:42:36.310Z"
+            },
+            {
+              "testId": "L2_nervous_newbie_R2",
+              "completed": true,
+              "accuracy": 34.976475528539794,
+              "score": 349,
+              "duration": 93534.77167217544,
+              "attempts": 3,
+              "timestamp": "2025-06-15T09:42:38.683Z"
+            },
+            {
+              "testId": "L2_nervous_newbie_R3",
+              "completed": false,
+              "accuracy": 29.69398167059672,
+              "score": 296,
+              "duration": 47731.59244248375,
+              "attempts": 1,
+              "timestamp": "2025-06-15T09:42:39.967Z"
+            }
+          ],
+          "averageScore": 337.6666666666667,
+          "completionRate": 0.3333333333333333,
+          "healthScore": 0.22511111111111112
+        },
+        "methodical_strategist": {
+          "persona": {
+            "id": "methodical_strategist",
+            "name": "Methodical Strategist"
+          },
+          "runs": [
+            {
+              "testId": "L2_methodical_strategist_R1",
+              "completed": true,
+              "accuracy": 86.77765699413578,
+              "score": 867,
+              "duration": 130859.37586769971,
+              "attempts": 1,
+              "timestamp": "2025-06-15T09:42:41.367Z"
+            },
+            {
+              "testId": "L2_methodical_strategist_R2",
+              "completed": true,
+              "accuracy": 79.60464298542327,
+              "score": 796,
+              "duration": 94018.13636887941,
+              "attempts": 3,
+              "timestamp": "2025-06-15T09:42:43.654Z"
+            },
+            {
+              "testId": "L2_methodical_strategist_R3",
+              "completed": true,
+              "accuracy": 89.23673974502117,
+              "score": 892,
+              "duration": 93506.15032463966,
+              "attempts": 1,
+              "timestamp": "2025-06-15T09:42:45.522Z"
+            }
+          ],
+          "averageScore": 851.6666666666666,
+          "completionRate": 1,
+          "healthScore": 1
+        }
+      },
+      "overallHealthScore": 0.8450222222222223,
+      "testCount": 15
+    },
+    {
+      "levelId": 1,
+      "levelName": "Level 1",
+      "personaResults": {
+        "twitchy_speedrunner": {
+          "persona": {
+            "id": "twitchy_speedrunner",
+            "name": "Twitchy Speedrunner"
+          },
+          "runs": [
+            {
+              "testId": "L1_twitchy_speedrunner_R2",
+              "completed": true,
+              "accuracy": 85.41827925752918,
+              "score": 854,
+              "duration": 58384.8523564937,
+              "attempts": 1,
+              "timestamp": "2025-06-15T09:42:25.183Z"
+            },
+            {
+              "testId": "L1_twitchy_speedrunner_R3",
+              "completed": true,
+              "accuracy": 91.97551140343913,
+              "score": 919,
+              "duration": 142562.1465421716,
+              "attempts": 3,
+              "timestamp": "2025-06-15T09:42:27.570Z"
+            },
+            {
+              "testId": "L1_twitchy_speedrunner_R1",
+              "completed": true,
+              "accuracy": 84.40762403743818,
+              "score": 844,
+              "duration": 65426.88840149405,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:43.799Z"
+            }
+          ],
+          "averageScore": 872.3333333333334,
+          "completionRate": 1,
+          "healthScore": 1
+        },
+        "nervous_newbie": {
+          "persona": {
+            "id": "nervous_newbie",
+            "name": "Nervous Newbie"
+          },
+          "runs": [
+            {
+              "testId": "L1_nervous_newbie_R1",
+              "completed": false,
+              "accuracy": 27.58668898836485,
+              "score": 275,
+              "duration": 35314.8369479306,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:25.873Z"
+            },
+            {
+              "testId": "L1_nervous_newbie_R2",
+              "completed": true,
+              "accuracy": 27.209783149622034,
+              "score": 272,
+              "duration": 93002.5432273911,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:28.072Z"
+            },
+            {
+              "testId": "L1_nervous_newbie_R3",
+              "completed": false,
+              "accuracy": 31.559374165285135,
+              "score": 315,
+              "duration": 117688.35821277932,
+              "attempts": 1,
+              "timestamp": "2025-06-15T09:42:30.818Z"
+            }
+          ],
+          "averageScore": 287.3333333333333,
+          "completionRate": 0.3333333333333333,
+          "healthScore": 0.19155555555555553
+        },
+        "methodical_strategist": {
+          "persona": {
+            "id": "methodical_strategist",
+            "name": "Methodical Strategist"
+          },
+          "runs": [
+            {
+              "testId": "L1_methodical_strategist_R1",
+              "completed": true,
+              "accuracy": 89.27799958215292,
+              "score": 892,
+              "duration": 115681.47906184217,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:28.767Z"
+            },
+            {
+              "testId": "L1_methodical_strategist_R2",
+              "completed": true,
+              "accuracy": 76.6262137699109,
+              "score": 766,
+              "duration": 79068.0735800204,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:31.150Z"
+            },
+            {
+              "testId": "L1_methodical_strategist_R3",
+              "completed": true,
+              "accuracy": 86.04065674756005,
+              "score": 860,
+              "duration": 86939.34918690362,
+              "attempts": 3,
+              "timestamp": "2025-06-15T09:42:33.335Z"
+            }
+          ],
+          "averageScore": 839.3333333333334,
+          "completionRate": 1,
+          "healthScore": 1
+        },
+        "casual_commuter": {
+          "persona": {
+            "id": "casual_commuter",
+            "name": "Casual Commuter"
+          },
+          "runs": [
+            {
+              "testId": "L1_casual_commuter_R1",
+              "completed": false,
+              "accuracy": 63.70303833825221,
+              "score": 637,
+              "duration": 111534.91728524247,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:32.094Z"
+            },
+            {
+              "testId": "L1_casual_commuter_R2",
+              "completed": true,
+              "accuracy": 64.77809087560203,
+              "score": 647,
+              "duration": 121896.233555957,
+              "attempts": 3,
+              "timestamp": "2025-06-15T09:42:35.060Z"
+            },
+            {
+              "testId": "L1_casual_commuter_R3",
+              "completed": true,
+              "accuracy": 50.479292509844,
+              "score": 504,
+              "duration": 31735.74253888069,
+              "attempts": 1,
+              "timestamp": "2025-06-15T09:42:36.685Z"
+            }
+          ],
+          "averageScore": 596,
+          "completionRate": 0.6666666666666666,
+          "healthScore": 0.7946666666666666
+        },
+        "focused_gamer": {
+          "persona": {
+            "id": "focused_gamer",
+            "name": "Focused Gamer"
+          },
+          "runs": [
+            {
+              "testId": "L1_focused_gamer_R1",
+              "completed": true,
+              "accuracy": 86.04465505870127,
+              "score": 860,
+              "duration": 96499.54776870181,
+              "attempts": 1,
+              "timestamp": "2025-06-15T09:42:38.716Z"
+            },
+            {
+              "testId": "L1_focused_gamer_R2",
+              "completed": false,
+              "accuracy": 70.58169452420941,
+              "score": 705,
+              "duration": 35372.357133313264,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:40.967Z"
+            },
+            {
+              "testId": "L1_focused_gamer_R3",
+              "completed": true,
+              "accuracy": 85.98700889292695,
+              "score": 859,
+              "duration": 126915.70280920764,
+              "attempts": 2,
+              "timestamp": "2025-06-15T09:42:42.762Z"
+            }
+          ],
+          "averageScore": 808,
+          "completionRate": 0.6666666666666666,
+          "healthScore": 1
+        }
+      },
+      "overallHealthScore": 0.7972444444444444,
+      "testCount": 15
+    }
+  ],
+  "errors": []
+}

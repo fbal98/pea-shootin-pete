@@ -1,51 +1,57 @@
-import React, { useRef, useImperativeHandle, forwardRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
-import { getColorScheme } from '@/constants/GameColors';
+import React, { memo } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { ENTITY_CONFIG } from '@/constants/GameConfig';
+import { getColorScheme } from '@/constants/HyperCasualColors';
+import { useLevel } from '@/store/gameStore';
 
 interface PeteProps {
   x: number;
   y: number;
-  size: number;
-  level: number;
+  color?: string; // Keep for compatibility but will use level-based colors
+  screenWidth: number;
+  screenHeight: number;
+  isVisible?: boolean;
+  gameState?: {
+    isMoving?: boolean;
+    recentlyHit?: boolean;
+    combo?: number;
+  };
 }
 
-export interface PeteRef {
-  triggerRecoil: () => void;
-  triggerMove: () => void;
-}
-
-export const Pete = forwardRef<PeteRef, PeteProps>(({ x, y, size, level }, ref) => {
+const PeteComponent: React.FC<PeteProps> = ({
+  x,
+  y,
+  screenWidth,
+  screenHeight,
+  isVisible = true,
+}) => {
+  const level = useLevel();
   const colorScheme = getColorScheme(level);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const squashAnim = useRef(new Animated.Value(1)).current;
 
-  useImperativeHandle(ref, () => ({
-    triggerRecoil: () => {
-      Animated.sequence([
-        Animated.timing(scaleAnim, { toValue: 0.9, duration: 50, useNativeDriver: true }),
-        Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
-      ]).start();
-    },
-    triggerMove: () => {
-       Animated.sequence([
-        Animated.timing(squashAnim, { toValue: 1.1, duration: 100, useNativeDriver: true }),
-        Animated.spring(squashAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
-      ]).start();
-    }
-  }));
-
+  // Safety checks for props
+  if (isNaN(x) || isNaN(y) || !screenWidth || !screenHeight || 
+      typeof x !== 'number' || typeof y !== 'number' || 
+      typeof screenWidth !== 'number' || typeof screenHeight !== 'number') {
+    return null;
+  }
+  
+  // Viewport culling
+  if (!isVisible || x < -ENTITY_CONFIG.PETE.SIZE || x > screenWidth || 
+      y < -ENTITY_CONFIG.PETE.SIZE || y > screenHeight) {
+    return null;
+  }
+  
   return (
-    <Animated.View
+    <View
       style={[
         styles.pete,
         {
           left: x,
           top: y,
-          width: size,
-          height: size,
+          width: ENTITY_CONFIG.PETE.SIZE,
+          height: ENTITY_CONFIG.PETE.SIZE,
           backgroundColor: colorScheme.primary,
           shadowColor: colorScheme.shadow,
-          transform: [{ scale: scaleAnim }, { scaleY: squashAnim }],
         },
       ]}
     >
@@ -54,7 +60,16 @@ export const Pete = forwardRef<PeteRef, PeteProps>(({ x, y, size, level }, ref) 
         <View style={styles.eye} />
         <View style={styles.eye} />
       </View>
-    </Animated.View>
+    </View>
+  );
+};
+
+// Simple memoization
+const Pete = memo(PeteComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.x === nextProps.x &&
+    prevProps.y === nextProps.y &&
+    prevProps.isVisible === nextProps.isVisible
   );
 });
 
@@ -82,3 +97,7 @@ const styles = StyleSheet.create({
     marginHorizontal: '10%',
   },
 });
+
+Pete.displayName = 'Pete';
+
+export default Pete;
