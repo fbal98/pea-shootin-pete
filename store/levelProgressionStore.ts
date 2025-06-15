@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { levelManager } from '../systems/LevelManager';
 import { Level, LevelID, EnemyWave, LevelObjective } from '../types/LevelTypes';
+import { trackLevelStart, trackLevelComplete, trackLevelFailed } from '../utils/analytics';
 
 // Level statistics interface
 export interface LevelStats {
@@ -215,7 +216,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
       // Track analytics
       const state = get();
       if (state.currentLevel) {
-        const { trackLevelStart } = require('../utils/analytics');
+        // Analytics tracking for level start
         trackLevelStart(
           state.currentLevelId,
           state.currentLevel.name,
@@ -449,7 +450,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
       }
 
       // Track analytics
-      const { trackLevelComplete } = require('../utils/analytics');
+      // Analytics tracking for level completion
       trackLevelComplete(
         state.currentLevelId,
         state.currentLevel?.name || `Level ${state.currentLevelId}`,
@@ -479,7 +480,7 @@ const createLevelProgressionStore = (set: any, get: any): LevelProgressionStore 
       levelManager.recordLevelAttempt(state.currentLevelId, false, finalStats);
 
       // Track analytics
-      const { trackLevelFailed } = require('../utils/analytics');
+      // Analytics tracking for level failure
       trackLevelFailed(
         state.currentLevelId,
         state.currentLevel?.name || `Level ${state.currentLevelId}`,

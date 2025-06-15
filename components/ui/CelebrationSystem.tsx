@@ -15,6 +15,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, Easing } from 'react-native';
 import { Achievement, MysteryReward, RewardRarity } from '@/types/MetaProgressionTypes';
 import { getColorScheme } from '@/constants/GameColors';
+import {
+  useVictoryCelebrations,
+  useAchievementCelebrations,
+  useComboCelebrations,
+  useMysteryRewardCelebrations,
+  useBattlePassCelebrations,
+  useRemoveCelebration,
+} from '@/store/celebrationStore';
+import { MysteryRewardDisplay } from './MysteryRewardDisplay';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -1049,17 +1058,7 @@ interface CelebrationManagerProps {
 }
 
 export const CelebrationManager: React.FC<CelebrationManagerProps> = ({ children }) => {
-  // Import celebration store hooks
-  const {
-    useVictoryCelebrations,
-    useAchievementCelebrations,
-    useComboCelebrations,
-    useMysteryRewardCelebrations,
-    useBattlePassCelebrations,
-    useRemoveCelebration,
-  } = require('@/store/celebrationStore');
-
-  // Get active celebrations from store
+  // Get active celebrations from store using imported hooks
   const victoryCelebrations = useVictoryCelebrations();
   const achievementCelebrations = useAchievementCelebrations();
   const comboCelebrations = useComboCelebrations();
@@ -1113,23 +1112,16 @@ export const CelebrationManager: React.FC<CelebrationManagerProps> = ({ children
 
       {/* Mystery reward celebrations */}
       {mysteryRewardCelebrations.map((celebration: any) => (
-        <View key={celebration.id}>
-          {/* Import and use MysteryRewardDisplay */}
-          {(() => {
-            const { MysteryRewardDisplay } = require('../ui/MysteryRewardDisplay');
-            return (
-              <MysteryRewardDisplay
-                reward={celebration.reward}
-                x={celebration.x}
-                y={celebration.y}
-                onComplete={() => {
-                  celebration.onComplete();
-                  removeCelebration('mysteryReward', celebration.id);
-                }}
-              />
-            );
-          })()}
-        </View>
+        <MysteryRewardDisplay
+          key={celebration.id}
+          reward={celebration.reward}
+          x={celebration.x}
+          y={celebration.y}
+          onComplete={() => {
+            celebration.onComplete();
+            removeCelebration('mysteryReward', celebration.id);
+          }}
+        />
       ))}
 
       {/* Battle pass celebrations */}

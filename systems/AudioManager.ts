@@ -80,6 +80,23 @@ class AudioManager {
   getMusicEnabled(): boolean {
     return this.isMusicEnabled;
   }
+
+  toggleSound(): boolean {
+    this.isSoundEnabled = !this.isSoundEnabled;
+    return this.isSoundEnabled;
+  }
+
+  toggleMusic(): boolean {
+    this.isMusicEnabled = !this.isMusicEnabled;
+    if (this.music) {
+      if (this.isMusicEnabled) {
+        this.music.playAsync();
+      } else {
+        this.music.stopAsync();
+      }
+    }
+    return this.isMusicEnabled;
+  }
 }
 
 export const audioManager = AudioManager.getInstance();
