@@ -116,7 +116,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   // Save Me state (one per level)
   const [saveMeUsed, setSaveMeUsed] = useState(false);
 
-  // AI Player state
+  // AI Player state (only when AI mode is enabled via environment)
+  const isAIModeEnabled = AI_MODE_ENABLED;
   const [aiEnabled, setAIEnabled] = useState(AI_MODE_ENABLED);
   const [aiPreset, setAIPreset] = useState<keyof typeof AI_PRESETS>('aggressive');
   const [showAnalytics, setShowAnalytics] = useState(false);
@@ -200,9 +201,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     trackTutorialProgress('swipe');
   }, [updatePetePosition, trackTutorialProgress]);
 
-  // AI Player integration (log moved to useEffect to prevent render loops)
-
-  const aiPlayer = useAIPlayer(
+  // AI Player integration (only when AI mode is enabled via environment)
+  const aiPlayer = isAIModeEnabled ? useAIPlayer(
     petePosition,
     enemies,
     projectiles,
@@ -222,13 +222,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
         console.log('🎮 AI Action Executed:', action.type, 'with', gameState.enemies.length, 'enemies');
         
         // Update current session for real-time analytics display
-        const session = aiPlayer.getAnalyticsSession();
+        const session = aiPlayer?.getAnalyticsSession();
         if (session) {
           setCurrentSession(session);
         }
       }
     }
-  );
+  ) : null;
 
   // Optimized game input handling (disabled when AI is active)
   const { handleTouchStart, handleTouchMove, handleTouchEnd } = useOptimizedGameInputBridge(
@@ -237,7 +237,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     enhancedUpdatePetePosition,
     {
       debounceMs: 16, // 60fps throttling
-      disabled: aiEnabled, // Disable touch input when AI is controlling
+      disabled: isAIModeEnabled && aiEnabled, // Disable touch input only when AI mode is enabled AND AI is controlling
     }
   );
 
@@ -537,8 +537,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
           {/* Power-up Display */}
           {isFeatureEnabled('economy.powerUpShop') && <PowerUpHUD />}
 
-          {/* AI Debug Panel */}
-          {__DEV__ && (
+          {/* AI Debug Panel - only show when AI mode is enabled via environment */}
+          {__DEV__ && isAIModeEnabled && (
             <View style={styles.aiDebugPanel}>
               <Text style={styles.aiDebugTitle}>AI Analytics & Debug</Text>
               
@@ -636,9 +636,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                   <TouchableOpacity
                     style={styles.analyticsButton}
                     onPress={() => {
-                      const data = aiPlayer.exportAnalytics();
-                      setAnalyticsData(data.summary as any);
-                      console.log('🎯 Analytics Export:', data);
+                      if (aiPlayer) {
+                        const data = aiPlayer.exportAnalytics();
+                        setAnalyticsData(data.summary as any);
+                        console.log('🎯 Analytics Export:', data);
+                      }
                     }}
                   >
                     <Text style={styles.analyticsButtonText}>Export Data</Text>
@@ -647,10 +649,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                   <TouchableOpacity
                     style={[styles.analyticsButton, { backgroundColor: '#e74c3c' }]}
                     onPress={() => {
-                      aiPlayer.clearAnalytics();
-                      setCurrentSession(null);
-                      setAnalyticsData(null);
-                      console.log('🎯 Analytics cleared');
+                      if (aiPlayer) {
+                        aiPlayer.clearAnalytics();
+                        setCurrentSession(null);
+                        setAnalyticsData(null);
+                        console.log('🎯 Analytics cleared');
+                      }
                     }}
                   >
                     <Text style={styles.analyticsButtonText}>Clear Data</Text>
