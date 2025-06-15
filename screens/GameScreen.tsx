@@ -25,8 +25,9 @@ import { useCelebrationManager } from '@/hooks/useCelebrationManager';
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { useOptimizedGameInputBridge } from '@/hooks/useOptimizedGameInputBridge';
 import { useTutorialIntegration } from '@/hooks/useTutorialIntegration';
-import { useAIPlayer, AI_MODE_ENABLED } from '@/hooks/useAIPlayer';
-import { AI_PRESETS } from '@/pete_ai';
+import { useAIPlayer, AI_MODE_ENABLED, DEFAULT_AI_OPTIONS } from '@/hooks/useAIPlayer';
+import { AI_PRESETS, AIMetrics } from '@/pete_ai';
+import { aiAnalytics, AnalyticsSession } from '@/utils/AIAnalytics';
 
 // Store
 import { useGameActions, useGameOver, useIsPlaying, useLevel, useLives, useScore } from '@/store/gameStore';
@@ -118,6 +119,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   // AI Player state
   const [aiEnabled, setAIEnabled] = useState(AI_MODE_ENABLED);
   const [aiPreset, setAIPreset] = useState<keyof typeof AI_PRESETS>('aggressive');
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [currentSession, setCurrentSession] = useState<AnalyticsSession | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<AIMetrics | null>(null);
   
   // Debug AI state changes
   useEffect(() => {
@@ -212,8 +216,16 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
       enabled: aiEnabled,
       preset: aiPreset,
       decisionInterval: 100,
+      enableAnalytics: true,
+      enablePerformanceMonitoring: true,
       onAction: (action, gameState) => {
         console.log('🎮 AI Action Executed:', action.type, 'with', gameState.enemies.length, 'enemies');
+        
+        // Update current session for real-time analytics display
+        const session = aiPlayer.getAnalyticsSession();
+        if (session) {
+          setCurrentSession(session);
+        }
       }
     }
   );
@@ -528,7 +540,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
           {/* AI Debug Panel */}
           {__DEV__ && (
             <View style={styles.aiDebugPanel}>
-              <Text style={styles.aiDebugTitle}>AI Debug</Text>
+              <Text style={styles.aiDebugTitle}>AI Analytics & Debug</Text>
+              
+              {/* AI Controls */}
               <View style={styles.aiToggleRow}>
                 <Text style={styles.aiDebugLabel}>AI Mode:</Text>
                 <TouchableOpacity
@@ -542,7 +556,17 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                     {aiEnabled ? 'ON' : 'OFF'}
                   </Text>
                 </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.aiToggle, { marginLeft: 10 }, showAnalytics && styles.aiToggleActive]}
+                  onPress={() => setShowAnalytics(!showAnalytics)}
+                >
+                  <Text style={[styles.aiToggleText, showAnalytics && styles.aiToggleTextActive]}>
+                    Analytics
+                  </Text>
+                </TouchableOpacity>
               </View>
+              
               {aiEnabled && (
                 <View style={styles.aiPresetRow}>
                   <Text style={styles.aiDebugLabel}>Preset:</Text>
@@ -567,6 +591,72 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
                   Game: {isPlaying ? 'Playing' : 'Stopped'} | Enemies: {enemies?.length || 0} | Pete: {Math.round(petePosition.current)}
                 </Text>
               </View>
+              
+              {/* Real-time Analytics Display */}
+              {showAnalytics && currentSession && (
+                <View style={styles.analyticsPanel}>
+                  <Text style={styles.analyticsTitle}>Live Analytics</Text>
+                  <Text style={styles.analyticsText}>
+                    Events: {currentSession.events.length} | Session: {((Date.now() - currentSession.startTime) / 1000).toFixed(1)}s
+                  </Text>
+                  
+                  {currentSession.metrics && (
+                    <View style={styles.metricsGrid}>
+                      <Text style={styles.metricsText}>
+                        Accuracy: {currentSession.metrics.accuracy.toFixed(1)}% | Shots: {currentSession.metrics.totalShots}
+                      </Text>
+                      <Text style={styles.metricsText}>
+                        Movements: {currentSession.metrics.totalMovements} | FPS: {currentSession.metrics.averageFPS.toFixed(1)}
+                      </Text>
+                      <Text style={styles.metricsText}>
+                        Threats: {currentSession.metrics.threatsDetected} | Dodged: {currentSession.metrics.threatsAvoided}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {currentSession.insights && (
+                    <View style={styles.insightsPanel}>
+                      <Text style={styles.insightsTitle}>Game Balance Insights:</Text>
+                      <Text style={styles.insightsText}>
+                        Difficulty: {currentSession.insights.levelDifficulty.difficultyRating.replace('_', ' ')}
+                      </Text>
+                      {currentSession.insights.recommendations.slice(0, 2).map((rec, index) => (
+                        <Text key={index} style={styles.recommendationText}>
+                          • {rec}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+              
+              {/* Analytics Controls */}
+              {showAnalytics && (
+                <View style={styles.analyticsControls}>
+                  <TouchableOpacity
+                    style={styles.analyticsButton}
+                    onPress={() => {
+                      const data = aiPlayer.exportAnalytics();
+                      setAnalyticsData(data.summary as any);
+                      console.log('🎯 Analytics Export:', data);
+                    }}
+                  >
+                    <Text style={styles.analyticsButtonText}>Export Data</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[styles.analyticsButton, { backgroundColor: '#e74c3c' }]}
+                    onPress={() => {
+                      aiPlayer.clearAnalytics();
+                      setCurrentSession(null);
+                      setAnalyticsData(null);
+                      console.log('🎯 Analytics cleared');
+                    }}
+                  >
+                    <Text style={styles.analyticsButtonText}>Clear Data</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               
               {/* Quick Start Button */}
               {!isPlaying && (
@@ -788,6 +878,73 @@ const styles = StyleSheet.create({
   aiStartButtonText: {
     color: 'white',
     fontSize: 9,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  // Enhanced Analytics Styles
+  analyticsPanel: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#555',
+  },
+  analyticsTitle: {
+    color: '#4CAF50',
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  analyticsText: {
+    color: '#ccc',
+    fontSize: 9,
+    marginBottom: 4,
+  },
+  metricsGrid: {
+    marginVertical: 4,
+  },
+  metricsText: {
+    color: '#87CEEB',
+    fontSize: 8,
+    marginBottom: 2,
+  },
+  insightsPanel: {
+    marginTop: 6,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#444',
+  },
+  insightsTitle: {
+    color: '#FFB74D',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginBottom: 3,
+  },
+  insightsText: {
+    color: '#FFD54F',
+    fontSize: 8,
+    marginBottom: 2,
+  },
+  recommendationText: {
+    color: '#A5D6A7',
+    fontSize: 8,
+    marginBottom: 1,
+  },
+  analyticsControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    gap: 5,
+  },
+  analyticsButton: {
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 3,
+    flex: 1,
+  },
+  analyticsButtonText: {
+    color: 'white',
+    fontSize: 8,
     textAlign: 'center',
     fontWeight: 'bold',
   },

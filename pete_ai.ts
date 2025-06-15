@@ -34,8 +34,10 @@ export interface GameState {
   // Game status
   isPlaying: boolean;
   isPaused: boolean;
+  gameOver: boolean;
   score: number;
   lives: number;
+  level: number;
 }
 
 export interface AIConfig {
@@ -260,34 +262,154 @@ export const AI_PRESETS = {
 };
 
 /**
- * AI performance metrics for data collection
+ * Comprehensive AI performance metrics for data collection and game balance analysis
  */
 export interface AIMetrics {
+  // Basic Performance
   totalShots: number;
   hits: number;
+  misses: number;
   accuracy: number;
+  
+  // Movement Analysis
   totalMovements: number;
   averageDistanceFromCenter: number;
+  movementEfficiency: number;
+  dodgeSuccessRate: number;
+  
+  // Timing & Reactions
+  averageReactionTime: number;
+  fastestReaction: number;
+  slowestReaction: number;
+  
+  // Threat Assessment
+  threatsDetected: number;
+  threatsAvoided: number;
+  threatsHit: number;
+  
+  // Game Progression
   survivalTime: number;
   score: number;
   level: number;
+  levelCompleted: boolean;
+  
+  // Decision Quality
+  optimalDecisions: number;
+  suboptimalDecisions: number;
+  decisionSpeed: number;
+  
+  // Enemy Interaction
+  enemiesDestroyed: number;
+  enemiesMissed: number;
+  powerUpsCollected: number;
+  
+  // Performance Metrics
+  averageFPS: number;
+  frameDrops: number;
+  memoryUsage: number;
 }
 
 /**
- * Calculate AI performance metrics from game data
+ * Real-time analytics event for tracking individual game actions
+ */
+export interface AIAnalyticsEvent {
+  timestamp: number;
+  type: 'shot' | 'hit' | 'miss' | 'dodge' | 'threat_detected' | 'enemy_destroyed' | 'decision' | 'performance';
+  data: {
+    action?: AIAction;
+    gameState?: Partial<GameState>;
+    reactionTime?: number;
+    threatLevel?: number;
+    decisionQuality?: 'optimal' | 'good' | 'poor';
+    fps?: number;
+    memoryMB?: number;
+    [key: string]: any;
+  };
+}
+
+/**
+ * Game balance insights derived from AI analytics
+ */
+export interface GameBalanceInsights {
+  levelDifficulty: {
+    completionRate: number;
+    averageAttempts: number;
+    difficultyRating: 'too_easy' | 'balanced' | 'too_hard';
+  };
+  
+  enemyBalance: {
+    spawningRate: number;
+    threatLevel: number;
+    eliminationEfficiency: number;
+  };
+  
+  performanceImpact: {
+    fpsStability: number;
+    memoryEfficiency: number;
+    thermalThrottling: boolean;
+  };
+  
+  recommendations: string[];
+}
+
+/**
+ * Calculate comprehensive AI performance metrics from game data and analytics events
  */
 export function calculateAIMetrics(
   gameHistory: Array<{ state: GameState; action: AIAction; timestamp: number }>,
+  analyticsEvents: AIAnalyticsEvent[],
   finalState: GameState
 ): AIMetrics {
   const totalShots = gameHistory.filter(entry => entry.action.type === 'shoot').length;
   const movements = gameHistory.filter(entry => entry.action.type === 'move');
   
-  // Calculate average distance from center
+  // Calculate hits and misses from analytics events
+  const hitEvents = analyticsEvents.filter(e => e.type === 'hit');
+  const missEvents = analyticsEvents.filter(e => e.type === 'miss');
+  const hits = hitEvents.length;
+  const misses = missEvents.length;
+  const accuracy = totalShots > 0 ? (hits / totalShots) * 100 : 0;
+  
+  // Calculate movement efficiency and center distance
   const centerX = finalState.screenWidth / 2;
   const avgDistanceFromCenter = gameHistory.reduce((sum, entry) => 
     sum + Math.abs(entry.state.peteX - centerX), 0
   ) / gameHistory.length;
+  
+  // Calculate movement efficiency (distance moved vs threats avoided)
+  const totalDistance = movements.reduce((sum, move, index) => {
+    if (index === 0 || move.action.type !== 'move') return sum;
+    const prevMove = movements[index - 1];
+    if (prevMove.action.type !== 'move') return sum;
+    return sum + Math.abs(move.action.x - prevMove.action.x);
+  }, 0);
+  const threatsAvoided = analyticsEvents.filter(e => e.type === 'dodge').length;
+  const movementEfficiency = threatsAvoided > 0 ? totalDistance / threatsAvoided : 0;
+  
+  // Calculate reaction times
+  const reactionTimes = analyticsEvents
+    .filter(e => e.data.reactionTime)
+    .map(e => e.data.reactionTime!);
+  const averageReactionTime = reactionTimes.length > 0 ? 
+    reactionTimes.reduce((sum, time) => sum + time, 0) / reactionTimes.length : 0;
+  
+  // Calculate threat detection and avoidance
+  const threatEvents = analyticsEvents.filter(e => e.type === 'threat_detected');
+  const dodgeEvents = analyticsEvents.filter(e => e.type === 'dodge');
+  const threatsDetected = threatEvents.length;
+  const dodgeSuccessRate = threatsDetected > 0 ? (dodgeEvents.length / threatsDetected) * 100 : 0;
+  
+  // Calculate decision quality
+  const decisionEvents = analyticsEvents.filter(e => e.type === 'decision');
+  const optimalDecisions = decisionEvents.filter(e => e.data.decisionQuality === 'optimal').length;
+  const suboptimalDecisions = decisionEvents.filter(e => e.data.decisionQuality === 'poor').length;
+  
+  // Calculate performance metrics
+  const performanceEvents = analyticsEvents.filter(e => e.type === 'performance');
+  const fpsValues = performanceEvents.map(e => e.data.fps!).filter(fps => fps > 0);
+  const averageFPS = fpsValues.length > 0 ? 
+    fpsValues.reduce((sum, fps) => sum + fps, 0) / fpsValues.length : 0;
+  const frameDrops = fpsValues.filter(fps => fps < 55).length;
   
   // Calculate survival time
   const startTime = gameHistory[0]?.timestamp || 0;
@@ -295,13 +417,48 @@ export function calculateAIMetrics(
   const survivalTime = endTime - startTime;
   
   return {
+    // Basic Performance
     totalShots,
-    hits: 0, // Would need to be calculated from collision events
-    accuracy: 0, // Would need hit data
+    hits,
+    misses,
+    accuracy,
+    
+    // Movement Analysis
     totalMovements: movements.length,
     averageDistanceFromCenter: avgDistanceFromCenter,
+    movementEfficiency,
+    dodgeSuccessRate,
+    
+    // Timing & Reactions
+    averageReactionTime,
+    fastestReaction: reactionTimes.length > 0 ? Math.min(...reactionTimes) : 0,
+    slowestReaction: reactionTimes.length > 0 ? Math.max(...reactionTimes) : 0,
+    
+    // Threat Assessment
+    threatsDetected,
+    threatsAvoided: dodgeEvents.length,
+    threatsHit: threatsDetected - dodgeEvents.length,
+    
+    // Game Progression
     survivalTime,
     score: finalState.score,
-    level: 1, // Would need level data from game state
+    level: finalState.level || 1,
+    levelCompleted: !finalState.gameOver && finalState.score > 0,
+    
+    // Decision Quality
+    optimalDecisions,
+    suboptimalDecisions,
+    decisionSpeed: decisionEvents.length > 0 ? survivalTime / decisionEvents.length : 0,
+    
+    // Enemy Interaction
+    enemiesDestroyed: hitEvents.length,
+    enemiesMissed: missEvents.length,
+    powerUpsCollected: 0, // Will be enhanced later
+    
+    // Performance Metrics
+    averageFPS,
+    frameDrops,
+    memoryUsage: performanceEvents.length > 0 ? 
+      performanceEvents[performanceEvents.length - 1].data.memoryMB || 0 : 0,
   };
 }
