@@ -25,9 +25,6 @@ import { useCelebrationManager } from '@/hooks/useCelebrationManager';
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { useOptimizedGameInputBridge } from '@/hooks/useOptimizedGameInputBridge';
 import { useTutorialIntegration } from '@/hooks/useTutorialIntegration';
-import { useAIPlayer, AI_MODE_ENABLED, DEFAULT_AI_OPTIONS } from '@/hooks/useAIPlayer';
-import { AI_PRESETS, AIMetrics } from '@/pete_ai';
-import { aiAnalytics, AnalyticsSession } from '@/utils/AIAnalytics';
 
 // Store
 import { useGameActions, useGameOver, useIsPlaying, useLevel, useLives, useScore } from '@/store/gameStore';
@@ -116,36 +113,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
   // Save Me state (one per level)
   const [saveMeUsed, setSaveMeUsed] = useState(false);
 
-  // AI Player state
-  const [aiEnabled, setAIEnabled] = useState(AI_MODE_ENABLED);
-  const [aiPreset, setAIPreset] = useState<keyof typeof AI_PRESETS>('aggressive');
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [currentSession, setCurrentSession] = useState<AnalyticsSession | null>(null);
-  const [analyticsData, setAnalyticsData] = useState<AIMetrics | null>(null);
-  
-  // Debug AI state changes
-  useEffect(() => {
-    console.log('🎮 GameScreen AI State:', {
-      aiEnabled,
-      aiPreset,
-      AI_MODE_ENABLED,
-      envVar: process.env.EXPO_PUBLIC_AI_MODE,
-      __DEV__
-    });
-  }, [aiEnabled, aiPreset]);
-
-  // Debug AI Player initialization
-  useEffect(() => {
-    console.log('🎮 AI Player State:', {
-      aiEnabled,
-      aiPreset,
-      peteXPosition: petePosition.current,
-      enemyCount: enemies?.length || 0,
-      projectileCount: projectiles?.length || 0,
-      screenDimensions: { width: screenWidth, height: gameAreaHeight },
-      gameState: { isPlaying, gameOver, score, lives }
-    });
-  }, [aiEnabled, aiPreset, enemies?.length, projectiles?.length, isPlaying, gameOver]);
 
   // Game logic hook
   const {
@@ -200,44 +167,13 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
     trackTutorialProgress('swipe');
   }, [updatePetePosition, trackTutorialProgress]);
 
-  // AI Player integration (log moved to useEffect to prevent render loops)
-
-  const aiPlayer = useAIPlayer(
-    petePosition,
-    enemies,
-    projectiles,
-    screenWidth,
-    gameAreaHeight,
-    {
-      updatePetePosition: enhancedUpdatePetePosition,
-      shootProjectile: enhancedShootProjectile,
-    },
-    {
-      enabled: aiEnabled,
-      preset: aiPreset,
-      decisionInterval: 100,
-      enableAnalytics: true,
-      enablePerformanceMonitoring: true,
-      onAction: (action, gameState) => {
-        console.log('🎮 AI Action Executed:', action.type, 'with', gameState.enemies.length, 'enemies');
-        
-        // Update current session for real-time analytics display
-        const session = aiPlayer.getAnalyticsSession();
-        if (session) {
-          setCurrentSession(session);
-        }
-      }
-    }
-  );
-
-  // Optimized game input handling (disabled when AI is active)
+  // Optimized game input handling
   const { handleTouchStart, handleTouchMove, handleTouchEnd } = useOptimizedGameInputBridge(
     screenWidth,
     enhancedShootProjectile,
     enhancedUpdatePetePosition,
     {
       debounceMs: 16, // 60fps throttling
-      disabled: aiEnabled, // Disable touch input when AI is controlling
     }
   );
 
@@ -537,142 +473,6 @@ export const GameScreen: React.FC<GameScreenProps> = ({ onBackToMenu, onWorldMap
           {/* Power-up Display */}
           {isFeatureEnabled('economy.powerUpShop') && <PowerUpHUD />}
 
-          {/* AI Debug Panel */}
-          {__DEV__ && (
-            <View style={styles.aiDebugPanel}>
-              <Text style={styles.aiDebugTitle}>AI Analytics & Debug</Text>
-              
-              {/* AI Controls */}
-              <View style={styles.aiToggleRow}>
-                <Text style={styles.aiDebugLabel}>AI Mode:</Text>
-                <TouchableOpacity
-                  style={[styles.aiToggle, aiEnabled && styles.aiToggleActive]}
-                  onPress={() => {
-                    console.log('🎮 AI Toggle Pressed - changing from', aiEnabled, 'to', !aiEnabled);
-                    setAIEnabled(!aiEnabled);
-                  }}
-                >
-                  <Text style={[styles.aiToggleText, aiEnabled && styles.aiToggleTextActive]}>
-                    {aiEnabled ? 'ON' : 'OFF'}
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[styles.aiToggle, { marginLeft: 10 }, showAnalytics && styles.aiToggleActive]}
-                  onPress={() => setShowAnalytics(!showAnalytics)}
-                >
-                  <Text style={[styles.aiToggleText, showAnalytics && styles.aiToggleTextActive]}>
-                    Analytics
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              
-              {aiEnabled && (
-                <View style={styles.aiPresetRow}>
-                  <Text style={styles.aiDebugLabel}>Preset:</Text>
-                  <TouchableOpacity
-                    style={styles.aiPresetButton}
-                    onPress={() => {
-                      const presets = Object.keys(AI_PRESETS) as (keyof typeof AI_PRESETS)[];
-                      const currentIndex = presets.indexOf(aiPreset);
-                      const nextIndex = (currentIndex + 1) % presets.length;
-                      console.log('🎮 AI Preset changing from', aiPreset, 'to', presets[nextIndex]);
-                      setAIPreset(presets[nextIndex]);
-                    }}
-                  >
-                    <Text style={styles.aiPresetText}>{aiPreset}</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              
-              {/* Game State Debug Info */}
-              <View style={styles.aiDebugInfoRow}>
-                <Text style={styles.aiDebugInfo}>
-                  Game: {isPlaying ? 'Playing' : 'Stopped'} | Enemies: {enemies?.length || 0} | Pete: {Math.round(petePosition.current)}
-                </Text>
-              </View>
-              
-              {/* Real-time Analytics Display */}
-              {showAnalytics && currentSession && (
-                <View style={styles.analyticsPanel}>
-                  <Text style={styles.analyticsTitle}>Live Analytics</Text>
-                  <Text style={styles.analyticsText}>
-                    Events: {currentSession.events.length} | Session: {((Date.now() - currentSession.startTime) / 1000).toFixed(1)}s
-                  </Text>
-                  
-                  {currentSession.metrics && (
-                    <View style={styles.metricsGrid}>
-                      <Text style={styles.metricsText}>
-                        Accuracy: {currentSession.metrics.accuracy.toFixed(1)}% | Shots: {currentSession.metrics.totalShots}
-                      </Text>
-                      <Text style={styles.metricsText}>
-                        Movements: {currentSession.metrics.totalMovements} | FPS: {currentSession.metrics.averageFPS.toFixed(1)}
-                      </Text>
-                      <Text style={styles.metricsText}>
-                        Threats: {currentSession.metrics.threatsDetected} | Dodged: {currentSession.metrics.threatsAvoided}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {currentSession.insights && (
-                    <View style={styles.insightsPanel}>
-                      <Text style={styles.insightsTitle}>Game Balance Insights:</Text>
-                      <Text style={styles.insightsText}>
-                        Difficulty: {currentSession.insights.levelDifficulty.difficultyRating.replace('_', ' ')}
-                      </Text>
-                      {currentSession.insights.recommendations.slice(0, 2).map((rec, index) => (
-                        <Text key={index} style={styles.recommendationText}>
-                          • {rec}
-                        </Text>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              )}
-              
-              {/* Analytics Controls */}
-              {showAnalytics && (
-                <View style={styles.analyticsControls}>
-                  <TouchableOpacity
-                    style={styles.analyticsButton}
-                    onPress={() => {
-                      const data = aiPlayer.exportAnalytics();
-                      setAnalyticsData(data.summary as any);
-                      console.log('🎯 Analytics Export:', data);
-                    }}
-                  >
-                    <Text style={styles.analyticsButtonText}>Export Data</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[styles.analyticsButton, { backgroundColor: '#e74c3c' }]}
-                    onPress={() => {
-                      aiPlayer.clearAnalytics();
-                      setCurrentSession(null);
-                      setAnalyticsData(null);
-                      console.log('🎯 Analytics cleared');
-                    }}
-                  >
-                    <Text style={styles.analyticsButtonText}>Clear Data</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              
-              {/* Quick Start Button */}
-              {!isPlaying && (
-                <TouchableOpacity
-                  style={styles.aiStartButton}
-                  onPress={async () => {
-                    console.log('🎮 Quick Start pressed - starting game');
-                    await levelActions.loadLevel(1);
-                    actions.setIsPlaying(true);
-                  }}
-                >
-                  <Text style={styles.aiStartButtonText}>START GAME</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
 
           {/* Mystery Reward Celebrations */}
           {mysteryRewards.map(mysteryReward => (
@@ -790,162 +590,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.9,
     marginTop: 2,
-  },
-  aiDebugPanel: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    borderRadius: 8,
-    padding: 10,
-    minWidth: 120,
-    zIndex: 1000,
-  },
-  aiDebugTitle: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  aiToggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  aiPresetRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  aiDebugLabel: {
-    color: 'white',
-    fontSize: 10,
-    flex: 1,
-  },
-  aiToggle: {
-    backgroundColor: '#333',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    minWidth: 35,
-  },
-  aiToggleActive: {
-    backgroundColor: UI_PALETTE.primary,
-  },
-  aiToggleText: {
-    color: '#999',
-    fontSize: 10,
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  aiToggleTextActive: {
-    color: 'white',
-  },
-  aiPresetButton: {
-    backgroundColor: '#444',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 3,
-    flex: 1,
-    marginLeft: 5,
-  },
-  aiPresetText: {
-    color: 'white',
-    fontSize: 9,
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  aiDebugInfoRow: {
-    marginTop: 6,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#555',
-  },
-  aiDebugInfo: {
-    color: '#ccc',
-    fontSize: 8,
-    textAlign: 'center',
-  },
-  aiStartButton: {
-    backgroundColor: UI_PALETTE.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginTop: 6,
-  },
-  aiStartButtonText: {
-    color: 'white',
-    fontSize: 9,
-    textAlign: 'center',
-    fontWeight: 'bold',
-  },
-  // Enhanced Analytics Styles
-  analyticsPanel: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#555',
-  },
-  analyticsTitle: {
-    color: '#4CAF50',
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  analyticsText: {
-    color: '#ccc',
-    fontSize: 9,
-    marginBottom: 4,
-  },
-  metricsGrid: {
-    marginVertical: 4,
-  },
-  metricsText: {
-    color: '#87CEEB',
-    fontSize: 8,
-    marginBottom: 2,
-  },
-  insightsPanel: {
-    marginTop: 6,
-    paddingTop: 4,
-    borderTopWidth: 1,
-    borderTopColor: '#444',
-  },
-  insightsTitle: {
-    color: '#FFB74D',
-    fontSize: 10,
-    fontWeight: 'bold',
-    marginBottom: 3,
-  },
-  insightsText: {
-    color: '#FFD54F',
-    fontSize: 8,
-    marginBottom: 2,
-  },
-  recommendationText: {
-    color: '#A5D6A7',
-    fontSize: 8,
-    marginBottom: 1,
-  },
-  analyticsControls: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
-    gap: 5,
-  },
-  analyticsButton: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 3,
-    flex: 1,
-  },
-  analyticsButtonText: {
-    color: 'white',
-    fontSize: 8,
-    textAlign: 'center',
-    fontWeight: 'bold',
   },
 });
